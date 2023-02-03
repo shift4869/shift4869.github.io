@@ -1,0 +1,190 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<meta http-equiv="content-type" content="text/css; charset=shift_jis">
+<link rel="stylesheet" href="./styleTet.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<base href="http://1st.geocities.jp/shift486909/tetlec/">
+</head>
+<body>
+<p align="left"><br>
+<img src="chapter_g/13g.gif" width="402" height="60" alt=""><br>
+<br>
+<h2>壁蹴り</h2>
+埋まっているところを修正してずらすことを壁蹴りといいます。<br>
+<img src="13/13_1.gif" width="91" height="94" alt=""><img src="13/13_2.gif" width="89" height="91" alt=""><img src="13/13_3.gif" width="96" height="89" alt=""><br>
+<br>
+どの方向に埋まっているかどうかを調べて、<br>
+ピンポイントで修正する方法もありますが、<br>
+今回はフィールドの無効な場所にあったら、<br>
+適当に左・右・上にずらして、近いところで有効になる位置を探します。<br>
+<br>
+前回のIsValid()関数が活躍します。<br>
+キャッシュを試しに移動させてみて、有効かどうかを調べます。<br>
+後はソース内のコメントに書いたので、見てください。<br>
+<hr>
+<pre>
+//<span class="red">Spin.cpp</span>
+#include "../include/main.h"
+
+//テトリミノの回転処理
+bool Spin(TetriMino&amp; t,bool isLeft){
+
+	//黄色は回転しない
+	if(t.blk[0].knd==YELLOW)return true;
+
+	//キャッシュ
+	TetriMino n=t;
+	//キャッシュのfieldをクリア
+	memset(n.field,false,sizeof(bool)*5*5);
+	
+	//回転後の位置にあるキャッシュのfieldをtrueに
+	for(int x=0;x&lt;5;x++){
+		for(int y=0;y&lt;5;y++){
+			if(t.field[x][y]){
+				if(isLeft)	n.field[y][4-x]=true;//左回転
+				else		n.field[4-y][x]=true;//右回転
+			}
+		}
+	}
+
+	//blk同期
+	FieldToBlk(n);
+
+	//壁蹴り処理
+	const int TEST_NUM=2;	//試行回数
+	int moveCnt=1;			//移動回数カウンタ
+	int tCnt=0;				//方向カウンタ
+	TetriMino tk=n;			//試行用テトリミノキャッシュ
+
+	//有効な位置にいなければ
+	while(!IsValid(tk)){
+		tk=n;//キャッシュリセット
+		switch(tCnt){//方向
+			case 0://左にずらしてみる
+				AddX(tk,-BS*moveCnt);
+				break;
+			case 1://右にずらしてみる
+				AddX(tk,BS*moveCnt);
+				break;
+			case 2://上にずらしてみる
+				AddY(tk,-BS);
+				AddY(n,-BS);//基準も上にずらす
+				moveCnt++;	//試行1回終了
+				break;
+			default://エラー
+				throw "bool Spin()::tCnt error";
+				break;
+		}
+		tCnt=(++tCnt)%3;//方向カウンタアップ
+
+		//試行回数を超えたら強制終了
+		if(moveCnt>TEST_NUM)return false;
+	}
+
+	//キャッシュをtに反映
+	t=tk;
+
+	//回転終了
+	return true;
+}
+<hr>
+//<span class="red">control.cpp</span>
+#include "../include/main.h"
+
+//コントロール
+void Control(){
+	if(cur.flag){
+		//入力状況を取得
+		int input[]={
+			CheckStatePad(config.left),
+			CheckStatePad(config.right),
+			CheckStatePad(config.up),
+			CheckStatePad(config.down),
+			CheckStatePad(config.lspin),
+			CheckStatePad(config.rspin),
+			CheckStatePad(config.stock),
+		};
+
+		//自動落下の間隔
+		int interval=40;
+
+		//左
+		if(input[0]==1 || (input[0]>12 &amp;&amp; input[0]%5==0)){
+			AddX(cur,-BS);
+			if(!IsInField(cur))AddX(cur,BS);
+		}//右
+		else if(input[1]==1 || (input[1]>12 &amp;&amp; input[1]%5==0)){
+			AddX(cur,BS);
+			if(!IsInField(cur))AddX(cur,-BS);
+		}//上
+		else if(input[2]==1){
+			while(IsInField(cur)){
+				AddY(cur,BS);
+			}
+			AddY(cur,-BS);
+			cur.flag=false;
+		}//下
+		else if(input[3]){
+			interval=5;
+		}
+		
+		<span class="red">//回転
+		if(input[4]==1){
+			Spin(cur,true);//左回転
+		}
+		else if(input[5]==1){
+			Spin(cur,false);//右回転
+		}</span>
+
+		if(cur.cnt%interval==0){
+			//自動落下
+			AddY(cur,BS);
+			if(!IsInField(cur)){
+				AddY(cur,-BS);
+				cur.flag=false;
+			}
+		}
+
+		//着地したら
+		if(cur.flag==false){
+			//保持しているblkをフィールドへ追加
+			for(int i=0;i&lt;4;i++){
+				blkList.push_back(cur.blk[i]);
+			}
+		}
+
+		//カウントアップ
+		cur.cnt++;
+	}
+	else{
+		//新テトリミノ生成
+		cur=CreateTetriMino(Point(FX+BS*6,FY-BS*2),(BLK_COL)GetRand(BLK_KND_NUM-1));
+		//画面内有効フラグをtrueに
+		cur.flag=true;
+	}
+}
+</pre>
+<hr>
+いつものようにfunc.hにSpin()の関数プロトタイプ宣言を書いてください。<br>
+while(!IsValid(tk))を通り抜けたtkは、フィールド上に存在できると保証されています。<br>
+なので、その後だったらtに反映しても画面端や他のブロックに埋まりません。<br>
+<br>
+なお、下の図のような位置では回転させることはできません。これは仕様です。<br>
+<img src="13/13_4.gif" width="187" height="470" alt=""><br>
+<br>
+次回は着地してからの猶予時間を制御します。<br>
+</p>
+<hr size="2">
+
+<script type="text/javascript">
+write_locate(14);
+topic("index","../index.html");
+topic("テトリス作成講座","./tetlec_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+
+</body></html>

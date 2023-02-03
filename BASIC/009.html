@@ -1,0 +1,108 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=SHIFT_JIS">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>カプレカー操作</title>
+<link rel="stylesheet" type="text/css" href="bg.css">
+<base href="http://1st.geocities.jp/shift486909/BASIC/">
+</head>
+<body>
+<p 
+align="left"><strong>・カプレカー操作</strong><br>数学的概念のなかにカプレカー操作というものがあります。<br>「4つの数で作れる一番大きい数から一番小さい数をひく」<br>という操作を繰り返していくと、どんな数からはじめても<font 
+color="#ff0000">6174</font><font 
+color="#000000">に<br>なるそうです。ためしに1234という数からはじめてみましょう。<br><br>はじめ1234<br></p>
+<p align="left">
+<table cellspacing="0" cellpadding="0" width="75%" border="1">
+  <tbody>
+  <tr>
+    <td>　一番大きい数</td>
+    <td>一番小さい数　</td>
+    <td>　　　　　　差　</td></tr>
+  <tr>
+    <td>4321</td>
+    <td>1234　</td>
+    <td>3087　</td></tr>
+  <tr>
+    <td>8730　</td>
+    <td>0378　</td>
+    <td>8352　</td></tr>
+  <tr>
+    <td>8532　</td>
+    <td>2358　</td>
+    <td>6174　</td></tr>
+  <tr>
+    <td>7641　</td>
+    <td>1467　</td>
+    <td>6174　</td></tr></tbody></table></p>
+<p align="left"></font>終わり<font color="#ff0000">6174<br><br></font><font 
+color="#000000">6174からはループします。<br>手作業でするのはけっこう疲れます(^^)<br>プログラムにやらせましょう。<br><br>・4つの数<br>ということでまず4けたの数を4つの数に分解します。<br>変数が4つ欲しいですがA、B、C、Dとすると面倒です。<br>目的が同じなのでまとめて扱える<font 
+color="#ff0000">配列</font>を使いましょう。<br>配列の宣言は<font 
+color="#ff0000">DIM</font>で行います。<br><font color="#ff0000">DIM&nbsp; 
+配列名(要素数)</font><br>例として、DIM&nbsp; 
+A(4)とすると<br>A(1)、A(2)、A(3)、A(4)<br>の4つの変数が用意され、通常の変数と同じように扱えます。<br><br>INPUTでうけとった4けたの数を4つの数にするには<br>例えばINPUTで1234をうけとったとすると、<br><font 
+color="#ff0000">INT(1234/1000)</font>とすれば1234/1000=1,234となりINTによって1になります。<br>これをA(1)に入れます。<br>続いて<font 
+color="#ff0000">INT((1234-A(1)*1000)/100)</font>とすれば、かっこが多いですが、<br>A(1)は1なので1234-1000=234これを100で割ると2,34でINTすると<br>2になります。これをA(2)に入れます。<br>同様に<font 
+color="#ff0000">INT((1234-A(1)*1000-A(2)*100)/10)</font>とすると3となり、<br>これをA(3)にいれます。<br>最後に1234-A(1)*1000-A(2)*100-A(3)*10とすれば4となり、<br>これをA(4)にいれます。<br>これでAの配列に1,2,3,4と4つの数にわけていれることができました。<br>INTを有効に使っています。<br>
+<table style="WIDTH: 301px; HEIGHT: 238px" cellspacing="0" cellpadding="0" width="301" 
+align="left" border="1">
+  <tbody>
+  <tr>
+    <td>INPUT N<br><br>DIM A(4)<br><br>LET A(1)=INT(N/1000)<br>LET 
+      A(2)=INT((N-A(1)*1000)/100)<br>LET 
+      A(3)=INT((N-A(1)*1000-A(2)*100)/10)<br>LET 
+      A(4)=N-A(1)*1000-A(2)*100-A(3)*10<br><br>FOR I=1 TO 
+      4<br>&nbsp;&nbsp;&nbsp; PRINT A(I);<br>NEXT 
+I<br><br>END<br></td></tr></tbody></table>４桁を入力,1234とすると<br><br><br><br>N=1234 , 
+A(1)=1<br>N=1234 , A(1)=1 , A(2)=2<br>N=1234 , A(1)=1 , A(2)=2 , 
+A(3)=3<br>N=1234 , A(1)=1 , A(2)=2 , A(3)=3 , 
+A(4)=4<br><br><br><br><br><br><br><br><br><br><strong>・ソート<br></strong>カプレカー操作は一番大きい数から一番小さい数をひく必要があります。<br>そこでAの配列を大きい順に並べ替えましょう。<br>並べ替えのことを<font 
+color="#ff0000">ソート</font></font><font 
+color="#000000">といいます。<br><br>ソートはIF文とFOR文を使って、A(1)とA(2)を比べ、大きいほうをA(1)とします。<br>次にA(1)とA(3)を比べ、大きいほうをA(1)とします。<br>最後にA(1)とA(4)を比べ、大きいほうをA(1)とすれば一番大きい数がA(1)に入ります。<br>同様にA(2),A(3),A(4)についても同じことをやれば大きい順に並べ替えることができます。<br>要するにすべての要素を比較し、大きい順にA(1),A(2),A(3),A(4)とします。<br>
+<table cellspacing="0" cellpadding="0" width="75%" border="1">
+  <tbody>
+  <tr>
+    <td>FOR I=1 TO 3<br>&nbsp;&nbsp;&nbsp; FOR J=I+1 TO 
+      4<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; IF A(I)&lt;A(J) THEN SWAP 
+      A(I),A(J)<br>&nbsp;&nbsp;&nbsp; NEXT J<br>NEXT 
+I</td></tr></tbody></table><br><br><font 
+color="#ff0000">SWAP</font>はふたつの数を交換する組み込み関数です。<br>A(I)とA(J)を比べ、もしA(I)の方が小さければ（より大きいA(J)と）交換します。<br>これを配列要素すべてにやります。<br>I,Jがどのような値になるか注意しながら見てください。<br><br>
+<table cellspacing="0" cellpadding="0" width="75%" border="1">
+  <tbody>
+  <tr>
+    <td>INPUT N<br>DIM A(4)<br>LET A(1)=INT(N/1000)<br>LET 
+      A(2)=INT((N-A(1)*1000)/100)<br>LET 
+      A(3)=INT((N-A(1)*1000-A(2)*100)/10)<br>LET 
+      A(4)=N-A(1)*1000-A(2)*100-A(3)*10<br><br>FOR I=1 TO 
+      3<br>&nbsp;&nbsp;&nbsp; FOR J=I+1 TO 
+      4<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; IF A(I)&lt;A(J) THEN SWAP 
+      A(I),A(J)<br>&nbsp;&nbsp;&nbsp; NEXT J<br>NEXT I<br><br>MAT PRINT 
+      A;<br><br>END</td></tr></tbody></table><br>MAT PRINT 
+は配列全体を表示する文です。<br>きちんとソートされましたか？<br>IF文の不等号を反対にすればA(1)から小さい数が入ります。<br><br><br><strong>・6174<br></strong>分解した数を4桁の数に戻します。<br>一番大きい数をLとすると<font 
+color="#ff0000">L=A(1)*1000+A(2)*100+A(3)*10+A(4)</font><br>一番小さい数をSとすると<font 
+color="#ff0000">S=A(4)*1000+A(3)*100+A(2)*10+A(1)</font><br>となり、差Mは<font 
+color="#ff0000">M=L-S</font>となります。<br>差Mが一定の値になるまで繰り返します。<br>差Mが一定の値でなければもう一度N=Mとしてカプレカー操作をします。<br>
+<table cellspacing="0" cellpadding="0" width="75%" border="1">
+  <tbody>
+  <tr>
+    <td>INPUT N<br>DIM A(4)<br><br>DO<br><br>LET A(1)=INT(N/1000)<br>LET 
+      A(2)=INT((N-A(1)*1000)/100)<br>LET 
+      A(3)=INT((N-A(1)*1000-A(2)*100)/10)<br>LET 
+      A(4)=N-A(1)*1000-A(2)*100-A(3)*10<br><br>FOR I=1 TO 
+      3<br>&nbsp;&nbsp;&nbsp; FOR J=I+1 TO 
+      4<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; IF A(I)&lt;A(J) THEN SWAP 
+      A(I),A(J)<br>&nbsp;&nbsp;&nbsp; NEXT J<br>NEXT I<br><br>LET 
+      L=A(1)*1000+A(2)*100+A(3)*10+A(4)<br>LET 
+      S=A(4)*1000+A(3)*100+A(2)*10+A(1)<br>LET M=L-S<br>PRINT 
+      L;"-";S;"=";M<br>IF M=N THEN EXIT DO<br>LET 
+    N=M<br><br>LOOP<br><br>END<br></td></tr></tbody></table><br>・改良・発展<br>1 
+このプログラムは1111など同じ数字を4つ入力すると0になります。<br>　これを防ぐにはどうすればいいか<br>(分解した後に全て同じか調べ、同じならそれを表示した後STOPさせる)<br>2 
+3桁の数に対し同じことをするとどうなるか<br>3 
+5桁の数に対し同じことをするとどうなるか<br><br><br><br><br><br><br><br></p>
+<script type="text/javascript" src="./bhn_basic.js"></script>
+<form name="F1">
+<input onclick="back()" onmouseover="window.status='前に戻ります';" type="button" value="//back" name="B1">&nbsp; 
+<input onclick="location.href='../basic.html'" onmouseover="window.status='メニューに戻ります';" type="button" value="//home// " name="B2">&nbsp; 
+<input onclick="next()" onmouseover="window.status='次に進みます';" type="button" value="next//" name="B3">
+</form>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>.パッキングの展開</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<!--<base href="http://1st.geocities.jp/shift486909/">-->
+</head>
+<body>
+<p align="left"><br>
+<h1>パッキングの展開</h1><br>
+<hr>
+<br>
+<h2>・パッキングの展開</h2>
+ファイルパッキングは展開時の方が難しいです。<br>
+ヘッダーを読み込んで、それに従ってファイルデータを読み込みますが、<br>
+ちょっとでも読み込み間違うとファイルデータは意味を持たなくなります。<br>
+特にヘッダーをしっかり読み込むことがここでのメインです。<br>
+<br>
+<h2>・フローチャート</h2>
+読み込みは'\t'タブ記号とサイズを目安にイテレータで挟み込み取得します。<br>
+今回もSTL使いまくりなので実行速度は遅いです。<br>
+<ol>
+<li>パックファイルのパスを受け取る</li>
+<li>イテレータでヘッダー部を挟み、取得</li>
+<li>イテレータでファイルデータ部を挟み、取得</li>
+<li>ファイルデータをパスに従い保存する</li>
+</ol>
+<h3>1.パックファイルのパスを受け取る</h3>
+コマンドライン引数で(ry<br>
+詳しくは<a href="lzss.html">前回</a>参照。<br>
+今回もstringで扱っていきます。<br>
+パックファイルはvector&lt;BYTE&gt;に全体を読み込ませておきます。<br>
+<br>
+
+<h3>(2,3,4).イテレータで挟み、取得　保存</h3>
+データを始めから一つずつ取得していって分岐していくのもいいですが、<br>
+今回はイテレータを使います。<br>
+find()STL関数は始めに見つけたところの位置を返すので、<br>
+検索位置を調整することによって順々に読み込めます。<br>
+
+<pre>
+//変数宣言
+//挟み込みデータ取得イテレータ
+vector&lt;BYTE&gt;::iterator d1,d2;
+int flag=0;//データ種類のフラグ
+string buf;//データバッファ
+
+//イテレータ初期化
+d1=d2=src.begin();
+
+do{//パックファイル展開
+    //次のデータ区切りへ
+    d2=find(d1,src.end(),'\t');
+
+    if(flag%2==0){//サイズ
+        //バッファにサイズを入れる
+        copy(d1,d2,back_inserter(buf));
+
+        d1=d2+1;
+        flag++;
+    }
+    else{//ファイル
+        //変数宣言
+        string fname,fpath;
+        UINT size;
+
+        //サイズをstringからUINTへキャスト
+        istringstream(buf)&gt;&gt;size;
+        //ファイル名取得
+        copy(d1,d2,back_inserter(fname));
+        //ファイルフルパス設定
+        fpath=root+fname;
+
+        //ファイルデータ部を2イテレータで挟む
+        d2++;
+        d1=d2+size;
+
+        //ディレクトリヘッダーならば
+        if(size==0 && fname.end()==find(fname.begin(),fname.end(),'.')){
+            _mkdir(fpath.c_str());//新しいディレクトリを作成
+        }
+        else{//でなければ
+            //変数宣言
+            vector&lt;BYTE&gt; data(size);
+            ofstream fout(fpath.c_str(),ios::binary);
+            if(fout.fail()){
+                throw "ファイル読み込みエラー";
+            }
+
+            //ファイルデータを保存する
+            copy(d2,d1,data.begin());
+            fout.write((char*)&data[0],size);
+        }
+
+        buf.clear();//バッファクリア
+        flag++;
+    }
+}while(d1!=src.end());//最後まで展開する
+</pre>
+vector&lt;BYTE&gt; srcにパックファイルの全データ、<br>
+string rootにルートフォルダのディレクトリパス　が入ってます。<br>
+２イテレータの動きをよく確認して追ってください。<br>
+<img border="0" alt="" src="packing/iterator.jpg" width="698" height="267"><br>
+・・・う～ん一つずつデータをバッファにため込んで処理した方がいいのかも・・・<br>
+イテレータで挟み込んでcopy()がしたかったんだ。うん。<br>
+ヘッダーを取得して、サイズが0かつ拡張子がなければ、ディレクトリと判断して、<br>
+新しいディレクトリを作成します。<br>
+でないと、ファイルデータを保存できません。(新しいファイルを開けません)<br>
+<br><br>
+全体ソースはこちら。<br>
+今回の関数はdispack.cppにあります。<br>
+<a href="packing/main.cpp" target="_blank">main.cpp</a>　　
+<a href="packing/pack.cpp" target="_blank">pack.cpp</a>　　
+<a href="packing/dispack.cpp" target="_blank">dispack.cpp</a>　　
+<a href="packing/pack.txt" target="_blank">pack.h</a><br>
+（「ファイルパッキング」と「パッキングの展開」の両方のソースです）<br>
+<br>
+<h2>・感想</h2>
+圧縮のときとは逆で、ファイルパッキングは展開時の方が難しいです。<br>
+ちょっとトリッキーなコードになってしまって、無駄も多いかと思いますが、<br>
+図を見てイメージできればokです。あとはそれぞれ自分なりにいい手法を見つけてください。<br>
+少しでも参考になれば幸いです。<br>
+<br>
+<h2>・参考サイト様</h2>
+<a href="http://tamachan.club.kyutech.ac.jp/gamewiki/index.php?%A5%D5%A5%A1%A5%A4%A5%EB%A5%D1%A5%C3%A5%AD%A5%F3%A5%B0" target="_blank">ファイルパッキング - ゲームプログラミングWiki</a><br>
+解説してるのはここぐらいしか見つけられませんでした。<br>
+ヘッダー情報がここのとは違う手法ですが、サンプルソースもあります。<br>
+<br>
+<a href="http://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q1132007116">ファイルパッキングされたデータをメモリ内に読み込んだ後のファイルの扱い方につ... - Yahoo!知恵袋</a><br>
+パックされたデータの利用について。<br>
+質問と回答です。<br>
+<br>
+・・・参考サイト様は同じです（＾＾<br>
+<br>
+<hr>
+<script type="text/javascript">
+write_locate(9);
+topic("index","../index.html");
+topic("プログラムテクニック覚え書き","./program_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+</p>
+</body></html>

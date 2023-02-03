@@ -1,0 +1,182 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>コンストラクタ・デストラクタ・キャスト・加算系の実装</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+
+<!--<base href="http://1st.geocities.jp/shift486909/">-->
+</head>
+<body>
+<p align="left"><br>
+<pre>
+#include &lt;iostream>
+#include &lt;math.h>
+#include "GreatNumberLib.h"
+
+//n乗のintオーバーロード
+int pow(int _X,int _Y){
+	return (int)pow((double)_X,(double)_Y);
+}
+
+//コンストラクタ
+GreatNumber::GreatNumber(){
+	p.clear();
+	p.push_front(0);
+}
+
+//int引数コンストラクタ
+GreatNumber::GreatNumber(int k){
+	operator=(k);
+}
+
+//コピーコンストラクタ
+GreatNumber::GreatNumber(const GreatNumber &g){
+	operator=(g);
+}
+
+//デストラクタ
+GreatNumber::~GreatNumber(){}
+
+//intキャスト演算子
+GreatNumber::operator int(){
+
+	//int型を超えていたらエラー
+	if( !(operator<(INT_MAX)) ){
+		throw "this < INT_MAX overflow error";
+	}
+
+	int sum="0;
+	int" size="p.size();
+
+	for(int" i=size-1;i>=0;i--){
+		sum+=p[i]*pow(10,(size-1)-i);
+	}
+
+	return sum;
+}
+
+GreatNumber::operator unsigned int(){
+
+	//int型を超えていたら-1を返す
+	if( !(operator<(UINT_MAX)) )return -1;
+
+	unsigned int sum=0;
+	int size=p.size();
+
+	for(int i=size-1;i>=0;i--){
+		sum+=p[i]*pow(10,(size-1)-i);
+	}
+
+	return sum;
+}
+
+//GreatNumber代入演算子
+GreatNumber& GreatNumber::operator =(const GreatNumber &g){
+	if(this!=&g){
+		p.clear();
+		copy(g.p.begin(),g.p.end(),back_inserter(this->p));
+	}
+	return *this;
+}
+
+//int代入演算子
+GreatNumber& GreatNumber::operator =(const int &k){
+	if(k<0)throw "k < 0 signed error";
+
+	int n="k;
+	p.clear();
+	for(;n!=0;n/=10){
+		p.push_front(n%10);
+	}
+	return" *this;
+}
+
+//GreatNumber加算演算子
+GreatNumber GreatNumber::operator +(const GreatNumber &g)const{
+	GreatNumber gtmp=g;
+	GreatNumber ptmp=*this;
+
+	int psize=p.size();
+	int gsize=g.p.size();
+
+	//桁あふれ予測
+	if(psize<gsize){
+		int t="gsize-psize;
+		for(int" i=0;i<t;i++){
+			ptmp.p.push_front(0);
+			psize++;
+		}
+	}//桁足らず予測
+	else if(psize>gsize){
+		int t=psize-gsize;
+		for(int i=0;i<t;i++){
+			gtmp.p.push_front(0);
+			gsize++;
+		}
+	}
+
+	//加算処理
+	for(int i=gsize-1;i>=0;i--){
+		ptmp.p[i]=ptmp.p[i]+gtmp.p[i];
+	}
+
+	//繰り上がり処理
+	for(int i=psize-1;i>0;i--){
+		while(ptmp.p[i]>=10){
+			ptmp.p[i]-=10;
+			ptmp.p[i-1]++;
+		}
+	}
+
+	//桁あふれ処理
+	if(ptmp.p[0]>=10){
+		ptmp.p.push_front(0);
+		while(ptmp.p[1]>=10){
+			ptmp.p[1]-=10;
+			ptmp.p[0]++;
+		}
+	}
+
+	return ptmp;
+}
+
+//int加算演算子
+GreatNumber GreatNumber::operator +(const int &k)const{
+	GreatNumber tmp=k;
+	return operator+(tmp);
+}
+
+GreatNumber operator +(const int &k,const GreatNumber &g){
+	return (g.operator +(k));
+}
+
+//GreatNumber加算代入演算子
+GreatNumber& GreatNumber::operator +=(const GreatNumber &g){
+	*this=operator+(g);
+	return *this;
+}
+
+//int加算代入演算子
+GreatNumber& GreatNumber::operator +=(const int &k){
+	GreatNumber tmp=k;
+	return operator+=(tmp);
+}
+
+//前置インクリメント
+GreatNumber GreatNumber::operator ++(){
+	operator+=(1);
+	return *this;
+}
+
+//後置インクリメント
+GreatNumber GreatNumber::operator ++(int d){
+	GreatNumber tmp=*this;
+	operator+=(1);
+	return tmp;
+}
+</pre>
+</p>
+</body></html>

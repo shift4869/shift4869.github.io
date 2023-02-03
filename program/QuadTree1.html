@@ -1,0 +1,221 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>14-1.四分木探索（理論編）</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<base href="http://1st.geocities.jp/shift486909/program/">
+</head>
+<body>
+<p align="left"><br>
+<h1>四分木探索（理論編）</h1><br>
+<hr>
+<br>
+<h2>・円と円の当たり判定</h2>
+2次元空間で物体の当たり判定をとることを考えます。<br>
+簡単のため物体の当たり判定の形状は円として、座標(x,y)と半径rで表します。<br>
+<table border="0">
+<tr>
+	<td><img src="./QuadTree/fig01.png" width="316" height="256"></td>
+	<td>
+	<pre>
+	
+	bool IsCollision(const Mover &amp;p,const Mover &amp;q){
+		float dx,dy,dr;
+		dx=q.x-p.x;//水平方向の距離
+		dy=q.y-p.y;//鉛直方向の距離
+		dr=q.r+p.r;//半径の和
+    
+		//三平方の定理
+		return ((dx*dx)+(dy*dy)&lt;(dr*dr));//当たっていたらtrue
+	}
+	</pre>
+	</td>
+</tr>
+</table><br>
+移動物体はMoverクラスで扱い、Moverクラスは座標(x,y)と半径rをメンバとして持ちます。<br>
+上図のように三平方の定理より<span class="red">円と円の当たり判定</span>をとることができます。<br>
+<a href="collision.html">こちら</a>（長方形と円の当たり判定）の最初と同じですね。<br>
+今回はこの<span class="red">円と円の当たり判定</span>について考えていきます。<br>
+<br>
+<h2>・複数の円との当たり判定</h2>
+では、一つのオブジェクトpに対して当たり判定をとるべき物体qが複数あったらどうでしょう。<br>
+ちょうどpを自機、qを敵の弾と見立てた時の当たり判定です。<br>
+pが複数あるqのうちどれか一つにでもあたっているかを調べたい、ということを想定します。<br>
+<img src="QuadTree/fig02.png" width="316" height="256"><br>
+まず思い付くのは上の<span class="red">円と円の当たり判定</span>を全てのqに対して適用することです。<br>
+そのうち一つでもtrueならばpはqのどれかに当たっていると分かり、要件を満たします。<br>
+多くの場合、これでうまくいきます。<span class="green">
+<span class="tool" title="(返り値をMover*にして、falseならNULL,trueならそのqのポインタを返す)">IsCollisionを少し変更すればどのqに当たっているかも返すことができます</span></span>。<br>
+しかしqが非常に多い場合(例えばn=1000個)、当たり判定をとるときのfloat演算による処理時間が莫迦になりません。<br>
+この総当たりの方法のオーダーはqの個数n、つまり&Omicron;(n)です。<br>
+<br>
+そもそもこの方式では<br>
+<img src="QuadTree/fig03.png" width="316" height="256"><br>
+こういう配置でも愚直に全探索します。<br>
+人の目で見ると明らかに遠すぎて当たるはずがないことがひと目で分かるのに、これは無駄に思えます。<br>
+<br>
+<h2>・空間分割</h2>
+先ほどの画像について、ではこうしたらどうでしょう。<br>
+<img src="QuadTree/fig04.png" width="316" height="256"><br>
+画面を4分割し、同じマス目の中にあるもの同士でのみ当たり判定をとる、としたらどうでしょう。<br>
+物体の持つ情報に座標と半径だけでなく、どの空間にいるか(図では0~3の4値)を保持させておき、それぞれリストで保持しておきます。<br>
+pが所属する空間のリスト内でのみ当たり判定をとれば違う空間にいる物体のことは判定する必要がありません。<br>
+上図ではpの所属する空間は1番ですが、1番の空間にはpの他には物体がありません。<br>
+よって当たり判定をとるまでもなくどのqにもぶつかっていない、と分かります。<br>
+<br>
+一見よさそうなアイデアに思いますが、境目でバグります。<br>
+<img src="QuadTree/fig05.png" width="316" height="256"><br>
+そもそも境目に存在する物体の空間番号はどのように表現・保持すればよいでしょうか。<br>
+<span class="red">空間を分割する</span>という発想は良いですが、うまく空間にインデックスをつける必要があるようです。<br>
+<br>
+<h2>・モートン符号</h2>
+ただ空間を分割しただけでは不都合が起こることが分かりました。<br>
+そこで<span class="red">モートン符号</span>を採用します。<br>
+モートン符号は以下のように分割数が異なる空間の重ね合わせで表現する方式です。<br>
+<img src="QuadTree/fig06.png" width="768" height="280"><br>
+境目に存在していたらその一つ上の分割レベルで見て、スッポリ入っているかどうかを見ます。<br>
+最悪0番(中心部など)ですが多くの物体はそれより細かい下位レベルのマス目に収まるでしょう。<br>
+図中の（レベル）とは空間分割レベルのことで、今回は最大空間分割レベルN=2として分割レベルLを0&le;L&le;Nとします。<br>
+<br>
+例として以下のようになります。円の中に書かれている番号がその物体のモートン符号です。<br>
+<img src="QuadTree/fig08.png" width="256" height="256"><br>
+<small>境目をまたいでいれば上位の符号</small><br>
+<br>
+ところでこのインデックスの付け方、違和感がおありでしょうか。<br>
+<img src="QuadTree/fig07.png" width="768" height="280"><br>
+このように<i>Z字型</i>に割り振られてるのですがこれには当然意味があり、素晴らしい性質を持ちます。<br>
+<br>
+モートン符号は正式には各レベル事に０から始まります。<br>
+<img src="QuadTree/fig09.png" width="768" height="280"><br>
+<small>Z字型です</small><br>
+<img src="QuadTree/fig10.png" width="768" height="280"><br>
+モートン符号は<span class="red">『下位レベルのインデックスは上位レベルのインデックスの情報を含む』</span>という性質を持ちます。<br>
+例えば分割レベル2でのマス14はレベル1では3、レベル0では0となりますが（レベル0は0しかないですが）<br>
+14を2進数で表すと<br>
+<img src="QuadTree/shiki01.png" width="189" height="90"><br>
+と各レベルで左上([00]=0),右上([01]=1),左下([10]=2),右下([11]=3)のどの位置に存在しているかが2進bitの各2bitずつで分かります。<br>
+よって14番に所属している（収まっている）物体は、同じ14番,上位の3番,ルートの0番の空間に所属している物体とだけ当たり判定をとれば良いことが分かります。<br>
+それ以外のマスに所属している物体のことは考える必要はありません。<br>
+中間レベル(例えばレベル1の2番)に所属している物体は上位空間に加えて下位空間(レベル2の8,9,10,11)とも判定する必要がありますが、<br>
+それも簡単に求めることができます。（後述）<br>
+<br>
+<br>
+<h2>・四分木探索（理論編）</h2>
+<h3>○インデックス変換</h3>
+レベルL,レベル毎のインデックスIから連番のモートン符号Mを求める変換式を先に求めておきます。<br>
+<img src="QuadTree/fig09.png" width="768" height="280"><br>
+↓L,Iから変換 = M<br>
+<img src="QuadTree/fig06.png" width="768" height="280"><br>
+<br>
+空間の個数は分割レベルが増えるごとに4倍になっているので、初項1,公比4の等比級数の和として<br>
+<img src="QuadTree/shiki02.png" width="205" height="80">・・・（１）<br>
+と求めることができます。<br>
+Mの最大は、L=Nとして<br>
+<img src="QuadTree/shiki03.png" width="347" height="157">・・・（２）<br>
+上式よりL=N=2の時、<span class="red">Mmax=20</span>となります。合っていますね。<br>
+<br>
+<h3>○点座標からモートン符号</h3>
+では実際の点座標p(x,y)からモートン符号を求めてみたいと思います。<br>
+計算には四則演算、及びbit演算を用いて&omicron;(1)で行います。<br>
+大きさを持たない(r=0)ただの点なので境界線をまたぐことはありません。<br>
+よって最大分割レベルL=N=2のインデックスとしてIを求めます。<br>
+<br>
+<img src="QuadTree/fig11.png" width="380" height="380"><br>
+まずp(x,y)から単純に2^N格子としての座標を求めます。<br>
+上図においてx,yそれぞれについて<br>
+<pre>
+	float sx,sy,kx,ky;
+	//格子の一辺の長さ
+	sx=(FMX-FX)/(2^N);	sy=(FMY-FY)/(2^N);
+	//格子座標
+	kx=(x-FX)/(2^N);	ky=(y-FY)/(2^N);
+</pre>
+次に格子座標(kx,ky)を以下のように操作します。<br>
+例えば(kx,ky)=(2,3)の時を考えます。2進数です。<br>
+<img src="QuadTree/shiki04.png" width="584" height="84"><br>
+これで求めたかったIがI=[<span class="red">11 10</span>]=<span class="red">14</span>と求まりました。<br>
+Lは2と決まっているので、これで（１）式より(L,I)からMが求められます。<br>
+<br>
+これで座標からモートン符号を求めることができました。<br>
+<br>
+<br>
+<h3>○大きさのある物体からモートン符号</h3>
+それではいよいよr&gt;0の円を考えます。座標p(x,y),半径rからモートン符号Mを求めます。<br>
+これも&omicron;(1)で可能です。<br>
+<br>
+まず円を囲むボックスの座標を求めます。<br>
+中心p(x,y)と半径rが分かっているのでこれはすぐ分かります。<br>
+<img src="QuadTree/fig13.png" width="256" height="256"><br>
+使うのは左上と右下の座標a,bです。a,bをPoint型として<br>
+<pre>
+	Point a,b;
+	//左上
+	a.x=p.x-r;	a.y=p.y-r;
+	//右下
+	b.x=p.x+r;	b.y=p.y+r;
+</pre>
+そしてa,bのモートン符号を求めます。<br>
+これは前節の座標からモートン符号の求め方より分かり、その関数を<i>PointtoMorton(Point p)</i>とすると<br>
+<pre>
+	//モートン符号
+	int ma,mb;
+	ma=PointtoMorton(a);
+	mb=PointtoMorton(b);
+</pre>
+maとmbが一致していれば円全体が最大レベルL=Nのどれかのマスの中にスッポリ入っています。（境界線をまたいでいない）<br>
+maとmbが異なる場合、以下の操作を行います。<br>
+	<ol>
+	<li>maとmbの排他的論理和をとる</li>
+	<li>その結果の下位から2bitずつ読み込み、0でない値をとる最高位の区切りをkとする</li>
+	<li>L=N-k</li>
+	<li>I=mb&gt;&gt;(2*k)</li>
+	</ol>
+この操作によりL,Iを求めて、（１）よりMを求めます。<br>
+例えば上図のようにma=12,mb=15とすると<br>
+<pre>
+		ma 12 : 11 00
+		mb 15 : 11 11
+		ma^mb : 00 11
+		k     :  2  1
+		↓k=1
+		L=N-k=1
+		I=[11 11] &gt;&gt; 2*k=[11]=3
+</pre>
+kはちょうどLと対になる値を表し、L=N-kより分割レベルLが求まります。<br>
+Iは物体を囲むボックスの右下のモートン符号mbを2*kだけ右シフトした値となります。<br>
+（何故mbなのかと言うとI=ma^(ma^mb)&gt;&gt;2kよりI=mb&gt;&gt;2k,これはbit演算の性質a^(a^b)=bを用いています）<br>
+
+<table border="0">
+<tr>
+	<td><img src="QuadTree/fig13.png" width="256" height="256"></td>
+	<td><img src="QuadTree/fig14.png" width="256" height="256"></td>
+</tr>
+<tr>
+	<td><img src="QuadTree/shiki06.png" width="331" height="206"></td>
+	<td><img src="QuadTree/shiki07.png" width="232" height="206"></td>
+</tr>
+</table><br>
+
+<br>
+ma=3,mb=15とすると、k=2となりL=0,I=0となります。つまりルート空間の0番に所属していると分かります。大きいですからね。<br>
+ついでに言っておくとIは必ず以下の範囲内にあります。逆に範囲外の値をとったらエラー起こしてます。<br>
+<img src="QuadTree/shiki05.png" width="137" height="37"><br>
+<br>
+とりあえずこれで大きさのある物体のモートン符号を求めることができました。<br>
+次のページから実際に当たり判定をとるまでの実装を考えていきたいと思います。<br>
+<br>
+-&gt;<a href="./QuadTree2.html">四分木探索（実装編）</a>へ<br>
+<br>
+
+<hr>
+<script type="text/javascript">
+write_locate(20);
+topic("index","../index.html");
+topic("プログラムテクニック覚え書き","./program_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+</p>
+</body></html>

@@ -1,0 +1,120 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Script-Type" content="text/javascript; charset=shift_jis">
+<link rel="stylesheet" href="cpp.css" type="text/css">
+<script type="text/javascript" src="./cpp.js"></script>
+<!--<span title="&#13;=enter"> &lt;=< &gt;=> -->
+<title>003 基本構文</title>
+</head>
+<body>
+<p>
+<h1>変数と型</h1><br>
+・・・の前に前回のコードの解説<br>
+<hr>
+<pre>
+#include &lt;iostream&gt
+using namespace std;
+
+void main(){
+	cout&lt;&lt;&quot;hello_cpp&quot;&lt;&lt;endl;
+}
+</pre>
+<hr>
+<span class="blue">#include &lt;iostream&gt;<br>
+using namespace std;<br></span>
+の二文は文字等を表示させる<span class="red">「cout」</span>を使えるようにするために書く文です。<br>
+<span class="blue">void main()</span><br>
+からがプログラムの本体で、必ずmain()にしなければいけません。<br>
+後でしますがmain関数といい、プログラムはこのmain関数から始まります。<br>
+<span class="blue">cout&lt;&lt;"hello_cpp"&lt;&lt;endl;</span><br>
+が画面に文字等を表示し改行する文です。<br><br>
+<hr>
+<h2><span class="green">変数と型</span></h2>
+
+C++での変数には何の値を保存するのかで型が決まってます。<br>
+整数ならばint型<br>
+少数ならばdouble型<br>
+文字ならばchar型<br>
+真か偽、1か0 の論理ならばbool型<br>
+・・・と決まってます。<br>
+使う型は少ないし大抵は上の4つの型ですみます。<br>
+<h2><span class="green">変数の宣言</span></h2>
+変数の初期化宣言は<i class="red">変数の型　識別子＝初期値　;</i>とします。<br>
+<pre>
+ int 	num=0;      //整数型変数「num」を0で初期化しました
+ char 	ch='A';     //文字型変数「ch」をAで初期化しました
+ double dnum=1.5;	//少数型変数「dnum」を1.5で初期化しました
+ bool 	flag=true;  //論理型変数「flag」をtrueで初期化しました
+</pre>
+文字は<strong>' '</strong>シングルクォーテーションで囲みます。<br>
+この宣言をした以降は<i class="red">変数名=代入値;</i>で代入することができます。型名はいりません。<br>
+<pre>
+ int num=0;  //整数型変数「num」を0で初期化しました
+ num=3;      //「num」に3を代入しました
+</pre>
+<br>
+<hr>
+<h2><span class="green">標準入力</span></h2>
+標準入力とは基本的にはキーボードのことです。<br>
+キーボードからの入力をするには<span class="red">「cin」</span>を使い、<br>
+<span class="red">cin&gt;&gt;変数;</span> でします。<br>
+<span title="思わぬ誤作動の原因になります。">変数の型に合わせた値を入力してください。</span><br>
+cin文が実行されると、処理が止まってキーボードからの入力を受け付けるようになります。<br>
+値を入力し、Enterを押すと変数に値が保存され、処理を続けます。<br>
+<pre>
+int num;
+cin&gt;&gt;num;	//numにキーボードから数値を入力します
+</pre>
+<span class="red"> // </span>の後ろは<span class="red">コメント</span>で処理には影響を与えません。<br>
+
+<br>
+これで基本の　入力→変数に保存し演算→出力　ができるようになりました。<br>
+足し算をして見ましょう。
+
+実行すると止まって数値を入力できるようになります。<br>
+数値を入れたら、エンターキ－を押します（これを二回繰り返す）<br>
+すると足し算され、表示されます。<br>
+<hr>
+<pre>
+#include &lt;iostream&gt;
+using namespace std;
+
+void main(){
+	int num1;
+	int num2;
+	
+	cout&lt;&lt;"整数を入力1"&lt;&lt;endl;	
+	cin&gt;&gt;num1;
+	cout&lt;&lt;"整数を入力2"&lt;&lt;endl;
+	cin&gt;&gt;num2;
+	
+	cout&lt;&lt;num1&lt;&lt;"+"&lt;&lt;num2&lt;&lt;"="&lt;&lt;num1+num2&lt;&lt;"です。"&lt;&lt;endl;
+}
+</pre>
+<hr>
+結果::<br>
+<img height="119" alt="" src="003_1.gif" width="367" border="0"><br>
+<hr>
+C++の構文は最後に<strong> ; </strong>セミコロンをつけます。<br>
+セミコロンをつけないと構文エラーになります。<br>
+注目すべきは最後の出力の文です。<br>
+変数を画面に出力するには<span class="blue">cout&lt;&lt;num1</span>のようにします。<br>
+<span class="blue">cout</span>は<span class="blue">&lt;&lt;</span>でいくつでも連結できます。<br>
+四則演算(+,-,*,/)等の式を書けば演算された結果が表示されます。<br>
+文字列は<strong> "" </strong>ダブルクォーテーションで はさみます<br>
+<span class="blue">endl;</span>が改行を表します。<br><br><br>
+
+
+BASICが基本になります。<br>
+そちらを先に理解しておくと後がわかりやすいです。<br>
+<a href="../basic.html">BASIC講座</a>
+<hr>
+<script type="text/javascript">
+<!--
+write();
+-->
+</script>
+</p>
+</body>
+</html>

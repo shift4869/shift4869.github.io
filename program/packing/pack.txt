@@ -1,0 +1,24 @@
+//インクルードファイル
+#include <iostream>
+#include <IO.h>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <direct.h>
+
+using namespace std;
+
+//typedef宣言
+typedef unsigned char BYTE;
+typedef unsigned int UINT;
+typedef _finddata_t FIND;
+typedef intptr_t FIND_IT;
+
+//マクロ定義
+#define EXT ".pak"
+
+//プロトタイプ宣言
+UINT pack(string path);
+UINT dispack(string path);

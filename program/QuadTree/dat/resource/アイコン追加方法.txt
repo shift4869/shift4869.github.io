@@ -1,0 +1,15 @@
+アイコン追加法
+
+1.Resource.rcとResource.hをプロジェクト直下に置く。
+
+2.logo.icoを./dat/resource/img/下に置く。
+
+（2.5 パスを変更する場合はResource.rc内56行目のバスを変える）
+
+3.上のファイルを全てプロジェクトに含める。
+
+4.main.cpp内でResource.hをインクルードする。(#include "../../Resource.h")
+
+5.main関数内でSetWindowIconID(IDI_ICON1);を呼び出す。
+
+6.ビルド-実行して確認

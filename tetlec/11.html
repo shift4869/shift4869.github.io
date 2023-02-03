@@ -1,0 +1,311 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<meta http-equiv="content-type" content="text/css; charset=shift_jis">
+<link rel="stylesheet" href="./styleTet.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<base href="http://1st.geocities.jp/shift486909/tetlec/">
+</head>
+<body>
+<p align="left"><br>
+<img src="chapter_g/11g.gif" width="402" height="60" alt=""><br>
+<br>
+<h2>テトリミノを積む</h2>
+それではテトリミノを積む処理を書きましょう。<br>
+引き続きControl()を編集していきます。<br>
+<br>
+一番下に着いたら現在テトリミノが保有している4つのBlockを<a href="./08.html">blkList</a>に追加します。<br>
+<br>
+上キー・下キーに対応する処理も書きます。<br>
+上キーではハードドロップ(すぐに一番下まで落ちる)<br>
+下キーでは落下スピードを早めます。<br>
+<hr>
+<pre>
+//<span class="red">control.cpp</span>
+#include "../include/main.h"
+
+//コントロール
+void Control(){
+	if(cur.flag){
+		//入力状況を取得
+		int input[]={
+			CheckStatePad(config.left),
+			CheckStatePad(config.right),
+			CheckStatePad(config.up),
+			CheckStatePad(config.down),
+			CheckStatePad(config.lspin),
+			CheckStatePad(config.rspin),
+			CheckStatePad(config.stock),
+		};
+
+		<span class="red">//自動落下の間隔
+		int interval=40;</span>
+
+		//左
+		if(input[0]==1 || (input[0]>12 &amp;&amp; input[0]%5==0)){
+			AddX(cur,-BS);
+			if(!IsInField(cur))AddX(cur,BS);
+		}//右
+		else if(input[1]==1 || (input[1]>12 &amp;&amp; input[1]%5==0)){
+			AddX(cur,BS);
+			if(!IsInField(cur))AddX(cur,-BS);
+		}<span class="red">//上
+		else if(input[2]==1){
+			while(IsInField(cur)){
+				AddY(cur,BS);
+			}
+			AddY(cur,-BS);
+			cur.flag=false;
+		}//下
+		else if(input[3]){
+			interval=5;
+		}</span>
+
+		if(cur.cnt%<span class="red">interval</span>==0){
+			//自動落下
+			AddY(cur,BS);
+			if(!IsInField(cur)){
+				<span class="red">AddY(cur,-BS);</span>
+				cur.flag=false;
+			}
+		}
+
+		<span class="red">//着地したら
+		if(cur.flag==false){
+			//保持しているblkをフィールドへ追加
+			for(int i=0;i&lt;4;i++){
+				blkList.push_back(cur.blk[i]);
+			}
+		}</span>
+
+		//カウントアップ
+		cur.cnt++;
+	}
+	else{
+		//新テトリミノ生成
+		cur=CreateTetriMino(Point(FX+BS*6,FY-BS*2),(BLK_COL)GetRand(BLK_KND_NUM-1));
+		//画面内有効フラグをtrueに
+		cur.flag=true;
+	}
+}
+</pre>
+<hr>
+実行結果:<br>
+<img src="11/11_1.gif" width="640" height="480" alt=""><br>
+<br>
+結果を見ればわかると思いますが、一番下にだけしか積まさりません。<br>
+これはフィールド上のブロックを考慮していないからです。<br>
+よって、既にあるブロックに埋まっていないかをチェックする必要があります。<br>
+IsValid.cppにIsBury()とIsValid()を追加。<br>
+<hr>
+<pre>
+//<span class="red">IsValid.cpp</span>
+#include "../include/main.h"
+
+//指定された座標がフィールド内にあるか
+//true->フィールド内にある false->フィールド内にない
+bool IsInField(const Point&amp; p){
+	return ((FX&lt;=p.x) && (p.x&lt;FMX) && (p.y&lt;FMY));
+}
+
+//指定されたテトリミノがフィールド内にあるか
+//true-&gt;フィールド内にある false-&gt;フィールド内にない
+bool IsInField(const TetriMino&amp; t){
+	for(int i=0;i&lt;4;i++){
+		if(!IsInField((Point)t.blk[i]))return false;
+	}
+	return true;
+}
+
+//指定されたテトリミノが既にあるブロックに埋まってないか
+//true-&gt;埋まっている false-&gt;埋まっていない
+bool IsBury(const TetriMino&amp; t){
+	class TBListFunctor{
+	public:
+		Point p;
+		TBListFunctor(Block blk){
+			p.x=blk.x;
+			p.y=blk.y;
+		}
+		bool operator()(Block blk){
+			return (p.x==blk.x &amp;&amp; p.y==blk.y);
+		}
+	};
+
+	list&lt;Block&gt;::iterator it=blkList.begin();
+	for(int i=0;i&lt;4;i++){
+		it=find_if(blkList.begin(),blkList.end(),TBListFunctor(t.blk[i]));
+		if(it!=blkList.end()){
+			return true;
+		}
+	}
+
+	return false;
+}
+
+//テトリミノが有効な位置にいるか
+//true-&gt;有効である false-&gt;無効である
+bool IsValid(const TetriMino&amp; t){
+	return ( IsInField(t) &amp;&amp; !IsBury(t) );
+}
+</pre>
+<hr>
+IsInField()もIsBury()もIsValid()を創るためのものだったんですね～<br>
+IsBury()内のクラスはlistを条件つきで探索するfind_if()のためのファンクタです。<br>
+find_if()とファンクタについては<a href="http://d.hatena.ne.jp/white_wheels/20100319/p3">こちら</a>を参照してください。<br>
+blkList内に同じ座標をもつものがあれば、埋まっていると判断します。<br>
+find_if()を使うためにalgorithmヘッダーをインクルードします。<br>
+<br>
+IsInField()は正常でtrue,異常でfalse、<br>
+IsBury()は正常でfalse,異常でtrueなので、混同しないようにしてください。<br>
+(IsOutField()にすればよかったかな？)<br>
+<br>
+それではControl()関数内のIsInField()を全てIsValid()に変更します。<br>
+そのほかもいろいろ編集します。<br>
+<hr>
+<pre>
+//<span class="red">control.cpp</span>
+#include "../include/main.h"
+
+//コントロール
+void Control(){
+	if(cur.flag){
+		//入力状況を取得
+		int input[]={
+			CheckStatePad(config.left),
+			CheckStatePad(config.right),
+			CheckStatePad(config.up),
+			CheckStatePad(config.down),
+			CheckStatePad(config.lspin),
+			CheckStatePad(config.rspin),
+			CheckStatePad(config.stock),
+		};
+
+		//自動落下の間隔
+		int interval=40;
+
+		//左
+		if(input[0]==1 || (input[0]&gt;12 &amp;&amp; input[0]%5==0)){
+			AddX(cur,-BS);
+			if(<span class="red">!IsValid(cur)</span>)AddX(cur,BS);
+		}//右
+		else if(input[1]==1 || (input[1]&gt;12 &amp;&amp; input[1]%5==0)){
+			AddX(cur,BS);
+			if(<span class="red">!IsValid(cur)</span>)AddX(cur,-BS);
+		}//上
+		else if(input[2]==1){
+			while(<span class="red">IsValid(cur)</span>){
+				AddY(cur,BS);
+			}
+			AddY(cur,-BS);
+			cur.flag=false;
+		}//下
+		else if(input[3]){
+			interval=5;
+		}
+
+		if(cur.cnt%interval==0){
+			//自動落下
+			AddY(cur,BS);
+			if(<span class="red">!IsValid(cur)</span>){
+				AddY(cur,-BS);
+				cur.flag=false;
+			}
+		}
+
+		//着地したら
+		if(cur.flag==false){
+			//保持しているblkをフィールドへ追加
+			for(int i=0;i&lt;4;i++){
+				blkList.push_back(cur.blk[i]);
+			}
+		}
+
+		//カウントアップ
+		cur.cnt++;
+	}
+	else{
+		//新テトリミノ生成
+		cur=CreateTetriMino(Point(FX+BS*6,FY-BS*2),(BLK_COL)GetRand(BLK_KND_NUM-1));
+		//画面内有効フラグをtrueに
+		cur.flag=true;
+	}
+}
+<hr>
+//<span class="red">main.h</span>
+
+//標準ヘッダー
+#include &lt;list&gt;
+<span class="red">#include &lt;algorithm&gt;</span>
+using namespace std;
+
+//DXライブラリ
+#include "DxLib.h"
+
+//define定義
+#include "define.h"
+
+//クラス定義
+#include "class.h"
+
+//グローバル変数
+#include "GV.h"
+
+//typedef宣言
+#include "typedef.h"
+
+//関数プロトタイプ宣言
+#include "func.h"
+
+//「doubleからfloatへのデータ落ち」の警告を消す
+#pragma warning(disable:4244)
+<hr>
+//<span class="red">func.h</span>
+	・
+	・
+	・
+//func.cpp//
+//フィールド情報から各ブロックの座標を設定する
+//tそのもののベース点はフィールドの(2,2)の座標とする
+bool FieldToBlk(TetriMino&amp; t);
+//テトリミノ移動関数(x)
+bool AddX(TetriMino&amp; t,int add);
+bool AddY(TetriMino&amp; t,int add);
+
+//control.cpp//
+void Control();
+
+//IsValid.cpp//
+//指定された座標がフィールド内にあるか
+//true->フィールド内にある false->フィールド内にない
+bool IsInField(const Point&amp; p);
+//指定されたテトリミノがフィールド内にあるか
+//true->フィールド内にある false->フィールド内にない
+bool IsInField(const TetriMino&amp; t);
+//指定されたテトリミノが既にあるブロックに埋まってないか
+//true->埋まっている false->埋まっていない
+<span class="red">bool IsBury();</span>
+//テトリミノが有効な位置にいるか
+//true->有効である false->無効である
+<span class="red">bool IsValid(const TetriMino&amp; t);</span>
+</pre>
+<hr>
+実行結果:<br>
+<img src="11/11_2.gif" width="640" height="480" alt=""><br>
+<br>
+今度は貫通せずに積まさりましたね。<br>
+次回はテトリスの特徴、回転処理に入っていきます。<br>
+</p>
+<hr size="2">
+
+<script type="text/javascript">
+write_locate(12);
+topic("index","../index.html");
+topic("テトリス作成講座","./tetlec_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+
+</body></html>

@@ -1,0 +1,374 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>4.Lzss圧縮法</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+
+<!--<base href="http://1st.geocities.jp/shift486909/">-->
+</head>
+<body>
+<p align="left"><br>
+<h1>Lzss圧縮法</h1><br>
+<hr>
+<br>
+<h2>・Lzss圧縮法</h2>
+Lzssは1982年にStorerとSzymanskiによって考案されたLZ77の改良圧縮アルゴリズムです。<br>
+ここではLzss圧縮を本家とは少し違いますが、プログラムを組んでやってみようと思います。<br>
+Lzss圧縮の基本は「何byte前から、何byte同じか？」というパターンを検索していって、<br>
+そこを繰り返しの情報に置き換えることによってデータサイズを圧縮します。<br>
+<img border="0" alt="" src="lzss/lzss_1.gif" width="396" height="224"><br>
+<br>
+圧縮自体については他のサイト様の解説のほうが理解しやすいと思うのでこれくらいにして、<br>
+さっそくプログラムを組んでいきましょう。<br>
+<br>
+<h2>・フローチャート</h2>
+プログラムの簡単な道筋としては、<br>
+<ol>
+<li>指定ファイルパスを取得する</li>
+<li>ファイルサイズを求め、メモリ上に展開する</li>
+<li>ヘッダーを作成する</li>
+<li>データを圧縮する</li>
+<li>新しいファイルを開き、圧縮したデータを保存する</li>
+<li>終了</li>
+</ol>
+となります。<br>
+なお、C++ベースでコーディングしています。<br>
+
+<h3>1.指定ファイルパスを取得する</h3>
+cinでキーボートからパスをもらってもいいですが、<br>
+ここは<span class="red">コマンドライン引数</span>でパスを受け取りたいと思います。<br>
+コマンドライン引数はmain関数のとる引数です。<br>
+普通のmain関数は
+<pre>
+int main(){
+    cout&lt;&lt;"テキスト"&lt;&lt;endl;
+    return 0;
+}
+</pre>
+ですが、
+コマンドライン引数をとるには
+<pre>
+int main(<span class="red">int argc,char *argv[]</span>){
+    cout&lt;&lt;"引数の個数="&lt;&lt;argc&lt;&lt;endl;
+    cout&lt;&lt;"実行ファイルのパス="&lt;&lt;argv[0]&lt;&lt;endl;
+    cout&lt;&lt;"引数その１="&lt;&lt;argv[1]&lt;&lt;endl;    
+    return 0;
+}
+</pre>
+とint型とchar**型の引数を取ります。<br>
+上の例では、argcに引数の個数が入り、argvにパスが入ります。<br>
+これをコンパイルしてできた実行ファイル(.exe)に何かファイルをドラッグドロップすると、
+argvにパスが渡ります。<br>
+実行ファイル自身のパスも渡るので、<span class="red">argcは常に1以上</span>です。<br>
+<br>
+しかし、デバッグ中にはいちいちコンパイルしてから・・・とかは面倒なので、<br>
+VC++の開発環境の方でコマンドライン引数が渡るように設定しましょう。<br>
+<img border="0" alt="" src="lzss/command.jpg" width="769" height="460"><br>
+「コマンド引数」のところにフルパスを入力しておくとデバッグ時に引数が渡ります。<br>
+<br>
+実行ファイル自身以外の引数があるときにだけ処理をするので、<br>
+argcを調べて2以上なかったら弾きます。<br>
+<pre>
+int main(int argc,char *argv[]){
+    if(argc&lt;2){
+        cout&lt;&lt;"ファイルをドラッグドロップしてください"&lt;&lt;endl;
+        return -1;
+    }
+    
+    //圧縮処理～
+    
+    return 0;
+}
+</pre>
+文字列の扱いについてはそれぞれやりやすいようにすればいいですが、<br>
+選択肢としては、<br>
+1 コマンドラインのchar**のまま扱う<br>
+2 char *p=new char[len]とかでメモリ確保<br>
+3 文字列クラスを自作<br>
+4 std::stringを使う<br>
+今回は4のstd::stringを使用します。<br>
+std::stringについては参考サイト参照で。<br><br>
+パスが有効かどうかのチェックも必要ですが、今回は省いてます。<br>
+
+<h3>2.ファイルサイズを求め、メモリ上に展開する</h3>
+使用するバッファはvector&lt;unsigned char&gt;とします。<br>
+これは圧縮後のファイルがどのぐらいの大きさになるかわからないので、<br>
+動的配列の方が都合がいいからです。<br>
+ファイルを開くのにはC++らしくifstreamで開きます。バイナリモードです。<br>
+↓unsigned charをtypedefしてます。<br>
+<pre>
+#include &lt;iostream&gt;
+#include &lt;fstream&gt;
+#include &lt;vector&gt;
+#include &lt;algorithm&gt;
+
+typedef unsigned char BYTE;
+typedef unsigned int UINT;
+using namespace std;
+
+int main(int argc,char *argv[]){
+    if(argc&lt;2){
+        cout&lt;&lt;"ファイルをドラッグドロップしてください"&lt;&lt;endl;
+        return -1;
+    }
+    string fname=argv[1];//ファイルパス
+    vector&lt;BYTE&gt src,press;//元データ、圧縮後データバッファ
+    UINT src_size;//元データサイズ
+    
+    //ファイルをvector上に展開
+    {
+        ifstream fin(fname.c_str(),ios::binary);
+        
+        if(fin.fail()){
+            cout&lt;&lt;"NG";
+        }
+
+        src_size=fin.seekg(0,ios::end).tellg();//最後に移動してサイズ取得
+
+        src.resize(src_size);//ベクター内メモリをサイズ分確保
+        
+        //始めに戻ってvectorに全て読み込む
+        fin.seekg(0,ios::beg).read((char*)&src[0],src.size());
+    }
+    
+    //圧縮処理～
+    
+    return 0;
+}
+</pre>
+これでvector srcにファイルのデータが全て読み込まれました。<br>
+このsrcに圧縮処理をしてpressに圧縮データを作っていきます。<br><br>
+
+<h3>3.ヘッダーを作成する</h3>
+ヘッダー情報を保存します。<br>
+解凍するときにこの情報を元に解凍します。<br><br>
+
+a.一番出現回数が少ないものを探す。<br>
+unsigned char型(BYTE型)は0~255の256通り記録できます。<br>
+ファイルデータの中で0~255の内、一番出現回数が少ない数を<br>
+圧縮情報の開始位置を示す数値(エンコードコード)に任命します。<br>
+実際のパターン検索時に見つかったら<br>
+( [エンコードコード]  [何byte前からか]  [何byte連続しているか] )<br>
+と置き換えます。(↑全体で3byte分です。)<br>
+カウントして出現頻度が最も低いインデックスを求めるのに、<br>
+min_element()というSTL関数を使ってます。<br>
+STL関数は通常の配列にも使えます。<br>
+<pre>
+int encode_code=0;
+
+//出現頻度が低い数値を求める--
+{
+    int cnt[256]={0,};
+    int *min=NULL;
+
+    for(UINT i=0;i&lt;src_size;i++){
+        cnt[ src[i] ]++;//カウント
+    }
+
+    //出現頻度が最も低いものを探す
+    min=min_element(cnt,cnt+256);
+    //インデックス取得(encode_code=0~255)
+    encode_code=min-cnt;
+}
+//----------------------------
+</pre>
+
+b.元ファイルの拡張子を保存する<br>
+圧縮したファイルの拡張子は一律に(.lzs)とすることにして、<br>
+解凍時に元のファイルにきちんと戻せるように元ファイルの拡張子を保存します。<br>
+stringから"."(拡張子のドット)を探すのに、<br>
+string::iteratorとfind()STL関数を使います。<br>
+find()関数は引数に<br>
+探索範囲の始めのイテレータ、終わりのイテレータ、探索する要素<br>
+を取ります。<br>
+返り値は要素を指すイテレータです。<br>
+これでiteratorが"."(拡張子のドット)を指すようになります。<br>
+そうしてcopy()STL関数でpressに入れていきます。<br>
+本来copy()関数はコピー先に必要なメモリがないといけませんが、<br>
+back_inserter()を使えば追加しながらコピーできます。<br>
+<pre>
+//イテレータが"."を指すようにする
+string::iterator it=find(fname.begin(),fname.end(),'.');
+//エンコードコードを追加
+press.push_back((BYTE)encode_code);
+//圧縮データにit~fname.end()まで(拡張子)追加
+copy(it,fname.end(),back_inserter(press));
+//ヘッダー情報終了
+press.push_back('\t');
+</pre>
+↑ではヘッダーの終了記号にタブ記号'\t'を使ってます。<br>
+あまり使われない文字ならなんでもいいと思います。<br>
+解凍時にはこの記号までをヘッダーとして読み込むようにします。<br><br>
+
+
+<h3>4.データを圧縮する</h3>
+それではメインルーチンLzss圧縮部です。<br>
+説明が長くなるのでまずコードを載せます。<br>
+<pre>
+//一致数、最大一致数、一致インデックス
+int equal_num,max_equal,max_index;
+
+//最後まで
+while(src_it&lt;src_size){
+    max_equal=-1;//最大一致数初期化
+    max_index=-1;//インデックス初期化
+
+    //256byte前までパターンを探索
+    for(int i=0;i&lt;256;i++){
+        //始めの位置より前は調べない
+        if((int)(src_it-i)&lt;0)break;
+
+        //何byte一致しているか調べる
+        for(equal_num=0;equal_num&lt;i;equal_num++){
+            //最後より後の位置は調べない
+            if(equal_num+src_it>=src_size)break;
+            //一致していなかったら抜ける
+            if(src[src_it+equal_num] != src[src_it-i+equal_num])break;
+        }
+
+        //4byte以上一致していたら(それ以下だと圧縮にならない)
+        if(equal_num&gt;=4 && max_equal&lt;equal_num){
+            //最大一致数設定
+            max_equal=equal_num;
+            //最大一致時のインデックス保存
+            max_index=i;
+        }
+    }
+
+    //一致していなかったら
+    if(max_index==-1){
+        //そのまま出力
+        press.push_back(src[src_it]);
+        
+        //エンコードコードと一致していたら
+        if(src[src_it]==encode_code){
+            //二重に出力する
+            press.push_back(src[src_it]);
+        }
+        
+        //元ファイルを進める
+        src_it++;
+    }
+    else{//一致していたら
+        //圧縮情報開始のコードを入れる(エンコードコード)
+        press.push_back(encode_code);
+
+        //「何byte前から同じか」を入れる
+        press.push_back(max_index);
+        //もし圧縮情報の開始を示す数値と同じ場合、展開時に
+        //『圧縮情報の開始を示す数値そのもの』と判断されて
+        //しまうため、圧縮情報の開始を示す数値と同じかそれ以上の
+        //場合は数値を +1 するというルールを使う。(展開時は逆に -1 にする)
+        if(max_index&gt;=encode_code)press[press.size()-1]++;
+
+        //「何byte同じか」を入れる
+        press.push_back(max_equal);
+
+        //同じだったbyte数分だけ元ファイルを進める
+        src_it+=max_equal;
+    }
+}
+</pre>
+はい、これでpressに圧縮後のデータが入りました。<br>
+ポイントはエンコードコードそのものだったときに2重に出力するのと、<br>
+「何byte前から同じか」がエンコードコードより大きい場合に +1 することです。<br>
+始めのforループは256byte前までパターンを検索していますが、<br>
+検索範囲を広げれば広げるほど圧縮率はよくなりますが、時間がかかります。<br>
+パターン検索時に注意すべき点は、データの最初より前・最後より後は検索しない(できない)ことです。<br>
+それをifで弾いてます。<br>
+4byte以上パターンが一致していないと、<br>
+( [エンコードコード]  [何byte前からか]  [何byte連続しているか] )が3byteなので<br>
+圧縮になりません。<br>
+ループカウンタの動きがどうなっているかを注意してみてください。<br><br>
+
+<h3>5.新しいファイルを開き、圧縮したデータを保存する</h3>
+pressに圧縮データが入っているので、これをファイルに書き込みます。<br>
+作成するファイル名は元ファイルのパス(fname)の拡張子を".lzs"に置き換えたものとします。<br>
+置き換えるにはstring.replace()関数を使います。<br>
+この関数は(置き換え開始イテレータ、置き換え終端イテレータ、置き換える文字)を引数にとります。<br>
+<br>
+ファイルの保存にはofstreamを使い、writeで一気にpressのデータを書き込みます。<br>
+<pre>
+{//圧縮データの保存
+
+    //拡張子を上書き
+    fname.replace(it,fname.end(),".lzs");
+
+    ofstream fout(fname.c_str(),ios::binary);
+    fout.write((char*)&press[0],press.size());
+}
+</pre>
+前にitが拡張子を指すようにしていたので、it~fname.end()(拡張子)を".lzs"で置き換えます。<br>
+後は読み込むときと同じように一気に書き込みます。<br><br>
+
+<h3>6.終了</h3>
+これで終了です。<br>
+適当なファイルで性能の調査をしました。<br>
+<table border="1" cellspacing="0" width="700">
+  <tr>
+    <td></td>
+    <td>元ファイルのサイズ</td>
+    <td>Lzss圧縮後のサイズ</td>
+    <td>Lzssの圧縮率</td>
+   	<td>zip圧縮後のサイズ</td>
+  </tr>
+  <tr>
+    <td>テキストファイル(.txt)</td>
+    <td>307535 byte</td>
+    <td>227056 byte</td>
+    <td>73%</td>
+    <td>75563 byte</td>
+  </tr>
+  <tr>
+    <td>音楽ファイル(.mp3)</td>
+    <td>9021102 byte</td>
+    <td>8724289 byte</td>
+    <td>93%</td>
+    <td>8539235 byte</td>
+  </tr>
+  <tr>
+    <td>画像ファイル(.jpg)</td>
+    <td>123576 byte</td>
+    <td>118399 byte</td>
+    <td>95%</td>
+    <td>114355 byte</td>
+  </tr>
+</table><br>
+やはり標準のzip圧縮には及びませんね（＾＾<br>
+しかし、確かに元ファイルよりは小さくなってます。<br>
+もっと圧縮率を上げようと思ったら<span class="red">ハフマン圧縮</span>をさらに重ねがけするともう少し圧縮できます。<br>
+<br>
+全体ソースは<a href="lzss/lzss.cpp" target="_blank">こちら</a>。<br>
+<br>
+<h2>・参考サイト様</h2>
+<a href="http://homepage2.nifty.com/natupaji/DxLib/lecture/Press/press.html">データ圧縮プログラムについてざっくり学ぶ</a><br>
+圧縮について広く書かれています。<br>
+このサイト様を見てLzss圧縮を書こうと思いました。<br>
+サンプルコードもあります。(こちらはC風味です)<br>
+<a href="http://www9.plala.or.jp/sgwr-t/c/sec11-4.html">コマンドライン引数</a><br>
+コマンドライン引数についてざっと。(こちらもC風味)<br>
+<a href="http://www.geocities.jp/cbc_vbnet/vc/string.html">C++_string クラス</a><br>
+std::string型について。<br>
+各メンバ関数なども網羅されています。<br>
+<a href="http://www.geocities.jp/ky_webid/cpp/library/002.html">C++編（標準ライブラリ）　第２章　vector</a><br>
+std::vectorについて。<br>
+非常にわかりやすいです。<br>
+<a href="http://www.geocities.jp/ky_webid/cpp/library/016.html">C++編（標準ライブラリ）　第１６章　簡単なSTLアルゴリズム</a><br>
+STL関数について。<br>
+<a href="http://d.hatena.ne.jp/torutk/20090115/p2">std::stringをSTLアルゴリズムで使う - torutkの日記</a><br>
+stringとSTL関数について。<br>
+STL関数はコンテナでも配列でもstringでも使えます。<br>
+
+<br>
+<hr>
+<script type="text/javascript">
+write_locate(6);
+topic("index","../index.html");
+topic("プログラムテクニック覚え書き","./program_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+</p>
+</body></html>

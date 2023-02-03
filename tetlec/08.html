@@ -1,0 +1,206 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>テトリミノの内部表現</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<meta http-equiv="content-type" content="text/css; charset=shift_jis">
+<link rel="stylesheet" href="./styleTet.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<base href="http://1st.geocities.jp/shift486909/tetlec/">
+</head>
+<body>
+<p align="left"><br>
+<img src="chapter_g/08g.gif" width="402" height="60" alt=""><br>
+<br>
+さぁクラスを定義していきましょう。<br>
+このへんの構想をしっかりしないと、後で大変になります。<br>
+<br>
+まず、座標を表すクラスPointを創ります。<br>
+次にPointクラスからBlockクラスを派生させます。<br>
+包含してもいいけど、こうさせてくださいorz・・・継承が好きなんです。<br>
+<br>
+また、PointクラスからさらにTetriMinoクラスを派生させます。<br>
+TetriMinoクラスはblockクラスを4つ包含します。<br>
+また、様々な処理を行うために必要な変数を持っています。<br>
+<br>
+Blockクラスは色を表すkndを持ちます。<br>
+enum列挙子で色(RED～SKY)を定義して、<br>
+その型としてkndを設定します。<br>
+kndはRED～SKYしか値を取り得ません(内部的にはintの数値だけど・・)<br>
+<br>
+編集するのはclass.hとdefine.hです。<br>
+<hr>
+<pre>
+//<span class="red">class.h</span>
+	・
+	・
+	・
+//<span class="red">座標クラス</span>
+class Point{
+public:
+	//座標
+	int x,y;
+
+private:
+	//コピー関数
+	template&lt;class T,class U&gt;
+	void copy(const T&amp; x,const U&amp; y){
+		this-&gt;x=static_cast&lt;int&gt;(x);
+		this-&gt;y=static_cast&lt;int&gt;(y);
+	}
+
+public:
+	//コンストラクタ
+	Point(){
+		copy(0,0);
+	}
+	//コピーコンストラクタ
+	Point(const Point&amp; p){
+		copy(p.x,p.y);
+	}
+	//2引数を取るコンストラクタ
+	template&lt;class T,class U&gt;
+	Point(const T&amp; x,const U&amp; y){
+		copy(x,y);
+	}
+
+	//[=]演算子オーバーロード
+	Point&amp; operator=(const Point&amp; p){
+		copy(p.x,p.y);
+		return *this;
+	}
+	//[()]演算子オーバーロード
+	template&lt;class T,class U&gt;
+	Point&amp; operator()(const T&amp; x,const U&amp; y){
+		copy(x,y);
+		return *this;
+	}
+
+	//デストラクタ
+	virtual ~Point(){}
+
+};
+
+//<span class="red">ブロッククラス</span>
+class Block : public Point{
+public:
+	//色
+	BLK_COL knd;
+
+	//コンストラクタ
+	Block():Point(),knd(RED){}
+	Block(const Point&amp; p,BLK_COL k):Point(p),knd(k){}
+
+	//デストラクタ
+	virtual ~Block(){}
+};
+
+//<span class="red">テトリミノクラス</span>
+class TetriMino : public Point{
+public:
+	//構成する4つのブロック
+	Block blk[4];
+	//カウンタ・着地してからの猶予時間
+	int cnt,wait;
+	//画面内有効フラグ
+	bool flag;
+	//フィールド座標
+	bool field[5][5];
+
+	//コンストラクタ
+	TetriMino():cnt(0),wait(0),flag(false){
+		memset(field,false,sizeof(bool)*5*5);
+	}
+
+	//デストラクタ
+	virtual ~TetriMino(){}
+};
+<hr>
+//<span class="red">define.h</span>
+	・
+	・
+	・
+//ブロックの色
+enum BLK_COL{
+	RED=0,
+	GREEN,
+	PURPLE,
+	BLUE,
+	ORANGE,
+	YELLOW,
+	SKY,
+};
+
+//ブロックの色の数
+#define BLK_KND_NUM 7
+
+//ブロックサイズ
+#define BS 16
+
+//ゲーム画面内に並ぶブロック数
+#define BMX 12
+#define BMY 26
+
+//ゲーム画面左上座標
+#define FX 112
+#define FY 32
+
+//ゲーム画面右下座標
+#define FMX 304
+#define FMY 448
+</pre>
+<hr>
+Pointクラスは(無駄に)コピーコンストラクタ等を定義していますが、<br>
+これをしておくと直感的に扱えて楽になります。<br>
+<br>
+Blockクラス内のBLK_COL型が色を扱う型です。<br>
+<br>
+TetriMinoクラス内のいろいろな変数はテトリミノの操作の時に使います。<br>
+<br>
+定義類はコメントを見ればわかると思います。<br>
+BSはブロックの一辺のサイズ(正方形)の大きさ。<br>
+「ゲーム画面内に並ぶブロック数」とは実際にテトリミノが動く画面が何マス分かです。<br>
+最大12*26=312個のブロックが画面上に存在できるということです。<br>
+<br>
+言葉でぐだぐだ言ってもわかりづらいので、図をつけます↓<br>
+<img src="08/08_1.gif" width="641" height="482" alt=""><br>
+<br>
+<br>
+そして、グローバル変数として現在のテトリミノとフィールド上のブロックを保持するlistを創ります。<br>
+<hr>
+<pre>
+//<span class="red">main.h</span>
+
+//標準ヘッダー
+#include &lt;list&gt;
+using namespace std;
+	・
+	・
+	・
+
+<hr>
+//<span class="red">GV.h</span>
+	・
+	・
+	・
+//現在のテトリミノ
+E TetriMino cur;
+
+//フィールド上のブロック
+E list&lt;Block&gt; blkList;
+</pre>
+<hr>
+今回はここまでです。<br>
+次回は実際にcurを扱っていきたいと思います。<br>
+</p>
+<hr size="2">
+
+<script type="text/javascript">
+write_locate(9);
+topic("index","../index.html");
+topic("テトリス作成講座","./tetlec_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+
+</body></html>

@@ -1,0 +1,10 @@
+@charset "Shift_JIS";
+*{line-height:150%;}
+h1{color:red;}
+body{background-color:#7799ff;}
+.red{color:red;}
+.blue{color:blue;}
+.green{color:green;}
+p.left{text-align:left;}
+p.center{text-align:center;}
+p.right{text-align:right;}

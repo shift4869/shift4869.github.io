@@ -1,0 +1,153 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>ドロップシャドウ</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<meta http-equiv="content-type" content="text/css; charset=shift_jis">
+<link rel="stylesheet" href="./styleTet.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<base href="http://1st.geocities.jp/shift486909/tetlec/">
+</head>
+<body>
+<p align="left"><br>
+<img src="chapter_g/17g.gif" width="402" height="60" alt=""><br>
+<br>
+ハードドロップ時にどこに落ちるかを示すために<br>
+ドロップシャドウを表示しましょう。<br>
+<br>
+ドロップシャドウとは「このまま落下すると落ちる場所」に薄くテトリミノを描画するものです。<br>
+これは意外と簡単で、まずシャドウ用のTetriMinoを新たに定義して、<br>
+curと同じ座標にしてから下に行けるだけ移動させて、半透明で描画します。<br>
+GV.h・control.cpp・draw.cppを編集。<br>
+<hr>
+<pre>
+//<span class="red">GV.h</span>
+	・
+	・
+	・
+//ストック
+E TetriMino stock;
+
+<span class="red">//ドロップシャドウ
+E TetriMino shadow;</span>
+<hr>
+//<span class="red">control.cpp</span>
+#include "../include/main.h"
+
+//ストックフラグ
+static bool stockFlag=false;
+
+//コントロール
+void Control(){
+	if(cur.flag){
+			・
+			・
+			・
+		//ストック
+		if(input[6]==1){
+			if(!stockFlag){//連続ストックでなければ
+				//初期位置へ戻しておく
+				cur.x=FX+BS*6;
+				cur.y=FY-BS*2;
+				cur.cnt=0;
+				cur.wait=0;
+
+				//ストックと入れ替え
+				swap(cur,stock);
+
+				//ストックフラグon
+				stockFlag=true;
+
+				return ;
+			}
+		}
+
+		<span class="red">//ドロップシャドウ
+		shadow=cur;
+		//行けるとこまで落とす
+		while(IsValid(shadow)){
+			AddY(shadow,BS);
+		}
+		AddY(shadow,-BS);</span>
+
+		if(cur.cnt%interval==0){
+			//自動落下
+			AddY(cur,BS);
+			if(!IsValid(cur)){
+				AddY(cur,-BS);
+				cur.wait++;
+			}
+		}
+			・
+			・
+			・
+	}
+	else{
+		・
+		・
+		・
+	}
+}
+<hr>
+//<span class="red">draw.cpp</span>
+#include "../include/main.h"
+	・
+	・
+	・
+//ブロック描画
+void DrawBlock(){
+		・
+		・
+		・
+	//ストックの描画
+	for(int x=0;x&gt;5;x++){
+		for(int y=0;y&gt;5;y++){
+			if(stock.field[x][y]){
+				DrawGraph(BS+BS*x,BS+BS*y,IMG::block[(int)stock.blk[0].knd],true);
+			}
+		}
+	}
+
+	<span class="red">//ドロップシャドウの描画
+	SetDrawBlendMode(DX_BLENDMODE_ALPHA,128);
+	for(int i=0;i&gt;4;i++){
+		DrawGraph(shadow.blk[i].x,shadow.blk[i].y,IMG::block[(int)shadow.blk[0].knd],true);
+	}
+	SetDrawBlendMode(DX_BLENDMODE_NOBLEND,0);</span>
+}
+
+//描画メイン
+void DrawMain(){
+	・
+	・
+	・
+}
+</pre>
+<hr>
+描画時のブレンドモードはADDでもいいかもしれません。<br>
+ALPHAだと暗い印象があるかと思います。<br>
+ブレンドモードをADDにすると、着地時の一瞬だけピカッと光るような感じになり、<br>
+これもまたいいかと思います。<br>
+上では128と、ちょうど半透明に設定していますがこの値もいろいろ加減してみてください。<br>
+<br>
+controlではIsValid()関数が良い仕事してます。<br>
+whileを抜けると有効な場所の一個下にあるので、一個上に戻します。<br>
+<br>
+実行結果:<br>
+<img src="17/17_1.gif" width="640" height="480" alt=""><br>
+<br>
+これでハードドロップが使いやすくなりました。<br>
+次回は遂にテトリスの特徴であるライン消去を実装します。<br>
+<br>
+</p>
+<hr size="2">
+
+<script type="text/javascript">
+write_locate(18);
+topic("index","../index.html");
+topic("テトリス作成講座","./tetlec_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+
+</body></html>

@@ -1,0 +1,923 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>17-2.boostの薦め（紹介編）</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<base href="http://1st.geocities.jp/shift486909/program/">
+</head>
+<body>
+<p align="left"><br>
+<h1><i>boost </i>の薦め（紹介編）</h1><br>
+<hr>
+<br>
+<h2>・<i>boost </i>でできること</h2>
+<i>boost </i>は全体としては膨大な機能群ですが実際に利用するときにはソースコード上から一部の機能を利用することになるでしょう。<br>
+ここではその機能のほんのごく一部を紹介したいと思います。<br>
+サンプルコードがメインですので文量はそれなりにありますが興味を持ったところから見てみてください。<br>
+どれも<i>boost </i>無しで実装しようとすると大変な労力がかかり、そしておそらくうまく動かないか非効率な機能ばかりです。<br>
+そうした機能をエレガントに美しく記述したものが<i>boost </i>です。ありがたく利用させてもらいましょう。<br>
+<br>
+<table border="0">
+<tr align="center" >
+<td width="200"><b>コンポーネント名</b></td>
+<td><b>機能</b></td>
+</tr>
+<tr align="left">
+<td><a href="./boost2.html#format">format</a></td>
+<td>書式指定文字列生成</td>
+</tr>
+</tr>
+<tr align="left">
+<td><a href="./boost2.html#lexical_cast">lexical_cast</a></td>
+<td>文字列&lt;-&gt;数値変換</td>
+</tr>
+</tr>
+<tr align="left">
+<td><a href="./boost2.html#tokenizer">tokenizer</a></td>
+<td>トークン切り分け</td>
+</tr>
+</tr>
+<tr align="left">
+<td><a href="./boost2.html#shared_ptr">shared_ptr</a></td>
+<td>スマートポインタ（参照カウント方式）</td>
+</tr>
+</tr>
+<tr align="left">
+<td><a href="./boost2.html#date_time">date_time</a></td>
+<td>日時</td>
+</tr>
+</tr>
+<tr align="left">
+<td><a href="./boost2.html#timer">timer (process_timer)</a></td>
+<td>処理時間計測</td>
+</tr>
+</tr>
+<tr align="left">
+<td><a href="./boost2.html#thread">thread</a></td>
+<td>マルチスレッド</td>
+</tr>
+</tr>
+<tr align="left">
+<td><a href="./boost2.html#filesystem">filesystem</a></td>
+<td>ファイル・ディレクトリ構造</td>
+</tr>
+</tr>
+<tr align="left">
+<td><a href="./boost2.html#interval">interval</a></td>
+<td>数値の範囲</td>
+</tr>
+</tr>
+<tr align="left">
+<td><a href="./boost2.html#random">random</a></td>
+<td>乱数</td>
+</tr>
+<tr align="left">
+<td><a href="./boost2.html#rational">rational</a></td>
+<td>有理数</td>
+</tr>
+<tr align="left">
+<td><a href="./boost2.html#optional">optional</a></td>
+<td>不正値を含む型</td>
+</tr>
+<tr align="left">
+<td><a href="./boost2.html#tribool">tribool</a></td>
+<td>３値ブール</td>
+</tr>
+<tr align="left">
+<td><a href="./boost2.html#assignforeach">assign・foreach</a></td>
+<td>汎用代入・汎用ループ</td>
+</tr>
+</table><br>
+<hr>
+<h2><a name="format">format</a></h2>
+書式指定文字列を生成するコンポーネントです。<br>
+C言語で主にコンソールへの表示に使われる<i>printf </i>と同じ感覚で文字列を表示できます。<br>
+<pre>
+//format.cpp
+#include &lt;iostream&gt;
+<span class="red">#include &lt;boost/format.hpp&gt;
+</span>using namespace std;
+using namespace boost;
+
+//書式指定文字列生成
+void formatMain(){
+	//構文
+	//format("書式指定文字列")%パラメータ1%パラメータ2...
+	//%[N]%で 続くパラメータを埋め込む場所を指定
+	//'%'そのものを表示したいときは2つ続ける
+	cout&lt;&lt;<span class="red">format("%1% %2% %%")%"hello"%100</span>&lt;&lt;endl;
+
+	//書式指定で作った文字列を使う場合はstrメソッドを用いる
+	string str;
+	str=(format("%1$5.3lf")%0.2)<span class="red">.str()</span>;
+	cout&lt;&lt;str.c_str()&lt;&lt;endl;
+
+	//順番も入れ替えられる
+	cout&lt;&lt;format("%2% %1%")%"hello"%"world"&lt;&lt;endl;
+	//printfの書式指定もできる(小数点以下は2桁まで、かつ全体が5桁になるように0で埋める)
+	cout&lt;&lt;format("%05.2lf %05.2lf")%0.2%12.34&lt;&lt;endl;
+	//順番を指定した上で書式指定
+	cout&lt;&lt;format("%2$05.2lf %1$05.2lf")%0.2%12.34&lt;&lt;endl;
+
+	//フォーマットエラーは以下のようにキャッチ
+	try{
+		//おかしい書式指定（いろいろおかしい）
+		//引数の数が合わない、整数型でない
+		cout&lt;&lt;format("%1$02d")%0.2%12.34&lt;&lt;endl;
+	}
+	catch(<span class="red">const io::format_error&amp; e</span>){
+		//boost::io::format_errorはさらに４つに細分化されている
+		//上で渡ってくるのはtoo_many_args（引数が多すぎ）
+		cout&lt;&lt;e.what()&lt;&lt;endl;
+	}
+}
+</pre>
+書式指定が不正なものは上のようなtry～catchで例外処理します。<br>
+当サイトの<a href="VariableArg.html">Formatでやったように可変長引数を用いる方法</a>だとパラメータの型情報が失われ、例外処理もできず危険です。<br>
+その点boost::formatではフォーマッターに'%'演算子で連続してパラメータを渡すことにより安全に処理できます。<br>
+フォーマッターは'&lt;&lt;'演算子が定義されていますので、そのままcoutに渡せます。<br>
+基本的なprintfの書式指定に対応しています。<br>
+フォーマッター特有の'%[N]%'式の置換指定は、printf式と比べて型情報を内部で処理しますので、<br>
+同じ'%[N]%'式指定で整数でも浮動小数でも文字列でも渡せます。順番も任意です。<br>
+<hr>
+<h2><a name="lexical_cast">lexical_cast</a></h2>
+文字列&lt;-&gt;数値の相互変換を提供します。<br>
+普段「数値を表す文字列」を「数値」に変換する時はどのようにしているでしょうか。<br>
+stoiやatoiだったりちょっと詳しい人はstringstreamに送りこんで取り出しているのではないでしょうか。<br>
+前者はCちっくで型安全でなく危険です。後者は一時変数の宣言と定義が必要で冗長です。<br>
+これらの点を改善したのがこのlexical_castです。<br>
+<pre>
+//lexical_cast.cpp
+#include &lt;iostream&gt;
+<span class="red">#include &lt;boost/lexical_cast.hpp&gt;
+</span>#include &lt;boost/format.hpp&gt;
+using namespace std;
+using namespace boost;
+
+//文字列変換
+void lexical_castMain(){
+	//構文
+	//<span class="red">lexical_cast&lt;変換先の型&gt;(変換元) </span>;
+
+	//文字列
+	string str="123";
+	//数値に変換
+	int num=<span class="red">lexical_cast&lt;int&gt;(</span>str<span class="red">)</span>;
+
+	//2倍した値を文字列として取得
+	str=<span class="red">lexical_cast&lt;string&gt;(</span>num*2<span class="red">)</span>;
+	//文字列と数値を表示
+	cout&lt;&lt;format("str='%1%' num=%2%")%str%num&lt;&lt;endl;
+
+	//負数も浮動小数もOK
+	str="-1.234";
+	float fNum=lexical_cast&lt;float&gt;(str);
+	str=lexical_cast&lt;string&gt;(fNum*2);
+	cout&lt;&lt;format("str='%1%' fNum=%2%")%str%fNum&lt;&lt;endl;
+
+	//エラーは以下のようにキャッチ
+	try{
+		//文字列は浮動小数なのにintに変換しようとしている
+		str="-1.234";
+		num=lexical_cast&lt;int&gt;(str);
+	}
+	catch(<span class="red">const bad_lexical_cast&amp; e</span>){
+		//boost::bad_lexical_cast例外がthrowされる
+		cout&lt;&lt;e.what()&lt;&lt;endl;
+	}
+}
+</pre>
+C++のstatic_castやdynamic_castと同じ構文で文字列&lt;-&gt;数値の相互変換を可能にします。<br>
+ほぼ違和感なくキャストと同じように働くのでお手軽です。<br>
+ちなみに内部的にはstringstreamに流し込む方式を元にしているので'&lt;&lt;','&gt;&gt;'演算子さえ定義してしまえばユーザー定義のクラスも文字列に変換できたりといった使い方も。<br>
+<hr>
+<h2><a name="tokenizer">tokenizer</a></h2>
+文字列をトークンに切り分けます。<br>
+・・・それだけですがcsv解析時など意外と使い所はあるかと思います。<br>
+区切りとなる文字や除外する文字なども細かく指定できます。<br>
+<pre>
+//tokenizer.cpp
+#include &lt;iostream&gt;
+<span class="red">#include &lt;boost/tokenizer.hpp&gt;
+</span>#include &lt;boost/lexical_cast.hpp&gt;
+using namespace std;
+using namespace boost;
+
+//トークン分割
+void tokenizerMain(){
+	//構文
+	//<span class="red">tokenizer&lt;char_separator&lt;char&gt; &gt; token(string,char_separator&lt;char&gt;)</span>;
+
+	//分割対象文字列(csvファイルを想定)
+	string str="//x,y,angle,speed,item\n100,100,90,3.0,20";
+	//区切りとなる文字を設定([半角スペース][タブ][改行][,(カンマ)])
+	<span class="red">char_separator&lt;char&gt;</span> sep(" \t\n,");
+	//トークンに分割
+	<span class="red">tokenizer&lt;char_separator&lt;char&gt; &gt;</span> token(str,sep);
+
+	//分割後のトークンはイテレータで取得
+	//型名長い
+	<span class="red">typedef tokenizer&lt;char_separator&lt;char&gt; &gt;</span> Tokenizer;
+	const int N=5;	//CSVのデータ個数(仮想)
+	float param[N];	//CSVで設定するパラメータ
+	int i=0;	//インデックス
+	for(Tokenizer::<span class="red">iterator</span> it=token.begin();it!=token.end();++it){
+		//先頭に'/'があったらその行はコメントとみなし、読み飛ばす
+		if((*it)[0]=='/'){
+			advance(it,N-1);
+			continue;
+		}
+		//トークンとして取得した文字列を数値に変換してパラメータに
+		param[i]=lexical_cast&lt;float&gt;(*it);
+		i++;
+	}
+
+	//パラメータ表示
+	cout&lt;&lt;"x="&lt;&lt;param[0]&lt;&lt;endl;
+	cout&lt;&lt;"y="&lt;&lt;param[1]&lt;&lt;endl;
+	cout&lt;&lt;"angle="&lt;&lt;param[2]&lt;&lt;endl;
+	cout&lt;&lt;"speed="&lt;&lt;param[3]&lt;&lt;endl;
+	cout&lt;&lt;"item="&lt;&lt;param[4]&lt;&lt;endl;
+}
+</pre>
+分割後のトークンも文字列ですので数値に直すのにはlexical_castが使えます。<br>
+vector&lt;string&gt;を返すトークン分割器を自前で作ってたりしてたのですがイテレータで回せる方が何かと使いやすいかもしれませんね。<br>
+<hr>
+<h2><a name="shared_ptr">shared_ptr</a></h2>
+参照カウント方式のスマートポインタを提供します。<br>
+スマートポインタとは主にデストラクタを利用して勝手にdeleteしてくれるようなポインタです。<br>
+参照カウント方式とは自分が何個のポインタから参照されているかをカウントしておき、0になったタイミングでdeleteする方式です。<br>
+これによりnewしたものをdeleteし忘れてメモリリーク！などの非常に発見しにくいバグを未然に防ぐことができます。<br>ただし万能ではありません。<br>
+相互参照してしまうとお互いの参照カウンタがいつまでも0にならないのでやはりメモリリークします。<br>
+それと0になったタイミングですぐ破棄してしまうので後から参照しなおす、といったことができません。<br>
+<pre>
+//shared_ptr.cpp
+#include &lt;iostream&gt;
+<span class="red">#include &lt;boost/shared_ptr.hpp&gt;
+</span>//using namespace std;
+using namespace boost;
+
+//コンストラクタとデストラクタの呼ばれるタイミングを測るクラス
+class CConstDest{
+public:
+	//識別子
+	std::string s;
+
+	CConstDest(std::string str):s(str){
+		std::cout&lt;&lt;s.c_str()&lt;&lt;"のコンストラクタが呼ばれた"&lt;&lt;std::endl;
+	}
+	~CConstDest(){
+		std::cout&lt;&lt;s.c_str()&lt;&lt;"のデストラクタが呼ばれた"&lt;&lt;std::endl;
+	}
+
+	//識別子を表示する関数
+	void ShowStr(){
+		std::cout&lt;&lt;s.c_str()&lt;&lt;"のShowStrが呼び出された"&lt;&lt;std::endl;
+	}
+};
+
+//スマートポインタ(参照カウント方式)
+void shared_ptrMain(){
+	//構文
+	//<span class="red">shared_ptr&lt;型名&gt;</span>でその型のポインタ型を宣言
+	
+	//p,q,r３つのスマートポインタを生成
+	shared_ptr&lt;CConstDest&gt; p(new CConstDest("p"));
+	shared_ptr&lt;CConstDest&gt; q(new CConstDest("q"));
+	shared_ptr&lt;CConstDest&gt; r(new CConstDest("r"));
+
+	std::cout&lt;&lt;std::endl;
+
+	//ブロックを作りその中でs,tを生成
+	{
+		shared_ptr&lt;CConstDest&gt; s(new CConstDest("s"));
+		shared_ptr&lt;CConstDest&gt; t(new CConstDest("t"));
+		s=p;		//この時点でsの実体はどこからも参照されなくなる-&gt;s破棄
+		s-&gt;ShowStr();	//呼ばれるのはpのShowStr(s=pとしたため)
+
+		//ブロック終わりで残ったスマートポインタを破棄
+		//-&gt;t破棄
+	}
+
+	std::cout&lt;&lt;std::endl;
+	
+	q=r;//この時点でqの実体はどこからも参照されなくなる-&gt;q破棄
+
+	std::cout&lt;&lt;std::endl;
+
+	p-&gt;ShowStr();//pのShowStr
+	q-&gt;ShowStr();//rのShowStr(上でq=rとしたため)
+	r-&gt;ShowStr();//rのShowStr
+
+	std::cout&lt;&lt;std::endl;
+
+	//何もしなくても残ったスマートポインタを破棄
+	//-&gt;p,r破棄
+}
+</pre>
+特に変なことをしなければただのポインタと同等に扱えるように'*'演算子や'-&gt;'演算子が使えます。<br>
+stdのshared_ptrと違ってvectorなどにも格納することができます。<br>
+自分は正直スマートポインタは好きくないのであまり・・・<br>
+（全部自分で管理したい、まあその結果リークするんですがねー（＾＾　）<br>
+<hr>
+<h2><a name="date_time">date_time</a></h2>
+日時を扱うコンポーネントです。<br>
+ファイルのタイムスタンプや年月日計算に対応します。<br>
+なお、このコンポーネント内の一部の機能は<i>boost </i>ライブラリを必要とします。<br>
+このコンポーネントを使用してエラーが出る場合は<a href="./boost1.html#error">前ページ</a>を参照してライブラリビルドから確認してみてください。<br>
+<pre>
+//date_time.cpp
+#include &lt;iostream&gt;
+<span class="red">#include &lt;boost/date_time/gregorian/gregorian.hpp&gt;
+</span>using namespace std;
+using namespace boost;
+using namespace boost::gregorian;
+
+//日時
+void date_timeMain(){
+	//誕生日1992/08/29
+	<span class="red">date</span> birthday(1992,8,29);
+	//今日
+	<span class="red">date</span> today=<span class="red">day_clock::local_day()</span>;
+	cout&lt;&lt;"今日は："&lt;&lt;today&lt;&lt;"("&lt;&lt;today.day_of_week()&lt;&lt;")"&lt;&lt;endl;
+
+	//誕生日は何曜日だったか
+	cout&lt;&lt;"誕生日の曜日は："&lt;&lt;birthday.day_of_week()&lt;&lt;endl;
+	//誕生日から今日まで何日生きてきたか
+	<span class="red">days</span> dd=today-birthday;
+	cout&lt;&lt;"生まれてから"&lt;&lt;dd.days()&lt;&lt;"日経過"&lt;&lt;endl;
+
+	//100歳になるのはいつだろう
+	<span class="red">date</span> handred=birthday+years(100);
+	cout&lt;&lt;"100歳になるのは"
+		&lt;&lt;handred.year()&lt;&lt;"年"
+		&lt;&lt;handred.month().as_number()&lt;&lt;"月"
+		&lt;&lt;handred.day()&lt;&lt;"日("&lt;&lt;handred.day_of_week()&lt;&lt;")"
+		&lt;&lt;endl;
+}
+</pre>
+表示形式などいろいろと細かいプロパティが取得できます。<br>
+ファイルのタイムスタンプに使えそうです。<br>
+<hr>
+<h2><a name="timer">timer (process_timer)</a></h2>
+処理時間を計測します。<br>
+stdのclock()を処理前に呼び出して、処理後に引き算して経過時間を求める手法を自動化したものです。<br>
+コンストラクタで処理前のクロックを記録し、処理後にelaped()、もしくはデストラクタで表示します。<br>
+<pre>
+//timer.cpp
+#include &lt;iostream&gt;
+<span class="red">#include &lt;boost/timer.hpp&gt;	//timer用
+#include &lt;boost/progress.hpp&gt;	//progress_timer用</span>
+using namespace std;
+using namespace boost;
+
+//処理時間が長い関数(アッカーマン関数)
+int Ack(int m,int n){
+	if(m==0)return n+1;
+	else if(n==0)return Ack(m-1,n);
+	else return Ack(m-1,Ack(m,n-1));
+}
+
+//処理時間計測
+void timerMain(){
+	{
+		//タイマーカウント開始
+		<span class="red">timer</span> t;
+		//長い処理
+		Ack(12,15);
+		//経過時間取得
+		cout&lt;&lt;"処理時間："&lt;&lt;t.elapsed()&lt;&lt;"秒"&lt;&lt;endl;
+	}
+	{
+		//タイマーカウント開始
+		<span class="red">progress_timer</span> pt;
+		//長い処理
+		Ack(12,15);
+		//ptのデストラクタで自動で表示してくれる
+	}
+}
+</pre>
+自前で作るよりスマートですね。<br>
+<hr>
+<h2><a name="thread">thread</a></h2>
+マルチスレッドで並列処理を行います。<br>
+ロックやミューテックス、ガードやコンディションなど基本的なことはできるようです。<br>
+<pre>
+//thread.cpp
+#include &lt;iostream&gt;
+<span class="red">#include &lt;boost/thread.hpp&gt;
+</span>using namespace std;
+using namespace boost;
+
+//ローディング(を想定したクラス)
+class CLoad{
+private:
+	//ロック型
+	typedef mutex::scoped_lock Lock;
+	//終了フラグ
+	volatile bool endFlag;
+	//進行カウンタ
+	volatile int n;
+	//ガードミューテックス
+	mutex efGuard;
+	//コンディション
+	condition_variable_any state;
+
+public:
+	CLoad():endFlag(false),n(0){}
+
+	//メイン
+	void Run(){
+		//ローディング処理
+		//リソース数(仮想)
+		const int N=100;
+		//全リソース取得
+		for(int i=0;i&lt;N;i++){
+			//値をいじるためロック
+			Lock lk(efGuard);
+
+			//リソースを取得(進行率表示)
+			n++;
+			::system("cls");
+			cout&lt;&lt;n&lt;&lt;" : "&lt;&lt;n/(float)N*100&lt;&lt;"%"&lt;&lt;endl;
+
+			//現在から1[ns]終了通知を待つ
+			xtime xt;
+			xtime_get(&amp;xt,boost::TIME_UTC_);
+			xt.nsec+=1;
+			if(endFlag || state.timed_wait(lk,xt))break;
+		}
+
+		cout&lt;&lt;"ロード完了！"&lt;&lt;endl;
+		exit();
+	}
+
+	//終了
+	void exit(){
+		Lock lk(efGuard);
+		//終了フラグを立てて
+		endFlag=true;
+		//終了通知
+		state.notify_one();
+	}
+};
+
+//マルチスレッド
+void threadMain(){
+	CLoad cl;
+
+	cout&lt;&lt;"Enterで開始、再度Enterで終了"&lt;&lt;endl;
+	//最初のEnter待ち
+	getchar();
+
+	//並列処理開始
+	<span class="red">thread</span> th(&amp;CLoad::Run,&amp;cl);
+
+	//再度Enterを待ちながらロードしてる
+	getchar();
+
+	//再度Enterが押されたら終了通知をしてスレッドの合流を待つ
+	cl.exit();
+	th.join();
+
+	//終了
+}
+</pre>
+並列処理は難しい。<br>
+<hr>
+<h2><a name="filesystem">filesystem</a></h2>
+ファイルやディレクトリ構造を扱うコンポーネントです。<br>
+自前で_finddata_tなどを駆使してなんとかやっていた機能がすっきりと実装されています。<br>
+全ディレクトリ内の走査、サブディレクトリまで含めた列挙などをイテレータを通して行います。<br>
+<pre>
+//filesystem.cpp
+#include &lt;iostream&gt;
+<span class="red">#include &lt;boost/filesystem.hpp&gt;
+#include &lt;boost/filesystem/fstream.hpp&gt;</span>
+using namespace std;
+using namespace boost;
+using namespace boost::filesystem;
+
+//ファイル・ディレクトリの扱いについて
+void filesystemMain(){
+	//カレントディレクトリのパスを取得
+	<span class="red">path</span> cur;
+	cur=current_path();
+	cout&lt;&lt;"カレントディレクトリ："&lt;&lt;cur.string()&lt;&lt;endl;
+	
+	//再帰的ディレクトリイテレータ
+	<span class="red">typedef recursive_directory_iterator RDItr;</span>
+	RDItr it(cur),end;
+	//バッファ用文字列とパス
+	string str;
+	int s=cur.string().size();
+	path p,sub;
+	//ディレクトリ内を走査
+	for(;it!=end;++it){
+		p=*it;
+		//サブディレクトリならば
+		if(is_directory(p)){
+			//保持して
+			sub=p;
+			//文字列として加工して表示
+			str=p.string();
+			cout&lt;&lt;"["&lt;&lt;str.substr(s,str.size()-s)&lt;&lt;"]"&lt;&lt;endl;
+		}
+		else{
+			//ファイルならば
+			if(sub.empty()){
+				//ルート直下にあるならばそのまま表示
+				cout&lt;&lt;p.leaf().string()&lt;&lt;endl;
+			}
+			else{
+				//サブディレクトリにあるならば加工して表示
+				str=(sub/p.leaf()).string();
+				cout&lt;&lt;str.substr(s,str.size()-s)&lt;&lt;endl;
+			}
+		}
+	}
+
+	//p.extension()でpの拡張子を取得したり
+	//change_extension(p,".txt");で拡張子を".txt"に変更したりもできる
+	//カレントディレクトリにログフォルダを作り、中にログファイルを生成する
+	<span class="red">path</span> logDir=cur/"log";
+	//logフォルダがなければ
+	if(!<span class="red">exists</span>(logDir)){
+		//logフォルダを作る
+		<span class="red">create_directories</span>(logDir);
+	}
+	//logファイル生成(path用のfstream(fstream.hpp))
+	path logFile=logDir/"log.txt";
+	<span class="red">boost::filesystem::fstream</span> fout(logFile,ios::out);
+	uint size=<span class="red">file_size</span>(logFile);//サイズ取得(おそらく0、意味なし)
+	fout.close();
+
+	//ログファイルの拡張子を変更
+	path newLogFile=<span class="red">change_extension</span>(logFile,".sav");
+	//リネーム
+	<span class="red">rename</span>(logFile,newLogFile);
+	//そして消す(今までのはなんだったんだ・・・)
+	<span class="red">remove</span>(newLogFile);
+	//logディレクトリも消しちゃう
+	//remove()はファイル、もしくは空のディレクトリのみ消せる
+	//空でないディレクトリは消せない(返り値がfalseになる)
+	//全部消したい場合はremove_all()を使う
+	<span class="red">remove</span>(logDir);
+}
+</pre>
+ディレクトリやファイルパスを表すpathという<i>boost </i>特有の文字列クラスを通して操作を指定します。<br>
+pathオブジェクトは'/'演算子で手軽にパスの追加ができます。<br>
+また、leafメソッドなどでフルパスからファイル名だけを取り出したりできます。<br>
+もちろんstringメソッドを通してstring型との互換性もあります。<br>
+<hr>
+<h2><a name="interval">interval</a></h2>
+区間演算を提供します。<br>
+「ある値minからある値maxまでの間」を表す変数を作りそれを扱います。<br>
+<pre>
+//interval.cpp
+//「float-&gt;double時データ落ち」警告消し
+#pragma warning(disable:4244)
+#pragma warning(disable:4305)
+#include &lt;iostream&gt;
+<span class="red">#include &lt;boost/numeric/interval.hpp&gt;
+</span>using namespace std;
+using namespace boost;
+using namespace boost::numeric;
+
+//矩形クラス(コンストラクタその他もろもろは割愛)
+class Rect{
+public:
+	float x,y,w,h;
+};
+
+//座標クラス
+class Point{
+public:
+	float x,y;
+};
+
+//intervalの表示用
+ostream&amp; operator&lt;&lt;(ostream&amp; os,const interval&lt;float&gt;&amp; i){
+	return os&lt;&lt;"[from "&lt;&lt;i.lower()&lt;&lt;" to "&lt;&lt;i.upper()&lt;&lt;"]";
+}
+
+//区間演算
+void intervalMain(){
+	Rect r;
+	r.x=0;r.y=0;r.w=100;r.h=100;
+
+	Point p;
+	p.x=50;p.y=50;
+
+	//rの内部にpが含まれているか
+	<span class="red">interval&lt;float&gt;</span> ix(r.x,r.x+r.w);
+	<span class="red">interval&lt;float&gt;</span> iy(r.y,r.y+r.h);
+	bool f = <span class="red">in</span>(p.x,ix) &amp;&amp; <span class="red">in</span>(p.y,iy);//trueなら内部にある
+	//f= r.x&lt;p.x &amp;&amp; p.x&lt;r.x+r.w &amp;&amp; r.y&lt;p.y &amp;&amp; p.y&lt;r.y+r.h 
+
+	//区間演算
+	//実験データなど誤差を含むデータ
+	<span class="red">interval&lt;float&gt;</span> e(5.00-0.01,5.00+0.01);//5.00±0.01
+	<span class="red">interval&lt;float&gt;</span> t(3.00-0.02,3.00+0.02);//3.00±0.02
+	cout&lt;&lt;"e="&lt;&lt;e&lt;&lt;endl;
+	cout&lt;&lt;"t="&lt;&lt;t&lt;&lt;endl;
+	cout&lt;&lt;"e*t="&lt;&lt;e*t&lt;&lt;endl;
+}
+</pre>
+in(値,区間)で区間内にその値が存在するかを調べます。<br>
+また、誤差を含む実験データなどを扱う際には誤差伝搬が区間の形で保持されていきます。<br>
+<hr>
+<h2><a name="random">random</a></h2>
+乱数系を提供します。<br>
+乱数の範囲はもちろん、生成方法や分布の仕方などさまざまな乱数法で指定できます。<br>
+<pre>
+//random.cpp
+#include &lt;iostream&gt;
+<span class="red">#include &lt;boost/random.hpp&gt;
+</span>using namespace std;
+using namespace boost;
+
+//乱数系
+void randomMain(){
+	//メルセンヌツイスタで生成する1～6のサイコロ
+	uint seed=(uint)time(NULL);	//よくある現在時間を乱数種にする手法
+	<span class="red">mt19937</span> gen(seed);		//乱数生成法をメルセンヌツイスタとする
+	<span class="red">uniform_int&lt;&gt;</span>  dst(1,6);	//値の範囲は整数型一様分布、[1,6]
+	<span class="red">variate_generator&lt;mt19937,uniform_int&lt;&gt; &gt;</span> rand(gen,dst);//で乱数生成器を作る
+
+	//とりあえず10回振ってみる
+	for(int i=0;i&lt;10;i++){
+		cout&lt;&lt;i+1&lt;&lt;"回目：出目 "&lt;&lt;<span class="red">rand()</span>&lt;&lt;endl;
+	}
+	cout&lt;&lt;endl;
+
+	//シードを再設定してもう一度振ってみる
+	gen.seed(seed);
+	rand.engine()=gen;
+	for(int i=0;i&lt;10;i++){
+		//始めと同じ出目が出る
+		cout&lt;&lt;i+1&lt;&lt;"回目：出目 "&lt;&lt;<span class="red">rand()</span>&lt;&lt;endl;
+	}
+	cout&lt;&lt;endl;
+	
+	//シードを取得する機能はないのでseedはこちらで管理する必要がある
+}
+</pre>
+大体有名どころな生成法には対応してます。<br>
+シードを再設定する機能はありますが、シードの取得機能はありません。<br>
+シードの取得機能が欲しいところですな。<br>
+標準のrandはひとつしか使えませんが複数の乱数系が欲しい場合などに独立して運用できます。<br>
+<hr>
+<h2><a name="rational">rational</a></h2>
+有理数を扱うコンポーネントです。<br>
+・・・前作った<a href="ReversePolishNotation.html">こちら</a>の仮想分数クラスと同じです。（boost::rationalの方がいいですが）<br>
+<pre>
+//rational.cpp
+#include &lt;iostream&gt;
+<span class="red">#include &lt;boost/rational.hpp&gt;
+</span>using namespace std;
+using namespace boost;
+
+//分数クラス
+void rationalMain(){
+	//ぶっちゃけ前作ったSudoDivと同じ
+	<span class="red">rational&lt;int&gt;</span> a(1,2);//1/2
+	<span class="red">rational&lt;int&gt;</span> b(2,3);//2/3
+
+	//そのまま表示できる
+	cout&lt;&lt;a&lt;&lt;endl;
+	cout&lt;&lt;b&lt;&lt;endl;
+	cout&lt;&lt;endl;
+
+	//分数として四則演算
+	cout&lt;&lt;a+b&lt;&lt;endl;
+	cout&lt;&lt;a-b&lt;&lt;endl;
+	cout&lt;&lt;a*b&lt;&lt;endl;
+	cout&lt;&lt;a/b&lt;&lt;endl;
+	cout&lt;&lt;endl;
+	
+	//演算結果を浮動小数にキャストして表示
+	cout&lt;&lt;rational_cast&lt;float&gt;(a+b)&lt;&lt;endl;
+	cout&lt;&lt;rational_cast&lt;float&gt;(a-b)&lt;&lt;endl;
+	cout&lt;&lt;rational_cast&lt;float&gt;(a*b)&lt;&lt;endl;
+	cout&lt;&lt;rational_cast&lt;float&gt;(a/b)&lt;&lt;endl;
+	cout&lt;&lt;endl;
+}
+</pre>
+浮動小数として取得する時にはrational_castを用います。<br>
+あとそれ以外は普通の分数として扱えるように四則演算が定義されています。<br>
+<hr>
+<h2><a name="optional">optional</a></h2>
+不正値を付け足したクラスを生成します。<br>
+不正値とはポインタ型でいうNULLのことです。<br>
+例えば正の数を返す関数があるとします。その関数がうまく処理できずにエラーを起こした時に呼び出し側にどのように伝えればいいでしょうか。<br>
+例外を投げるのもいいですがいちいちtry～catchするのもめんどくさい。<br>
+普通は正常ならば返すことのない値、この場合は負数(-1)を返せば呼び出し側は何か異常が発生したと判別できます。<br>
+では返り値が整数全体の関数ならばどうでしょうか。<br>
+整数でない何か特別な値が返り値として欲しいですがintの範囲ではできません。<br>
+そこに不正な値であることを表す値を一つ付け足したクラスを作るのがoptionalです。<br>
+<pre>
+//optional.cpp
+#include &lt;iostream&gt;
+<span class="red">#include &lt;boost/optional.hpp&gt;
+</span>using namespace std;
+using namespace boost;
+
+//√xを超えない最大の整数を返す、ただしxが負なら不正値を返す
+<span class="red">optional&lt;int&gt;</span> maxSqrt(int x){
+	if(x&lt;0)return optional&lt;int&gt;();//不正値
+
+	int i=0;
+	for(i=0;i*i&lt;=x;i++);
+	return i-1;
+}
+
+//不正値を付け足した型
+void optionalMain(){
+	//結果を受け取る変数(int+不正値)
+	<span class="red">optional&lt;int&gt;</span> result;
+
+	//-5から5までmaxSqrtに渡してみる
+	for(int i=-5;i&lt;=5;i++){
+		result=maxSqrt(i);
+		//不正値かどうかは以下のようにして判定
+		//ポインタ的なものと見れば分かりやすい
+		if(!result)	cout&lt;&lt;"invalid"&lt;&lt;endl;
+		else		cout&lt;&lt;*result&lt;&lt;endl;
+	}
+}
+</pre>
+optional&lt;int&gt;をtypedefすればもっと見やすくなるかもしれませんね。<br>
+<hr>
+<h2><a name="tribool">tribool</a></h2>
+３値ブールを提供します。<br>
+３値ブールとはtrue(真),false(偽),indeterminate(不定)の３値を保持する変数です。<br>
+<pre>
+//tribool.cpp
+#include &lt;iostream&gt;
+<span class="red">#include &lt;boost/logic/tribool.hpp&gt;
+</span>using namespace std;
+using namespace boost;
+
+//3値bool表示
+ostream&amp; operator&lt;&lt;(ostream&amp; os,const <span class="red">tribool</span>&amp; f){
+	if(f==true)		return os&lt;&lt;"true";
+	else if(f==false)	return os&lt;&lt;"false";
+	else			return os&lt;&lt;"indeterminate";
+}
+
+//trueとfalseとindeterminate(不定)の3値bool
+void triboolMain(){
+	const <span class="red">tribool</span> s[3]={true,false,indeterminate};
+	<span class="red">tribool</span> a,b;
+
+	//3値boolの真理値表を作る
+	for(int i=0;i&lt;3;i++){
+		a=s[i];
+		for(int j=0;j&lt;3;j++){
+			b=s[j];
+
+			cout&lt;&lt;"a="&lt;&lt;a&lt;&lt;endl;
+			cout&lt;&lt;"b="&lt;&lt;b&lt;&lt;endl;
+			cout&lt;&lt;"a &amp;&amp; b="&lt;&lt;(a &amp;&amp; b)&lt;&lt;endl;
+			cout&lt;&lt;"a || b="&lt;&lt;(a || b)&lt;&lt;endl;
+			cout&lt;&lt;"!a="&lt;&lt;!a&lt;&lt;endl;
+			cout&lt;&lt;"!b="&lt;&lt;!b&lt;&lt;endl;
+			cout&lt;&lt;endl;
+		}
+	}
+}
+</pre>
+ちなみに結果はこうなります。<br>
+
+<table border="1" width="300">
+<tr align="center">
+<td bgcolor="aqua">a</td><td bgcolor="aqua">b</td><td>a &amp;&amp; b</td><td>a || b</td><td>!a</td><td>!b</td>
+</tr>
+<tr>
+<td rowspan="3"><span class="red">true</span></td><td><span class="red">true</span></td><td><span class="red">true</span></td><td><span class="red">true</span></td><td>false</td><td>false</td>
+</tr>
+<tr>
+<td>false</td><td>false</td><td><span class="red">true</span></td><td>false</td><td><span class="red">true</span></td>
+</tr>
+<tr>
+<td>indeterminate</td><td>indeterminate</td><td><span class="red">true</span></td><td>false</td><td>indeterminate</td>
+</tr>
+<tr>
+<td rowspan="3">false</td><td><span class="red">true</span></td><td>false</td><td><span class="red">true</span></td><td><span class="red">true</span></td><td>false</td>
+</tr>
+<tr>
+<td>false</td><td>false</td><td>false</td><td><span class="red">true</span></td><td><span class="red">true</span></td>
+</tr>
+<tr>
+<td>indeterminate</td><td>false</td><td>indeterminate</td><td><span class="red">true</span></td><td>indeterminate</td>
+</tr>
+<td rowspan="3">indeterminate</td><td><span class="red">true</span></td><td>indeterminate</td><td><span class="red">true</span></td><td>indeterminate</td><td>false</td>
+</tr>
+<tr>
+<td>false</td><td>false</td><td>indeterminate</td><td>indeterminate</td><td><span class="red">true</span></td>
+</tr>
+<tr>
+<td>indeterminate</td><td>indeterminate</td><td>indeterminate</td><td>indeterminate</td><td>indeterminate</td>
+</tr>
+</table><br>
+ショートサーキットが働いているところはindeterminateがあっても確定してたりしますね。<br>
+<hr>
+<h2><a name="assignforeach">assign・foreach</a></h2>
+汎用代入とループを提供します。<br>
+vectorなどに要素を追加するとき、push_backを何個も書くのはめんどくさい。<br>
+そこを演算子のオーバーロードで解決しちゃおうというのがassignコンポーネントです。<br>
+そうしたコンテナを操作するときにイテレータで回しますがその宣言も長ったらしくてめんどくさい。<br>
+そこをマクロで解決しちゃおうというのがBOOST_FOREACHです。<br>
+<pre>
+//assign.cpp
+#include &lt;iostream&gt;
+#include &lt;vector&gt;
+#include &lt;map&gt;
+<span class="red">#include &lt;boost/assign.hpp&gt;
+#include &lt;boost/foreach.hpp&gt;
+#define foreach BOOST_FOREACH
+</span>using namespace std;
+using namespace boost;
+using namespace boost::assign;
+
+//asignとforeach
+void assignMain(){
+	//vectorに楽々代入
+	vector&lt;int&gt; vec;
+	vec+=1,2,3,4,5,6,7,8,9,10;
+
+	//mapもいけちゃう
+	map&lt;char,int&gt; strIntMap=map_list_of('A',1)('B',2)('C',3);
+
+	//foeachでほんとに入ってるか全部表示してみる
+	foreach(int e,vec){
+		cout&lt;&lt;e&lt;&lt;",";
+	}
+	cout&lt;&lt;endl;
+
+	//型名に','が含まれるとBOOST_FOREACHがうまく展開されないのでtypedef
+	typedef pair&lt;char,int&gt; MItr;
+	foreach(MItr e,strIntMap){
+		cout&lt;&lt;"("&lt;&lt;e.first&lt;&lt;","&lt;&lt;e.second&lt;&lt;"),";
+	}
+	cout&lt;&lt;endl;
+
+}
+</pre>
+慣れると引き返せそうにないですね（＾＾；<br>
+<br>
+<br>
+<h2>まとめ</h2>
+便利機能目白押しでしたね。<br>
+何ができるかを知っておかないと利用することもできませんのでライブラリの内容を調べておくことは重要です。<br>
+紹介したものの他には正規表現を扱うコンポーネントが有名でしょうか。<br>
+<i>boost </i>のこれら便利コンポーネントを使えば無駄な処理に頭を悩まされる事なく本筋の実装に専念することができます。<br>
+そのほかの機能のリファレンスは<span class="red">Let's Boost</span>様が日本語サイトでかなり網羅しておりますので参考サイトからどうぞ。<br>
+<br>
+<i>boost </i>で一番難しいのは導入だと思ってますので導入編や参考サイト様を参照してください。<br>
+素晴らしき<i>boost </i>ライフを！<br>
+<br>
+<br>
+<h2>・参考サイト様</h2>
+（導入編と同じです）<br>
+<br>
+Let's Boost<br>
+<a href="http://www.kmonos.net/alang/boost/">Boost のインストール方法</a><br>
+言わずと知れた<i>boost </i>の解説サイト様。<br>
+ここ一つでかなりの範囲を網羅しております。<br>
+<br>
+C++ - Boost C++ライブラリ<br>
+<a href="http://itref.fc2web.com/c/cpp.html#BOOST">Boost C++ライブラリ</a><br>
+bjam.exeによるライブラリビルド時のパラメータはここを参照しました。<br>
+bjam.exeとb2.exeは現バージョンの<i>boost </i>では同じものですので、同じパラメータがそのまま使えます。<br>
+<br>
+予定外  Windows環境へのBoostライブラリインストール<br>
+<a href="http://homepie.blog.shinobi.jp/vc--/windows環境へのboostライブラリインストール">Windows環境へのBoostライブラリインストール</a><br>
+同じくパラメータについてと全体の流れを解説しています。<br>
+<br>
+Windows Script Programming<br>
+<a href="http://scripting.cocolog-nifty.com/blog/2008/12/cmdexeunicodeut.html">cmd.exeとchcp.comだけで、文字コードを変換する！</a><br>
+最後の警告についての文字コードはこちらを見るといいんじゃないでしょうか。未確認ですが。<br>
+<br>
+<b>『Boost C++ Libraries プログラミング 第２版』</b><br>
+<i>稲葉　一浩　著<br>
+ISBN 978-4-7980-1704-4 C3055<br>
+</i>
+こちらは書籍です。<br>
+各機能のリファレンスも網羅しております。<br>
+現在では絶版になってしまっているようですが・・・<br>
+<br>
+
+<hr>
+<script type="text/javascript">
+write_locate(27);
+topic("index","../index.html");
+topic("プログラムテクニック覚え書き","./program_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+</p>
+</body></html>

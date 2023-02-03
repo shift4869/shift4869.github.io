@@ -1,0 +1,378 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>12.へにょりレーザー</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<!--<base href="http://1st.geocities.jp/shift486909/">-->
+</head>
+<body>
+<p align="left"><br>
+<h1>へにょりレーザー</h1><br>
+<span class="red">2010/11/23　こっそり誤字修正</span><br>
+<hr>
+<br>
+<h2>・曲線レーザー</h2>
+突然ですがこんなぐにゃっと曲がったレーザー<br>
+どのように描画しているかわかりますか？<br>
+<img src="CurveLazer/graph01.jpg" width="266" height="396" alt=""><br>
+STGを創る上でつまづくのはレーザーですが、<br>
+それ以上に処理がわからないのがこの曲線レーザーではないでしょうか。<br>
+ここではそんないわゆる「へにょりレーザー」の実装をしていきます。<br>
+<br>
+<h2>・軌道</h2>
+まず全体の軌道としては<a href="./bezier.html">ベジェ曲線軌道</a>を使います。<br>
+へにょりレーザーを表すクラスを次のようにします。<br>
+<pre>
+//へにょりレーザークラス
+class BezierLazer : public Mover{
+public:
+	//軌跡
+	list&lt;Point&gt; trail;
+	//ベジェ曲線の始点.終点.制御点
+	Point p1,p2,c1,c2;
+	//レーザーの4端点
+	Point p[4]
+	//幅.高さ.(描画)角度.
+	float width,height,drawAng;
+	//色.カウンタ.時間
+	int col,cnt,t;
+	
+	//コンストラクタ
+	//ベジェ曲線の始点.終点.制御点
+	//幅.高さ.当たり半径.時間.色
+	BezierLazer(const Point&amp; from,const Point&amp; to,
+		const Point&amp; cont1,const Point&amp; cont2,
+		float widthV,float heightV,float r,
+		int time,int color):
+	Mover(from,r),
+	p1(from),p2(to),c1(cont1),c2(cont2),
+	width(widthV),height(heightV),drawAng(0.0)
+	col(color),cnt(0),t(time)
+	{
+		trail.push_back(Point(x,y));
+	}
+	
+	//デストラクタ
+	virtual ~BezierLazer(){}
+
+	//移動関数
+	virtual void Move();
+	//描画関数
+	virtual void Draw();
+	//当たり判定
+	virtual bool IsCollision(const Mover&amp; m);
+};
+</pre>
+ちょっとメンバが多いですね。<br>
+役割についてはコメントの通りです。<br>
+時間 t はベジェ曲線軌道の到達時間です。<br>
+詳しいソースは後で掲載しますが、大きく分けて3つの処理があります。<br>
+<ol>
+<li>移動 Move()</li>
+<li>描画 Draw()</li>
+<li>当たり判定 IsCollision()</li>
+</ol>
+それぞれについて解説していきます。<br>
+<br>
+<h2>1.移動 Move()</h2>
+前述の通り、移動には<a href="./bezier.html">ベジェ曲線軌道</a>を使います。<br>
+描画に使うため、通った軌跡をheight分trailに保存していきます。<br>
+<pre>
+void BezierLazer::Move(){
+	///ベジェ曲線軌道-----------------------------
+	Point cp[4]={p1,c1,c2,p2};
+    
+	float k=(float)cnt/endTime;
+	float m=k,n=1.0-k;
+	Point s1[3];
+	Point s2[2];
+	Point mp;
+
+	//1回目の内分点取得
+	for(int i=0;i&lt;3;i++){
+		s1[i]=InnerPoint(cp[i],cp[i+1],m,n);
+	}
+	//2回目の内分点取得
+	for(int i=0;i&lt;2;i++){
+		s2[i]=InnerPoint(s1[i],s1[i+1],m,n);
+	}
+
+	//3回目の内分点(現在点)取得
+	mp=InnerPoint(s2[0],s2[1],m,n);
+
+	//現在の座標設定
+	x=mp.x;
+	y=mp.y;
+	///-------------------------------------------
+
+	//height以上 or 時間が経ったら軌跡を消していく
+	if(trail.size()&gt;height || cnt&gt;t){
+		trail.pop_front();
+	}
+
+	//時間内なら軌跡を保存
+	if(cnt&lt;=t){
+		trail.push_back(mp);
+	}
+
+	//カウンタアップ
+	cnt++;
+
+	//軌跡が全部消えたら終了
+	if(trail.empty()){
+		alive=false;
+	}
+}
+</pre>
+これは大丈夫ですね。<br>
+前回のベジェ曲線軌道を参照してくれればわかると思います。<br>
+<br>
+<h2>2.描画 Draw()</h2>
+さて、一番の難関はここです。<br>
+軌跡間を補完して描画する感じです。<br>
+4点描画をする<a href="http://homepage2.nifty.com/natupaji/DxLib/function/dxfunc_graph.html#R3N11">DrawModiGraph()</a>を使います(DXライブラリ)<br>
+下の図を見てください。<br>
+<img src="CurveLazer/graph02.jpg" width="179" height="358" alt=""><br>
+緑点が軌跡のtrail。赤枠が分割して描画する個々のレーザーです。<br>
+軌跡点で分割して描画します。<br>
+数学の極限のような概念で、分割数が多いと曲線に見える。というようになります。<br>
+元のレーザー画像を分割(理想では1ピクセルごと)して、<br>
+軌跡のどの辺を描画しているかで画像を変えます。<br>
+<img src="CurveLazer/graph03.jpg" width="107" height="214" alt="">
+<img src="CurveLazer/graph04.jpg" width="107" height="214" alt=""><br>
+元のレーザー画像はここにおいておきます つ
+<a href="CurveLazer/lazer.png">lazer.png</a><br>
+<br>
+さて細かい処理に入っていきましょう。<br>
+<img src="CurveLazer/graph05.jpg" width="150" height="300" alt=""><br>
+拡大図です。<br>
+k番目の軌跡点をit1,k+1番目の軌跡点をit2として(図の緑点)<br>
+求めるのはp[0,1,2,3]です。<br>
+まずit1-it2間の角度を求めます。<br>
+これはatan2()関数を使えばすぐわかります。<br>
+そしてそれに+90度(&pi;/2ラジアン)加えます(=drawAngとする)<br>
+<br>
+とすると各座標はit1,it2の座標を用いて<br>
+<pre>
+p[0].x=it1->x-cos(drawAng)*WIDTH;
+p[0].y=it1->y-sin(drawAng)*WIDTH;
+p[1].x=it1->x+cos(drawAng)*WIDTH;
+p[1].y=it1->y+sin(drawAng)*WIDTH;
+p[2].x=it2->x+cos(drawAng)*WIDTH;
+p[2].y=it2->y+sin(drawAng)*WIDTH;
+p[3].x=it2->x-cos(drawAng)*WIDTH;
+p[3].y=it2->y-sin(drawAng)*WIDTH;
+</pre>
+と表されます。<br>
+あとはこの4点を<a href="http://homepage2.nifty.com/natupaji/DxLib/function/dxfunc_graph.html#R3N11">DrawModiGraph()</a>関数に渡して描画します。<br>
+<br>
+描画すべき元レーザーのindexを求めるには、<br>
+レーザー画像の全体分割数をLAZ_DIVIDE_NUM,<br>
+現在の軌跡最大保持数をn,<br>
+現在描画している分割短径をkとすると、<br>
+<pre>
+index=(int)((LAZ_DIVIDE_NUM-1)*(float)k/n);
+</pre>
+となります。<br>
+(float)k/n は k が n に近づくにつれて 1 になることに注目してください。<br>
+<br>
+とりあえず、これで大体描画できますがまだ問題があります。<br>
+これをそのまますると下図のようにドット抜けが発生します。<br>
+<img src="CurveLazer/graph06.png" width="83" height="206" alt=""><br>
+これは前にあげた図をよく見るとわかりますが<br>
+特に曲がる部分でスキマが発生するためです。<br>
+<img src="CurveLazer/graph07.jpg" width="150" height="300" alt=""><br>
+そこでこの部分を補正します。<br>
+といっても簡単で、前フレームのp[3],p[2]をそのままp[0],p[1]に代入します。<br>
+一番始めだけは前述した通り設定します。<br>
+<img src="CurveLazer/graph08.jpg" width="150" height="300" alt=""><br>
+多少歪みますが、極限で見るとそんなに誤差はありません。<br>
+それらを踏まえて以下にソースを示します。<br>
+<pre>
+#define LAZ_DIVIDE_NUM 256
+
+//2点間の角度を返す
+//返り値は度
+float GetAngle(const Point&amp; from,const Point&amp; to){
+	float res=atan2(to.y-from.y,to.x-from.x)*180/PI;//ラジアンから度に変換
+	return res;
+}
+
+void BezierLazer::Draw(){
+	//現在の分割短径.分割画像インデックス.軌跡最大数.
+	int i=0,index=0,n=trail.size();
+	const float WIDTH2=width/2.0;//横幅の半分
+
+	//加算描画
+	SetDrawBlendMode(DX_BLENDMODE_ADD,255);
+	
+	//軌跡を辿るイテレータ
+	list&lt;Point&gt;::iterator it1,it2;
+	
+	//分割短径の描画
+	for(it1=it2=trail.begin(),++it2;
+		it2!=trail.end();++it1,++it2){
+		
+		//角度を求める
+		drawAng=GetAngle(*it1,*it2)+90;
+		
+		if(i==0){//初回なら設定
+			p[0].x=it1-&gt;x-cosd(drawAng)*WIDTH2;
+			p[0].y=it1-&gt;y-sind(drawAng)*WIDTH2;
+			p[1].x=it1-&gt;x+cosd(drawAng)*WIDTH2;
+			p[1].y=it1-&gt;y+sind(drawAng)*WIDTH2;
+		}
+		else{//前フレームのを流用
+			p[0]=p[3];
+			p[1]=p[2];
+		}
+		
+		p[2].x=it2-&gt;x+cosd(drawAng)*WIDTH2;
+		p[2].y=it2-&gt;y+sind(drawAng)*WIDTH2;
+		p[3].x=it2-&gt;x-cosd(drawAng)*WIDTH2;
+		p[3].y=it2-&gt;y-sind(drawAng)*WIDTH2;
+
+		//インデックスを求める
+		index=(int)((LAZ_DIVIDE_NUM-1)*(float)i/n);
+		//描画
+		DrawModiGraphF(p[0].x,p[0].y,p[1].x,p[1].y,p[2].x,p[2].y,p[3].x,p[3].y,
+			IMG::lazerPiece[index][col],true);
+		//次の分割短径へ
+		i++;
+	}
+	
+	SetDrawBlendMode(DX_BLENDMODE_NOBLEND,255);
+
+}
+</pre>
+sind,cosdは「度」用のsin,cosと思ってください。<br>
+標準のsin,cosはラジアンを引数にとります。<br>
+その辺をごっちゃにしないように注意してください。<br>
+<br>
+ふぃ～大変でしたね。<br>
+極限の考え方と補完法がわかればよいかと思います。<br>
+<br>
+<h2>3.当たり判定 IsCollision()</h2>
+これは<a href="./collision.html">8.長方形と円の当たり判定</a>にあるLazerを流用しましょう<br>
+上の描画時の補正をかける前の短形をLazerと見なしてそれぞれ判定をとっていきます。<br>
+<pre>
+bool BezierLazer::IsCollision(const Mover&amp; m){
+
+	//レーザークラス
+	Lazer laz;
+	const float WIDTH2=width/2.0;//横幅の半分
+	//軌跡を辿るイテレータ
+	list&lt;Point&gt;::iterator it1,it2;
+	
+	//分割短径を辿る
+	for(it1=it2=trail.begin(),++it2;
+		it2!=trail.end();++it1,++it2){
+		
+		//角度取得
+		drawAng=Deg360(GetAngle(*it1,*it2)+90);
+		//4点設定(補正なし)
+		laz.p[0].x=it1-&gt;x-cosd(drawAng)*WIDTH2;
+		laz.p[0].y=it1-&gt;y-sind(drawAng)*WIDTH2;
+		laz.p[1].x=it1-&gt;x+cosd(drawAng)*WIDTH2;
+		laz.p[1].y=it1-&gt;y+sind(drawAng)*WIDTH2;
+		laz.p[2].x=it2-&gt;x+cosd(drawAng)*WIDTH2;
+		laz.p[2].y=it2-&gt;y+sind(drawAng)*WIDTH2;
+		laz.p[3].x=it2-&gt;x-cosd(drawAng)*WIDTH2;
+		laz.p[3].y=it2-&gt;y-sind(drawAng)*WIDTH2;
+
+		//当たり判定をとる
+		if(<a href="./collision.html">LazerCollision</a>(laz,m)){
+			return true;
+		}
+		
+	}
+
+	return false;
+}
+</pre>
+これで当たり判定は完成です。<br>
+<br>
+<h2>画像分割</h2>
+ところで、今まで「画像の分割」とか言ってましたが<br>
+具体的にはまず、元のレーザー画像を<a href="http://homepage2.nifty.com/natupaji/DxLib/function/dxfunc_graph.html#R3N3">LoadDivGraph()</a>で読み込んで、<br>
+それぞれについて<a href="http://homepage2.nifty.com/natupaji/DxLib/function/dxfunc_graph.html#R3N21">DerivationGraph()</a>で分割して保持します。<br>
+Draw()のところのIMG::lazerPiece[index][col]がそれです。<br>
+<pre>
+#define COLOR_MAX 7
+#define LAZ_SIZE 256
+#define LAZ_DIVIDE_NUM 256
+
+//レーザー画像ロード
+IMG{
+	//レーザー元画像
+	int lazer[COLOR_MAX];
+	//分割後のレーザー画像
+	int lazerPiece[LAZ_DIVIDE_NUM][COLOR_MAX];
+};
+
+	//レーザー元画像読み込み
+	LoadDivGraph("(レーザーの場所までのパス)/lazer.png",7,7,1,20,256,lazer);
+	//レーザー画像分割
+	for(int i=0;i&lt;COLOR_MAX;i++){
+		for(int j=0;j&lt;LAZ_DIVIDE_NUM;j++){
+			lazerPiece[j][i]=DerivationGraph(0,j*LAZ_SIZE/LAZ_DIVIDE_NUM,20,
+										LAZ_SIZE/LAZ_DIVIDE_NUM,lazer[i]);
+		}
+	}
+</pre>
+ってなかんじで分割してください。<br>
+各関数の使い方についてはDXライブラリ本家様のリファレンスを参照してください。<br>
+<br>
+<h2>・感想</h2>
+やっぱりシューティングを創るならへにょりレーザーまで創りたいですよね(^^<br>
+にしてはこの手の解説サイトがあまりないので今回はこの記事を書きました。<br>
+ちなみに画像分割数は1ピクセル幅じゃなくてもそれっぽく見えるので、<br>
+4ピクセル幅(LAZ_DIVIDE_NUM=64)でも大丈夫そうでした。<br>
+わかると思いますが、極限計算をするので非常に負荷がかかり重いです。<br>
+こういう分割数とかで節約しないと使い物にならないでしょう。<br>
+参考までに私のPCではLAZ_DIVIDE_NUM=64で100本ぐらいへにょりレーザーを出しても大丈夫でした。<br>
+<img src="CurveLazer/graph09.png" width="382" height="437" alt=""><br>
+きれー(^^<br>
+<br>
+当たり判定処理は結構てきとーでもよかったりします。<br>
+一応厳正に(?)すると上で書いたようになりますが、<br>
+軌跡それぞれについててきとーに半径を設定して<br>
+円同士の判定でも十分かもしれません。<br>
+そうするとたまにすり抜けることがあるでしょうけど。<br>
+あと、あまり細いと上のようにしてもすり抜けます。<br>
+補完法はありますがそれはまたの機会に・・・(←めんどい<br>
+<br>
+今回のソースはこちら<br>
+<a href="CurveLazer/CBezierLazer.txt">CBezierLazer.h</a>　
+<a href="CurveLazer/CBezierLazer.cpp">CBezierLazer.cpp</a><br>
+今創ってるSTGのシステムの中からそのまま引っ張ってきたから、<br>
+背後にあるものがわからなくて流用性はあんまないかと思いますが。<br>
+(ちなみに*.hファイルがupできないので*.txtにしてます)<br>
+<br>
+<h2>・参考サイト様</h2>
+<a href="http://ktstg.blog.shinobi.jp/Entry/678/">C++/HSPでSTGを作っていく blog</a><br>
+ベジェ曲線を使ってホーミングレーザーを作成されております。<br>
+このエントリのシリーズ(?)には様々な情報があります。<br>
+<br>
+<a href="http://okabi.blog92.fc2.com/blog-entry-842.html#">おかびの悠々制作記</a><br>
+同じくDXライブラリを使用したへにょりレーザーの制作を書かれています。<br>
+<br>
+<a href="http://homepage2.nifty.com/natupaji/DxLib/index.html">ＤＸライブラリ置き場</a><br>
+各DXライブラリの関数の説明はここのリファレンスを参照してください。<br>
+いつもありがとうございます。<br>
+<br>
+<br>
+あ～大変だった。<br>
+でもできたときのきれいさはひとしお。<br>
+<hr>
+<script type="text/javascript">
+write_locate(16);
+topic("index","../index.html");
+topic("プログラムテクニック覚え書き","./program_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+</p>
+</body></html>

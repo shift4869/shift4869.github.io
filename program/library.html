@@ -1,0 +1,106 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>3.ライブラリ制作の薦め</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<!--<base href="http://1st.geocities.jp/shift486909/">-->
+</head>
+<body>
+<p align="left"><br>
+<h1>ライブラリ制作の薦め</h1><br>
+<hr size="2">
+<h2>・ライブラリ制作</h2>
+ここではターゲットを絞りに絞って以下の方向けに記述します。<br>
+<ol>
+開発環境：Microsoft Visual C++ 2008 Express Edition<br>
+DLLではなく、スタティックライブラリを制作する目的をもつ人<br>
+</ol>
+<small>ページの意味ないな～</small><br>
+ここでは例として、Cの FILE構造体 をラップする<span class="red">Fileクラス</span>を作り、ライブラリにしたいと思います。<br>
+利点としては、ファイルは (オープン→読み書き→クローズ) の手順をとります。<br>
+このオープン・クローズをそれぞれクラスのコンストラクタ・デストラクタで処理できます。<br>
+あとは演算子のオーバーロードを使い、型を気にせずに出力できるようにもできます。<br><br>
+
+<h2>・開発までの手順</h2>
+<!--この手順について、詳しく書いているページがあまりない気がしたので、-->
+<small>ここから画像が大量にきます。しかも画質がちょっと悪いな・・・・</small><br>
+ではまず普通のコンソールアプリを作る手順でプロジェクトの設定をします。<br>
+<img border="0" alt="" src="library/lib1.gif" width="663" height="381"><br><br>
+コンソールアプリケーションでプロジェクト名は「File」にしておきましょう。<br>
+ソリューションのディレクトリは作成しません。そしてokボタンを。<br>
+<img border="0" alt="" src="library/lib2.gif" width="804" height="642"><br><br>
+ここでスタティックライブラリにチェックを入れ、プリコンパイル済みヘッダーは使いません。<br>
+そしてokボタン。<br>
+<img border="0" alt="" src="library/lib3.gif" width="808" height="413"><br><br>
+「File」プロジェクトが作成されたら、 FileLib.cpp FileLib.h を追加します。<br>
+<small>(エディタの色については緑は目にいいって聞いたんで・・)</small><br>
+<img border="0" alt="" src="library/lib4.gif" width="396" height="224"><br><br>
+そしたらもう一個プロジェクトを作ります。<br>
+これは、ライブラリの動作テスト用のメイン関数をもつコンソールです。<br>
+<img border="0" alt="" src="library/lib5.gif" width="542" height="422"><br><br>
+場所はライブラリのプロジェクトがある中がいいでしょう。管理が楽になるかと思います。<br>
+<img border="0" alt="" src="library/lib6.gif" width="804" height="609"><br><br>
+普通のコンソールアプリを作るように・・・<br>
+プリコンパイル済みヘッダーはここでも使いません。<br>
+空のプロジェクトにチェックを入れます。<br>
+<img border="0" alt="" src="library/lib7.gif" width="808" height="413"><br><br>
+そしたら、新しく作成したプロジェクト(File_main)に main.cpp を追加します。<br>
+<img border="0" alt="" src="library/lib8.gif" width="470" height="415"><br><br>
+もう少しです。プロジェクト名を右クリックして、「プロジェクト依存関係」を選択します。<br>
+<img border="0" alt="" src="library/lib9.gif" width="345" height="589"><br><br>
+<span class="red">File_main が File に依存</span>するようにしてください。<br>
+<img border="0" alt="" src="library/lib10.gif" width="459" height="503"><br><br>
+そして以下のようにコーディングしてください。<br>
+<table border="0" cellspacing="0" cellpadding="3" width="700">
+	<tr>
+    	<td>main.cpp内</td>
+    	<td>FileLib.h内</td>
+    </tr>
+	<tr>
+    	<td><pre>
+#include <iostream>
+using namespace std;
+
+#include "../FileLib.h"
+
+int main(){
+	File file;
+	return 0;
+}
+		</pre></td>
+
+    	<td><pre>
+#include <iostream>
+using namespace std;
+
+class File{
+private:
+	FILE *fp;
+public:
+	File(){fp=NULL;}
+};		
+		</pre></td>
+    </tr>
+</table>
+ビルトして、エラーがでなければokです。<br>
+ディレクトリ構成などでパスが変わる場合は#includeのパスも合わせてください。<br>
+File.cpp にも FileLib.h を#includeしておいてください。<br><br>
+
+準備段階はこれで完了です。<br>
+これから具体的な実装に入っていきます。<br><br>
+
+--&gt;<a href="./library2.html">Fileクラスの実装編</a>　へ<br><br>
+
+<hr size="2">
+<script type="text/javascript">
+write_locate(3);
+topic("index","../index.html");
+topic("プログラムテクニック覚え書き","./program_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+
+</p>
+</body></html>

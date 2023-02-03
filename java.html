@@ -1,0 +1,29 @@
+<html><head>
+<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Script-type" content="text/javascript; charset=shift_jis">
+<title></title>
+<script type="text/javascript" src="javatest.js"></script>
+
+</head>
+<body>
+<form name="test1">
+<input onclick="alert('これはボタン１です')" type=button value=ボタン1> 
+<input onclick="alert('これはボタン2かもしれません')" type=button value=ボタン2> 
+<input size="5" name="text1" maxlength="5"> 
+<input onclick="var tmp;tmp=window.test1.text1.value;if(tmp=='')alert('何も入っていない');else alert(tmp);" type=button value=テキスト> 
+
+
+<p>背景色 
+<select onchange="back(document.test1.puru1.value)" name=puru1> 
+<option value="white"   selected>白</option>
+<option value="red">赤</option>
+<option value="yellow">黄</option> 
+<option value="blue">青</option>
+<option value="green">緑</option>
+</select>
+</p>
+<script type="text/javascript">
+document.write("<p><i>"+"イタリック"+"</i></p>");
+</script>
+</form> 
+</body></html>

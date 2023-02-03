@@ -1,0 +1,583 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>13-3.TLSFメモリアロケータ（実装編）</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<!--<base href="http://1st.geocities.jp/shift486909/">-->
+</head>
+<body>
+<br>
+<h1>TLSFメモリアロケータ(実装編)</h><br>
+<hr>
+<h2>・ステップ</h2>
+<ol>
+<li><a href="MemoryAllocator1.html#theory">BoundaryTag アルゴリズムの理論</a></li>
+<li><a href="MemoryAllocator1.html#implement">BoundaryTag アルゴリズムの実装</a></li>
+<li><a href="MemoryAllocator2.html">TLSFメモリアロケータの理論</a></li>
+<li><span class="red">TLSFメモリアロケータの実装</span>　←ここで解説する内容</li>
+</ol>
+<h2>・TLSFメモリアロケータ(実装編)</h2>
+では、前パージまでの<a href="MemoryAllocator2.html">理論編</a>を踏まえてTLSFのクラスヘッダを実装します。<br>
+コード中に書いたコメントを参照しつつ読んでいってください。<br>
+<pre>
+//<span class="red">TLSFMemoryAllocator.h</span>
+
+//TLSFメモリアロケータ
+class TLSFMemoryAllocator{
+private:
+	//第二カテゴリー分割数
+	static const int N=2;//(2^N=4分割)
+
+	uint allSize;	//運用総メモリ
+	uint allAloSize;//総確保メモリ
+	uint maxDivideNum;//総分割数
+	byte* baseMem;	//確保メモリの先頭ポインタ
+	BBlock* freeList;	//フリーリストブロック配列先頭ポインタ
+	BBlock* activeList;	//アクティブリストブロック配列先頭ポインタ
+
+	uint freeListBitFLI;	//フリーリストビット(第一カテゴリ)
+	byte* freeListBitSLI;	//フリーリストビット(第二カテゴリ)
+	bool* freeListBit;		//フリーリストビット
+	bool* activeListBit;	//アクティブリストビット
+	int BNS;//sizeof(BBlock)+sizeof(uint)
+	int BBS;//sizeof(BBlock)
+
+public:
+	//コンストラクタ
+	TLSFMemoryAllocator(uint allMemSize,uint maxExpectDivideNum=-1);
+	//デストラクタ
+	~TLSFMemoryAllocator();
+
+private:
+	//初期化
+	void Init(uint allMemSize,uint maxExpectDivideNum=-1);
+
+	//2^x&lt;=valueとなるxを返す(Most Significant Bit)
+	int GetMSB(ulong value);
+	//2^x&gt;=valueとなるxを返す(LSI)
+	int GetLSB(ulong value);
+	//第二カテゴリーインデックス(SLI)を返す
+	byte GetSLI(uint size,byte fli);
+	//同fli内の上位sliを返す(第二カテゴリ内探索)
+	byte GetFreeListSLI(byte fli,byte sli);
+	//指定Fliより上位のFliを返す(第一カテゴリ内探索)
+	byte GetFreeListFLI(byte fli);
+	//あるサイズが所属しているリストインデックスを返す
+	byte GetFIndex(ulong size);
+	//fli,sliからリストインデックスを求める
+	byte GetFIndex(byte fli,byte sli);
+	//立っているビット数をカウントする(32bit ulong)
+	int GetBitCount(ulong value);
+private:
+	//メモリ切り出し
+	byte* DivideMemory(uint size);
+public://外部用
+	template&lt;class T&gt;
+	T* GetMemory(uint size=sizeof(T)){
+		return (T*)DivideMemory(size);
+	}
+
+private:
+	//メモリ解放
+	void ReleaseMemory(byte* p);
+public://外部用
+	template&lt;class T&gt;
+	void DeleteMemory(T* p){
+		p-&gt;~T();
+		ReleaseMemory((byte*)p);
+	}
+
+	//全解放
+	void Clear();
+};
+</pre>
+運用すべきメモリサイズと、管理タグも含めた全ての占有メモリサイズを間違えないようにしてください。<br>
+管理タグ分の定数としてsizeof(BBlock)、sizeof(uint)を頻繁に使うので、クラスの一メンバとしてコンストラクタ内で設定しておきます。<br>
+このBNSとBBSは実行途中で変わりません。変えてはいけません。定数扱いにしてください。（static const int は sizeofで初期化できないため苦肉の策）<br>
+<br>
+総分割数について、これは管理タグがどれだけ必要になるかの見積もりです。<br>
+残念ながらうまい見積もり方法を思い付かなかったので、ユーザー側から「どれだけの"個数"を必要とするか」をコンストラクタの引数として受け取ります。<br>
+ユーザーには「確保してほしいサイズ」と「どれくらいの"個数"を必要するかの最大値見積もり」を渡してもらいます。<br>
+allSizeが「確保してほしいサイズ」、allAloSizeが「管理タグも含めたTLSFが占有する全てのサイズ」を表します。<br>
+総分割数をユーザーが指定しない場合、こちら側でテキトーに管理タグ分の余裕を持ってメモリを確保します。<br>
+<br>
+あとはコメントの通りです。メンバ関数類も既に説明したものです。<br>
+<br>
+<br>
+実装についてはコンストラクタ、メモリ切りだし、メモリ解放が大きな柱となります。<br>
+コンストラクタ内で行う初期化は全解放Clearやデストラクタ内でも利用するので、初期化Initとして分離させておきます。<br>
+以下ソースコード。<br>
+<br>
+<h3>・コンストラクタ</h3>
+<pre>
+//<span class="red">TLSFMemoryAllocator.cpp</span>
+
+//<span class="red">コンストラクタ</span>
+TLSFMemoryAllocator::<span class="red">TLSFMemoryAllocator</span>(uint allMemSize,uint maxExpectDivideNum/*=-1*/){
+	Init(allMemSize,maxExpectDivideNum);
+}
+
+//<span class="red">初期化</span>
+void TLSFMemoryAllocator::<span class="red">Init</span>(uint allMemSize,uint maxExpectDivideNum/*=-1*/){
+	//総分割数
+	maxDivideNum=maxExpectDivideNum;
+	if(maxDivideNum==-1)maxDivideNum=allMemSize/pow(2,N);
+
+	//運用総メモリ
+	//指定量を抑えるベキ乗数で固定(allMemSize&lt;=allSize=2^k)
+	int k=GetMSB(allMemSize-1)+1;
+	allSize=pow(2,k);
+
+	//定数設定
+	BNS=sizeof(BBlock)+sizeof(uint);
+	BBS=sizeof(BBlock);
+
+	//総確保メモリ=運用総メモリ+管理タグ分*予想最大分割数分+初期状態の管理タグ分
+	allAloSize=allSize+BNS*maxExpectDivideNum+BNS*3;
+
+	//メモリ確保
+	baseMem=new byte[allAloSize];
+	memset(baseMem,0,allAloSize);
+
+	//初期チャンクのFLIとSLI
+	byte fli=GetMSB(allAloSize-1);
+	byte sli=GetSLI(allAloSize-1,fli);
+
+	//ブロックリスト数
+	byte bNum=fli*pow(2,N)+sli;
+
+	//ブロックリスト確保
+	freeList	=new BBlock[bNum];
+	activeList	=new BBlock[bNum];
+
+	//ブロックリストビット確保
+	freeListBitFLI=0;				//フリーリストビット(第一カテゴリ)初期化
+	freeListBitSLI=new byte[fli+1];	//フリーリストビット(第二カテゴリ)初期化
+	freeListBit=new bool[bNum];		//フリーリストビット
+	activeListBit=new bool[bNum];	//アクティブリストビット
+	memset(freeListBitSLI,0,sizeof(byte)*(fli+1));
+	memset(freeListBit,0,sizeof(bool)*bNum);
+	memset(activeListBit,0,sizeof(bool)*bNum);
+
+	//始めのダミー
+	byte* b=baseMem;
+	BBlock* bbp=new(b) BBlock(b+BBS,0);
+	bbp-&gt;flag=true;
+	activeList[0].Regist(bbp);
+	activeListBit[0]=true;
+
+	//終末のダミー
+	bbp=new(b+allAloSize-BNS) BBlock(b+allAloSize-BNS+BBS,0);
+	bbp-&gt;flag=true;
+	activeList[0].Regist(bbp);
+	activeListBit[0]=true;
+
+	//始めはフリーリストに一つだけ大きなブロックがある
+	bbp=new(baseMem+BNS) BBlock(baseMem+BNS+BBS,allAloSize-BNS*3);
+	bbp-&gt;flag=false;
+	freeList[bNum-1].Regist(bbp);
+	//フリーリストビットを立てる
+	freeListBit[bNum-1]=true;
+	//(第一カテゴリ)(第二カテゴリ)の最初のフリーリストビットを立てる
+	freeListBitFLI = (1&lt;&lt;fli);
+	freeListBitSLI[fli] = (1&lt;&lt;sli);
+}
+</pre>
+<br>
+メモリ切りだしも説明済みです。<br>
+意外と同じサイズのブロックを確保したり解放したりが繰り返されるので、それはifで判定して分岐します。<br>
+<br>
+<h3>・メモリ切りだし</h3>
+<pre>
+//<span class="red">TLSFMemoryAllocator.cpp</span>
+
+//<span class="red">メモリ切り出し</span>
+byte* TLSFMemoryAllocator::<span class="red">DivideMemory</span>(uint size){
+	//最大のサイズのFLI(これを越えてはいけない)
+	uint mFLI=GetMSB(allAloSize-1);
+
+	//確保サイズのfIndex
+	byte fIndex=0;
+	uint fli=GetMSB(size+BNS-1);
+	uint sli=GetSLI(size+BNS-1,fli);
+	assert(0&lt;fli &amp;&amp; fli&lt;=mFLI);
+	assert(0&lt;=sli &amp;&amp; sli&lt;pow(2,N));
+
+	//フリーリストから一つ取り出す
+	//所属フリーリスト内にある確保サイズより大きなブロックを探す
+	fIndex=GetFIndex(fli,sli);
+	if(freeListBit[fIndex]){//ちょうどいいフリーリストがあったら
+		//fIndexで確定
+	}
+	else{//フリーリストがなければ上方へ探しにいく
+		//まず同fli内で上方のフリーリストが存在するかを調べる
+		sli=GetFreeListSLI(fli,sli);
+
+		//上位sliが見つかったら
+		if(0&lt;=sli &amp;&amp; sli&lt;pow(2,N)){
+			//fIndexを設定
+			fIndex=GetFIndex(fli,sli);
+		}
+		else{//同fli内に上位sliが見つからなかったら
+			//上位fliに探しにいく
+			byte nFLI=fli;
+			fli=GetFreeListFLI(fli);
+			sli=GetFreeListSLI(fli,0);
+			fIndex=GetFIndex(fli,sli);
+		}
+	}
+
+	//fIndexチェック
+	assert(0&lt;fli &amp;&amp; fli&lt;=mFLI);
+	assert(0&lt;=sli &amp;&amp; sli&lt;pow(2,N));
+	assert(freeListBit[fIndex]);
+	assert(&amp;freeList[fIndex]!=freeList[fIndex].next);
+
+	//元々(分割前)のメモリブロック
+	BBlock* bbp=freeList[fIndex].next;
+	//フリーリストのメモリの方が大きくなければならない
+	assert(size+BNS&lt;=bbp-&gt;GetAllSize());
+
+	//フリーリストから外す
+	bbp-&gt;Remove();
+	//フリーリストが無かったらビットをfalseに
+	if(freeList[fIndex].next==&amp;freeList[fIndex]){
+		//フリーリストビット
+		freeListBit[fIndex]=false;
+		//フリーリストビット(第二カテゴリ)
+		freeListBitSLI[fli] &amp;= ~(1&lt;&lt;sli);
+		//フリーリストビット(第一カテゴリ)
+		if(freeListBitSLI[fli]==0)
+			freeListBitFLI &amp;= ~(1&lt;&lt;fli);
+	}
+
+	/*	
+	uint freeListBitFLI;	//フリーリストビット(第一カテゴリ)
+	byte* freeListBitSLI;	//フリーリストビット(第二カテゴリ)
+	bool* freeListBit;		//フリーリストビット
+	bool* activeListBit;	//アクティブリストビット
+	*/
+	//ジャスト時の挙動
+	//フリーリストのメモリと同じサイズだったならば
+	if(size+BNS==bbp-&gt;GetAllSize()){
+		//bbpを返す
+
+		//アクティブリストへ追加
+		activeList[fIndex].Regist(bbp);
+		bbp-&gt;flag=true;
+		activeListBit[fIndex]=true;
+
+		//0クリアして返す
+		memset(bbp-&gt;p,0,bbp-&gt;GetDataSize());
+
+		return bbp-&gt;p;
+	}
+
+	//サイズ分割した後に少なくともタグ分は残らないと分割できない
+	if(bbp-&gt;GetAllSize()-(size+BNS)&gt;BNS){
+		//分割([元々のメモリチャンク]-&gt;[残りの分割メモリbbp][新しく確保するsize分のメモリnbp])
+		//分割メモリの展開位置
+		byte* nbpPos=(byte*)bbp+bbp-&gt;GetAllSize()-size-BNS;
+		//分割メモリ展開
+		BBlock* nbp=new(nbpPos) BBlock(nbpPos+BBS,size);
+
+		//残りメモリの設定
+		//分割元が分割先の分の全サイズを超えている
+		assert(bbp-&gt;size&gt;=nbp-&gt;GetDataSize()+BNS);
+		//サイズ設定
+		bbp-&gt;size-=(nbp-&gt;GetDataSize()+BNS);
+		bbp-&gt;c=(uint*)(bbp-&gt;p+bbp-&gt;size);
+		*bbp-&gt;c=BNS+bbp-&gt;size;
+		//分割元のサイズがマイナスでない(総確保メモリを超えない)
+		assert(bbp-&gt;size&lt;allAloSize);
+
+		//アクティブリストへ追加
+		uint nIndex=GetFIndex(nbp-&gt;GetAllSize());
+		activeList[nIndex].Regist(nbp);
+		nbp-&gt;flag=true;
+		activeListBit[nIndex]=true;
+
+		//フリーリストへ追加
+		//fIndex=GetFIndex(bbp-&gt;GetAllSize());
+		fli=GetMSB(bbp-&gt;GetAllSize()-1);
+		sli=GetSLI(bbp-&gt;GetAllSize()-1,fli);
+		fIndex=GetFIndex(fli,sli);
+		assert(0&lt;fli &amp;&amp; fli&lt;=mFLI);
+		assert(0&lt;=sli &amp;&amp; sli&lt;pow(2,N));
+		//assert(0&lt;fIndex &amp;&amp; fIndex&lt;=mFLI*pow(2,N));
+
+		freeList[fIndex].Regist(bbp);
+		bbp-&gt;flag=false;
+		freeListBit[fIndex]=true;
+		//フリーリストビット(第二カテゴリ)
+		freeListBitSLI[fli] |= (1&lt;&lt;sli);
+		//フリーリストビット(第一カテゴリ)
+		freeListBitFLI |= (1&lt;&lt;fli);
+
+		//0クリアして返す
+		memset(bbp-&gt;p,0,bbp-&gt;GetDataSize());
+		memset(nbp-&gt;p,0,nbp-&gt;GetDataSize());
+
+		return nbp-&gt;p;
+	}
+
+	//分割しないでフリーリストをそのまま返す
+	//アクティブリストへ追加
+	activeList[fIndex].Regist(bbp);
+	bbp-&gt;flag=true;
+	activeListBit[fIndex]=true;
+
+	//0クリアして返す
+	memset(bbp-&gt;p,0,bbp-&gt;GetDataSize());
+	
+	return bbp-&gt;p;
+}
+</pre>
+<br>
+次に解放です。<br>
+適切なindexの場所に返すようにしないとメモリ確保時の探索にも影響します。<br>
+フラグ管理もしっかりしましょう。バグった場合は確保が間違ってるのか解放が間違ってるのかをまず特定しましょう。<br>
+<br>
+<h3>・メモリ解放</h3>
+<pre>
+//<span class="red">TLSFMemoryAllocator.cpp</span>
+
+//<span class="red">メモリ解放</span>
+void TLSFMemoryAllocator::<span class="red">ReleaseMemory</span>(byte* p){
+	//前方・自身・後方のブロック
+	BBlock	*b0,*b1,*b2;
+	//前方・自身・後方のデータポインタ
+	byte	*p0,*p1,*p2;
+	//前方・自身・後方の終末ポインタ
+	uint	*c0,*c1,*c2;
+
+	//自身の設定
+	p1=(byte*)p;
+	b1=(BBlock*)(p1-BBS);
+	c1=(uint*)b1-&gt;c;
+
+	//前方の設定
+	c0=(uint*)((byte*)b1-sizeof(uint));
+	b0=(BBlock*)((byte*)b1-(*c0));
+	p0=b0-&gt;p;
+
+	//後方の設定
+	b2=(BBlock*)((byte*)b1+b1-&gt;GetAllSize());
+	p2=(byte*)b2-&gt;p;
+	c2=(uint*)b2-&gt;c;
+
+	//ポインタの正当性をチェック
+	assert(baseMem&lt;=(byte*)b0 &amp;&amp; (byte*)b0&lt;=baseMem+allAloSize);
+	assert(baseMem&lt;=(byte*)p0 &amp;&amp; (byte*)p0&lt;=baseMem+allAloSize);
+	assert(baseMem&lt;=(byte*)c0 &amp;&amp; (byte*)c0&lt;=baseMem+allAloSize);
+	assert(baseMem&lt;=(byte*)b1 &amp;&amp; (byte*)b1&lt;=baseMem+allAloSize);
+	assert(baseMem&lt;=(byte*)p1 &amp;&amp; (byte*)p1&lt;=baseMem+allAloSize);
+	assert(baseMem&lt;=(byte*)c1 &amp;&amp; (byte*)c1&lt;=baseMem+allAloSize);
+	assert(baseMem&lt;=(byte*)b2 &amp;&amp; (byte*)b2&lt;=baseMem+allAloSize);
+	assert(baseMem&lt;=(byte*)p2 &amp;&amp; (byte*)p2&lt;=baseMem+allAloSize);
+	assert(baseMem&lt;=(byte*)c2 &amp;&amp; (byte*)c2&lt;=baseMem+allAloSize);
+	assert((byte*)b0&lt;=p0 &amp;&amp; p0&lt;=(byte*)c0);
+	assert((byte*)b1&lt;=p1 &amp;&amp; p1&lt;=(byte*)c1);
+	assert((byte*)b2&lt;=p2 &amp;&amp; p2&lt;=(byte*)c2);
+	assert((byte*)c0&lt;=(byte*)b1);
+	assert((byte*)c1&lt;=(byte*)b2);
+
+	//b1をアクティブリストから外す
+	uint aIndex=GetFIndex(b1-&gt;GetAllSize());
+	b1-&gt;Remove();
+	//アクティブリストが無かったらビットをfalseに
+	if(activeList[aIndex].next==&amp;activeList[aIndex]){
+		activeListBit[aIndex]=false;
+	}
+
+	//左マージ
+	if(b0-&gt;flag==false){
+		//b0をフリーリストから外す
+		byte fli=GetMSB(b0-&gt;GetAllSize()-1);
+		byte sli=GetSLI(b0-&gt;GetAllSize()-1,fli);
+		uint fIndex=GetFIndex(b0-&gt;GetAllSize());
+		b0-&gt;Remove();
+		//フリーリストが無かったらビットをfalseに
+		if(freeList[fIndex].next==&amp;freeList[fIndex]){
+			//フリーリストビット
+			freeListBit[fIndex]=false;
+			//フリーリストビット(第二カテゴリ)
+			freeListBitSLI[fli] &amp;= ~(1&lt;&lt;sli);
+			//フリーリストビット(第一カテゴリ)
+			if(freeListBitSLI[fli]==0)
+				freeListBitFLI &amp;= ~(1&lt;&lt;fli);
+		}
+
+		//b0の設定
+		b0-&gt;size+=b1-&gt;GetAllSize();
+		b0-&gt;c=b1-&gt;c;
+		*(b0-&gt;c)=b0-&gt;size+BNS;
+
+		//以後b0をb1として扱う
+		b1=b0;
+	}
+	//右マージ
+	if(b2-&gt;flag==false){
+		//b2をフリーリストから外す
+		byte fli=GetMSB(b2-&gt;GetAllSize()-1);
+		byte sli=GetSLI(b2-&gt;GetAllSize()-1,fli);
+		uint fIndex=GetFIndex(b2-&gt;GetAllSize());
+		b2-&gt;Remove();
+		//フリーリストが無かったらビットをfalseに		
+		if(freeList[fIndex].next==&amp;freeList[fIndex]){
+			//フリーリストビット
+			freeListBit[fIndex]=false;
+			//フリーリストビット(第二カテゴリ)
+			freeListBitSLI[fli] &amp;= ~(1&lt;&lt;sli);
+			//フリーリストビット(第一カテゴリ)
+			if(freeListBitSLI[fli]==0)
+				freeListBitFLI &amp;= ~(1&lt;&lt;fli);
+		}
+
+		//b1の設定
+		b1-&gt;size+=b2-&gt;GetAllSize();
+		b1-&gt;c=b2-&gt;c;
+		*(b1-&gt;c)=b1-&gt;size+BNS;
+
+		//以後b2は扱えない
+	}
+
+	//b1を適切なフリーリストへ入れる
+	byte fli=GetMSB(b1-&gt;GetDataSize()-1);
+	byte sli=GetSLI(b1-&gt;GetDataSize()-1,fli);
+	uint fIndex=GetFIndex(b1-&gt;GetDataSize());
+	freeList[fIndex].Regist(b1);
+	freeListBit[fIndex]=true;
+	//フリーリストビット(第二カテゴリ)
+	freeListBitSLI[fli] |= (1&lt;&lt;sli);
+	//フリーリストビット(第一カテゴリ)
+	freeListBitFLI |= (1&lt;&lt;fli);
+
+	//b1の設定
+	b1-&gt;flag=false;
+
+	//残骸処理0クリア
+	memset(b1-&gt;p,0,b1-&gt;GetDataSize());
+}
+</pre>
+<br>
+最後に全解放のClearとデストラクタです。<br>
+Initを用います。<br>
+<br>
+<pre>
+//<span class="red">TLSFMemoryAllocator.cpp</span>
+
+//<span class="red">確保しているメモリを全削除して最初の状態に戻す</span>
+//<span class="red">デストラクタは呼ばれない</span>
+void TLSFMemoryAllocator::<span class="red">Clear</span>(){
+	//一旦解放して初期化し直す
+	memset(baseMem,0,allSize);
+	delete[] baseMem;
+	baseMem=NULL;
+
+	delete[] freeList;
+	delete[] activeList;
+	freeList=NULL;
+	activeList=NULL;
+
+	delete[] freeListBitSLI;//フリーリストビット(第一カテゴリ)
+	delete[] freeListBit;	//フリーリストビット(第二カテゴリ)
+	delete[] activeListBit;	//アクティブリストビット
+	freeListBitSLI=NULL;
+	freeListBit=activeListBit=NULL;
+
+	Init(allSize,maxDivideNum);
+}
+
+//<span class="red">デストラクタ</span>
+TLSFMemoryAllocator::<span class="red">~TLSFMemoryAllocator</span>(){
+	Clear();
+
+	memset(baseMem,0,allSize);
+	delete[] baseMem;
+	baseMem=NULL;
+
+	delete[] freeList;
+	delete[] activeList;
+	freeList=NULL;
+	activeList=NULL;
+
+	delete[] freeListBitSLI;	//フリーリストビット(第一カテゴリ)
+	delete[] freeListBit;	//フリーリストビット(第二カテゴリ)
+	delete[] activeListBit;	//アクティブリストビット
+	freeListBitSLI=NULL;
+	freeListBit=activeListBit=NULL;
+}
+</pre>
+<br>
+GetMemoryとDeleteMemoryは実際に外部から使う用の関数です。<br>
+メモリ切りだしと解放を様々なサイズの型でサポートするためにテンプレート関数にしました。<br>
+<br>
+<h3>・使用例</h3>
+実際に使うときにはまず、TLSFのインスタンスをnewで確保して準備します。<br>
+そして別に運用するポインタ(例えばintポインタ)を宣言し、普通はその型をnewして割り当てますが、そこをTLSF->GetMemoryに変えます。<br>
+<br>
+<pre>
+//<span class="red">main.cpp</span>
+
+	//TLSFのインスタンスを確保(サイズはテキトー)
+	<span class="red">TLSF* mem=new TLSF(128,4);</span>
+	int *p;
+
+	//pにメモリを割り当て
+	p=<span class="red">mem-&gt;GetMemory&lt;int&gt;();</span>
+
+	//以下pを通して通常と同じようにアクセスできる
+	*p=123;
+
+	//解放
+	<span class="red">mem-&gt;ReleaseMemory(p);</span>
+
+	//TLSFを終了する
+	<span class="red">delete mem;</span>
+</pre>
+<br>
+今確保しているメモリを全て解放したい場合はClearを呼べば全解放されますが割り当てたメモリは使えなくなります。<br>
+使わなくなったらdeleteをかけて後処理をします。<br>
+<br>
+今回は通常のインスタンスのようにTLSFそのものはnewしたらdeleteしてデストラクタを呼ばなければメモリリークします。<br>
+ちょっと改良してスマートポインタ仕様にすればdeleteすら必要なくなります。<br>
+<br>
+例外処理やメモリ要求に対する柔軟さがないなど改善点はまだありますが、とりあえず実装はここらで完成ということにします。<br>
+ここまで長々とおつきあいありがとうございました。<br>
+<br>
+<br>
+<h2>・感想</h2>
+いやー長かったですねー。<br>
+メモリの確保と解放を高速化するためにアロケータを自分で作ってみようというのが今回の目的でした。<br>
+これは自分がSTG（シューティングゲーム）を作っているときに「大量の弾を出現させると処理落ちする」という問題に対して、<br>
+「メモリの確保と解放で処理時間を喰っているのではないか」と思ったために調べ始めたことが発端です。（結局別のところに問題があったのですが・・・）<br>
+<br>
+標準のnewも似たようなメモリ管理機構が裏にあるのでしょう。<br>
+普段newの一行だけですんでいるメモリ確保も裏ではこれほど大変なことをしているとは、奥が深いものです。<br>
+<br>
+今回、この記事を書きながら、前につくったTLSFメモリアロケータのソースファイルを見直していたところ、いろいろと無駄があります。<br>
+まず、フリーリストビット、これ要りません（ぇ　同等の情報は途中のifで判定しているように双方向リストのemptyを見れば分かります。<br>
+第一、第二カテゴリ系のフラグビットも冗長です。ま、参考サイト様を自分なりに解釈して作った結果ですので多少無理矢理感があるのは勘弁願います(^^;<br>
+<br>
+メモリとその扱いについて関心を持っていただけたらと思い、今回の記事を書いた次第です。<br>
+何かのお役になれば幸いです。<br>
+素晴らしき参考サイト様へもぜひ行ってみてください。<br>
+<br>
+<br>
+<h2>・参考サイト様</h2>
+<a href="http://marupeke296.com/ALG_main.html">マルペケつくろーどっとコム　―　ゲームつくろー！　―　アルゴリズム編</a><br>
+BoundaryTagとTLSFメモリアロケータについて。<br>
+偉大なるリスペクト元様、ここより見やすい図や分かりやすい解説があります。<br>
+ちょっと深いところにあったので直でリンク貼らしてもらいます。トップページではなくてすみませんm(-_-)m<br>
+<hr>
+<script type="text/javascript">
+write_locate(19);
+topic("index","../index.html");
+topic("プログラムテクニック覚え書き","./program_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+</body></html>

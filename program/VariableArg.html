@@ -1,0 +1,130 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>10.可変長引数</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<!--<base href="http://1st.geocities.jp/shift486909/">-->
+</head>
+<body>
+<p align="left"><br>
+<h1>可変長引数</h1><br>
+<hr>
+<br>
+<h2>・可変長引数</h2>
+C言語で誰もが使ったことあるであろう基本の関数<span class="red">printf()</span>。<br>
+今回はこれと同じような関数の作り方を解説します。<br>
+<br>
+printf()関数の特徴は<span class="red">引数の数が固定されていない</span>ということです。<br>
+入れようと思えば、100引数だって送り込めます(^^　普通はそんなに入れませんけど。<br>
+
+<h2>・書式指定のstringを返す関数</h2>
+・・・を創りたいと思います。<br>
+C++で文字列を扱うのには<span class="red">string型</span>があります。<br>
+.NET Framework には似たようなString型があり、これにはString.Format メソッドがあって、書式指定の文字列を設定できます。<br>
+書式指定の一例としてはprintf("%05d",num);とあればnum=3のときは"00003"と表示されることです。<br>
+この"00003"をstring型に入れるのが今回の関数の目的です。<br>
+これにより、自由にstring型の文字列を作ることが可能になります。<br>
+<br>
+では、この関数のプロトタイプ宣言はどう書けばよいでしょうか？<br>
+printf()のを参考にすると、<br>
+<pre>
+string format(const char *format, ...);
+</pre>
+となります。<br>
+第2引数のところにある「...」が「可変長引数を取る」ということを示しています。<br>
+この関数内で可変長引数を利用するには<span class="red">va_list型</span>を使います。<br>
+先にコードを示します。<br>
+<pre>
+//書式付きstring作成(const char *型がthrowされる可能性がある)
+string format(const char *format, ...) throw(const char *){
+    va_list v;      //可変長引数型
+    int num=0,res=0;//バイト数,返り値
+    char *buf=NULL; //バッファ
+    string ret;     //返すstring変数
+
+    va_start(v,format);         //可変長引数操作開始
+
+    num=_vscprintf(format,v)+1; //書式展開後のバイト数取得
+    
+    buf=new char[num];          //バッファメモリアロケーション
+    
+    res=_vsnprintf_s(buf,num,num,format,v); //バッファに書式展開後の文字列を設定
+    if(res&lt;0)throw "_vsnprintf_s error";    //成功？
+
+    ret=buf;        //string型に変換
+
+    va_end(v);      //可変長引数操作終了
+
+    delete[] buf;   //バッファ解放
+
+    return ret;     //stringを返す
+} 
+</pre>
+va_list型を使うには&lt;stdarg.h&gt;を#includeします。<br>
+可変長配列操作はva_start()から始まり、va_end()で終わります。<br>
+va_start()にはva_list型変数と可変長引数(「...」)の直前の引数を渡します。<br>
+va_end()にはva_list型変数だけでいいです。<br>
+これらの関数はマクロ定義されているのでインテリセンスとかはうまく働かないかもしれません。<br>
+<br>
+va_list型を扱う関数群は<a href="http://msdn.microsoft.com/ja-jp/library/0zf95wk0%28VS.80%29.aspx">vprintf 系関数</a>と呼ばれています。<br>
+その中から<span class="red">_vscprintf()</span>と<span class="red">_vsnprintf_s()</span>を使います。<br>
+<br>
+_vscprintf()関数は書式展開後の文字列の長さを返してきます。<br>
+NULL文字分も考慮してバッファのメモリを確保します。<br>
+<br>
+_vsnprintf_s()はバッファに書式展開後の文字列を設定する関数です。<br>
+返り値が負の場合、何らかのエラーが発生してるので例外をthrowします。<br>
+このへんのエラーチェックはお好みでしてもしなくてもいいです<br>
+<br>
+設定したchar*型文字列を元にしてstring型に変換して返します。<br>
+<br>
+これで目的の関数を創ることができました。<br>
+<br>
+
+<h2>・使用例</h2>
+以下に使用例を示します。<br>
+<pre>
+	string str;
+	str=format("%05d",3);//str=00003
+	str=format("%s::%d%d%d","test",1,3,5);//str=test::135
+	str=format("%s%s%s","test1","test2","test3");//str=test1test2test3
+</pre>
+<br>
+
+<h2>・感想</h2>
+今回は可変長引数の解説でした。<br>
+実際には、可変長引数が使える状況は少ないかもしれませんが、<br>
+string型の書式指定関数を創って見ました。<br>
+printf()の仕組みやそれの応用に役立てればと思います。<br>
+C++での文字列操作はstring型が断然いいと思います。<br>
+const char*型との互換性もある(string.c_str())し、何より扱いやすいと思います。<br>
+<br>
+
+<h2>・参考サイト様</h2>
+<a href="http://www.02.246.ne.jp/~torutk/cxx/tips/varargs.html">C／C++での可変引数（stdarg他）</a><br>
+可変長引数の扱いについて詳しく書かれています。<br>
+<br>
+<a href="http://marupeke296.com/CPP_No12_printfString.html">その12 printfな可変長引数で文字列を返す関数</a><br>
+・・・と独自の文字列クラスの定義です。<br>
+自分もこのような文字列を扱うクラスを創ろうと思ってます。<br>
+<br>
+<a href="http://program.station.ez-net.jp/special/vc/basic/function/stdarg.asp">EZ-NET 研究室： printf みたいな関数を作る</a><br>
+可変長引数の基本的な使い方をシンプルな構成のページで紹介しています。<br>
+<br>
+<br>
+・・・実はあんまり応用は利かないっていう・・・・。<br>
+これぐらいしか使い道ないんじゃないか・・・？<br>
+<br>
+
+<hr>
+<script type="text/javascript">
+write_locate(14);
+topic("index","../index.html");
+topic("プログラムテクニック覚え書き","./program_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+</p>
+</body></html>

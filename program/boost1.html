@@ -1,0 +1,214 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>17-1.boostの薦め（導入編）</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<base href="http://1st.geocities.jp/shift486909/program/">
+</head>
+<body>
+<p align="left"><br>
+<h1><i>boost </i>の薦め（導入編）</h1><br>
+<hr>
+<br>
+<h2>・<i>boost </i>の概要</h2>
+<span class="red"><i>boost </i></span>とはC++の機能を拡張するライブラリの一種です。<br>
+この<i>ProgramingTechnic </i>の別な項では<a href="http://homepage2.nifty.com/natupaji/DxLib/index.html">DXライブラリ</a>などを引き合いに出して来ました。<br>
+DXライブラリが描画系統を司るDirectXの機能をラップする拡張ライブラリであることに対して、<br>
+<i>boost </i>ライブラリはC++で行われる汎用処理の拡張を担います。<br>
+<br>
+<i>boost </i>ライブラリを制作しているコミュニティには、C++標準化委員会(言語としてのC++そのものの仕様を定める委員会)に所属しているメンバーも列なっており、<br>
+その意味で<i>boost </i>ライブラリは"準標準"なライブラリとして有名です。<br>
+<small>ちなみに"標準"ライブラリはSTL(Standard Template Library)です。</small><br>
+素のC++では簡単に実装できない機能群が（主にテンプレートを用いて）非常に美しく記述され、実装されています。<br>
+<br>
+ここではその<i>boost </i>ライブラリの導入といくつかの機能を紹介します。<br>
+<br>
+<br>
+<h2>・<i>boost </i>の導入</h2>
+とにもかくにも導入して使ってみましょう。何ごとも始めが肝心です。<br>
+では「<i>boost </i> インストール」でググって適当なところから・・・ではあまりに無責任なのでルートの一つを示しておきます（＾＾；<br>
+手動でビルドまでを解説しますので「そんなのめんどくせえ！」って人はGUIのインストーラーがあるらしいので探してインストールしてください。（丸投げ）<br>
+<br>
+まず<i>boost </i>の日本語コミュニティ<a href="https://sites.google.com/site/boostjp/howtobuild">boostjp</a>から「<i>boost </i>ライブラリのビルド方法」のページを開きます。<br>
+そこから本家<i>boost </i>のダウンロードページへ飛びます。<br>
+<img src="boost/fig01.png" width="757" height="615"><br>
+2014/02/17現時点では最新バージョンは1.55.0でしたがまあそれっぽいものをダウンロードしてください。<br>
+以下は1.55.0で進めます。<br>
+<img src="boost/fig02.png" width="1366" height="768"><br>
+ジャンプするとどのファイルをダウンロードするのか聞かれますので、<br>
+特に拘りがなければ.zipをダウンロードしましょう。<br>
+割と大きいため回線によっては結構時間がかかるかもしれないので緑茶でも飲みながらお待ちください。<br>
+<img src="boost/fig03.png" width="701" height="442"><br>
+ダウンロードしたzipは以下のようなディレクトリ構成をしています。<br>
+<img src="boost/fig04.PNG" width="153" height="160"><br>
+一部の機能を除いては./boost_1_55_0/boostへパスを通すだけで使えます。<br>
+<br>
+ライブラリを必要とする大きめの機能を使用可能にするためには環境に合ったライブラリをビルドする必要があります。<br>
+そのためにはまずboost_1_55_0フォルダ直下にある「bootstrap.bat」を実行します。<br>
+この時、エクスプローラーから実行してもいいですが以降の作業はビルド環境つきのコマンドラインから行うため、<br>
+VC++のコマンドラインからcd "boost_1_55_0解凍先フォルダパス"でコマンドライン上で作業することをおすすめします。<br>
+(他のC++環境についてはｽｲﾏｾﾝ（＾＾；　)<br>
+<img src="boost/fig05.png" width="452" height="382" align="top">
+<img src="boost/fig06.png" width="677" height="492"><br>
+「bootstrap.bat」を実行すると同階層に「b2.exe」と「bjam.exe」の二つの実行ファイルが生成されます。<br>
+この二つのファイルは同じ実行ファイルらしいのですが<br>
+とりあえず公式でもコマンドライン上でも「b2.exe」の使用を推奨しているようですので「b2.exe」を使います。<br>
+<br>
+単純に「b2.exe」を実行するとデフォルトの設定でビルドが開始されますが、<br>
+「b2.exe」は様々なパラメータを受け取ってのビルドが可能です。<br>
+もし導入の最後までやってコンパイルエラーが発生するようでしたらここのビルドを疑った方が良いです。<br>
+パラメータの詳しい説明は他のサイト参照ですが自分の環境では<br>
+「b2.exe link=static runtime-link=static」でうまく静的リンクのスタティックリンクライブラリ(.lib)がビルドできました。<br>
+動的ライブラリ(.dll)が欲しいとコンパイラに言われた場合はstaticをsharedに変えてビルドしなおすと良いようです。<br>
+<img src="boost/fig07.png" width="677" height="492"><br>
+↑実行時にパラメータを渡す　　　ビルドの様子（一部）↓<br>
+<img src="boost/fig08.png" width="677" height="492"><br>
+かなり時間とCPUパワーを食いますのでコーヒーでも飲みながらお待ちください。<br>
+・<br>
+・<br>
+・<br>
+終わりました<br>
+<img src="boost/fig09.png" width="677" height="492"><br>
+ライブラリファイルは特に指定しなければ./boost_1_55_0/boost/stage/lib内にビルドされます。<br>
+このフォルダと、ヘッダファイル(.hpp)がある./boost_1_55_0/boostへVC++側でパスを通しておきます。<br>
+<br>
+<br>
+パスの通しかたも一応解説。Microsoft Visual Studio 2010ですが他のバージョンでもVC++ならほぼ同じです。<br>
+まず適当なプロジェクトを作成し、①プロパティマネージャーからDebug|Win32/Microsoft.Cpp.Win32.user的なものを②右クリックして③プロパティを開きます。<br>
+<img src="boost/fig10.png" width="479" height="592"><br>
+プロパティから「VC++ディレクトリ」を選択し、インクルードディレクトリとライブラリディレクトリを編集して上で示したパスを追加するだけです。<br>
+念のためフルパスで指定しておくと良いでしょう。（フォルダ構成と好みによります）<br>
+<img src="boost/fig11.png" width="754" height="559"><br>
+<small>画像はインクルードディレクトリですがライブラリディレクトリにも同様に./boost_1_55_0/boost/stage/libを追加しておきましょう。</small><br>
+<br>
+これでうまくパスが通っていればソースコード上で<i>boost </i>の機能を使うことができます。<br>
+どんな機能があるかは次ページ以降でその一部を紹介しますのでこのページは一端区切ります。<br>
+うまく導入できた方は次のページへ、ちょっとうまくいかなかった方はビルド、パスの通し方と<br>
+以下の「エラーが起こった時は」を見直して参考サイト様を見てみましょう。<br>
+<br>
+<br>
+-&gt;<a href="./boost2.html"><i>boost </i>の薦め（紹介編）</a>へ<br>
+<br>
+<br>
+<h2><a name="error"><font class="red">エラーが起こった時は</font></a></h2>
+<h3>・#include &lt;boost/○○.hpp&gt;したのにファイルが見つからない</h3>
+十中八九パスが通ってません。<br>
+.hppファイルがあるフォルダにパスを通しましょう。<br>
+DebugやReleaseモードで異なる設定をしていませんか？<br>
+上の解説ではDebugモードのみでしたがReleaseモードでビルドする場合はそちらのプロパティにもディレクトリを追加する必要があります。<br>
+<br>
+<h3>・リンカエラーLNK1104　ファイル 'libboost_<i>&lt;name&gt;</i>-vc100-<i>&lt;option&gt;</i>-<i>&lt;version&gt;</i>.lib' を開くことができません。</h3>
+ヘッダーのみで完結している機能は使えるがライブラリがうまくリンクできていない場合に出ます。<br>
+<i>name</i>にはライブラリを必要とする機能の名前。<br>
+<i>version</i>には<i>boost </i>ライブラリのバージョン。<br>
+<i>option</i>にはリンク形式とランタイム形式を示す以下の文字列<br>
+<br>
+<table border="0">
+<tr>
+<td>option</td>
+<td>説明</td>
+<td>option</td>
+<td>説明</td>
+</tr>
+<tr>
+<td>mt</td>
+<td>マルチスレッド</td>
+<td>s</td>
+<td>シングルスレッド</td>
+</tr>
+<tr>
+<td>mt-gd</td>
+<td>マルチスレッドデバッグ</td>
+<td>s-gd</td>
+<td>シングルスレッドデバッグ</td>
+</tr>
+<tr>
+<td>mt-s</td>
+<td>マルチスレッド、スタティックCランタイム</td>
+<td>s-s</td>
+<td>シングルスレッド、スタティックCランタイム</td>
+</tr>
+<tr>
+<td>mt-sgd</td>
+<td>マルチスレッドデバッグ、スタティックCランタイム</td>
+<td>s-sgd</td>
+<td>シングルスレッドデバッグ、スタティックCランタイム</td>
+</tr>
+</table><br>
+が入ります。<br>
+おそらくoptionが異なるビルドをしたためコンパイラが欲しいライブラリが存在しない、とみなされているのでしょう。<br>
+VC++側からプロパティ-&gt;C/C++-&gt;コード生成で(マルチ/シングル)スレッド(/デバッグ)のモードを確認し、<br>
+再度適切なパラメータを渡してb2.exeによるビルドを行ってください。<br>
+最悪全通りビルドすればどれかは通ります（＾＾<br>
+ライブラリビルド時のパラメータについては参考サイト様を参照してください。<br>
+<br>
+<h3>・表示できない文字がある、Unicodeで保存うんぬん・・・という警告</h3>
+日本語環境では<i>boost </i>のソースが書かれている文字コードに対応しきれず、警告を出す事があります。<br>
+警告なので無視してもコンパイルは通るのですがそれでも邪魔くさい。<br>
+そんなときは面倒でもいちいち開いて日本語コード(Shift-jisなど)で(名前をつけて保存-&gt;上書き)保存しなおすと収まります。<br>
+複数ファイルの文字コードを一括で変換するフリーソフトもあるようなのでそちらの使用も検討してみてはどうでしょう。<br>
+フリーソフトを使わなくてもコマンドプロンプトのforとchcp.comで文字コードを一括変換できるようですが、<br>
+未確認ですのでよく調べてから自己責任でお願いします。<br>
+（自分は警告出るファイルだけ保存しなおしました。）<br>
+<br>
+<br>
+-&gt;<a href="./boost2.html"><i>boost </i>の薦め（紹介編）</a>へ<br>
+<br>
+<br>
+
+<h2>・参考サイト様</h2>
+Let's Boost<br>
+<a href="http://www.kmonos.net/alang/boost/">Boost のインストール方法</a><br>
+言わずと知れた<i>boost </i>の解説サイト様。<br>
+ここ一つでかなりの範囲を網羅しております。<br>
+<br>
+C++ - Boost C++ライブラリ<br>
+<a href="http://itref.fc2web.com/c/cpp.html#BOOST">Boost C++ライブラリ</a><br>
+bjam.exeによるライブラリビルド時のパラメータはここを参照しました。<br>
+bjam.exeとb2.exeは現バージョンの<i>boost </i>では同じものですので、同じパラメータがそのまま使えます。<br>
+<br>
+予定外  Windows環境へのBoostライブラリインストール<br>
+<a href="http://homepie.blog.shinobi.jp/vc--/windows環境へのboostライブラリインストール">Windows環境へのBoostライブラリインストール</a><br>
+同じくパラメータについてと全体の流れを解説しています。<br>
+<br>
+Windows Script Programming<br>
+<a href="http://scripting.cocolog-nifty.com/blog/2008/12/cmdexeunicodeut.html">cmd.exeとchcp.comだけで、文字コードを変換する！</a><br>
+最後の警告についての文字コードはこちらを見るといいんじゃないでしょうか。未確認ですが。<br>
+<br>
+<b>『Boost C++ Libraries プログラミング 第２版』</b><br>
+<i>稲葉　一浩　著<br>
+ISBN 978-4-7980-1704-4 C3055<br>
+</i>
+こちらは書籍です。<br>
+各機能のリファレンスも網羅しております。<br>
+現在では絶版になってしまっているようですが・・・<br>
+<br>
+<!--
+format
+lexical_cast
+tokenizer
+shared_ptr
+date_time
+timer (process_timer)
+thread
+filesystem
+interval
+random
+rational
+optional
+tribool
+range
+assign
+-->
+<hr>
+<script type="text/javascript">
+write_locate(26);
+topic("index","../index.html");
+topic("プログラムテクニック覚え書き","./program_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+</p>
+</body></html>

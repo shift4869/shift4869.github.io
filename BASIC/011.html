@@ -1,0 +1,153 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=SHIFT_JIS">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>グラフィックス</title>
+<link rel="stylesheet" type="text/css" href="bg.css">
+<base href="http://1st.geocities.jp/shift486909/BASIC/">
+</head>
+<body>
+<p><strong>・グラフィックス<br></strong>まず、お絵描きからです。２次元の座標平面（画用紙にあたる）を使って描きます。<br>まず<br><font 
+color="#ff0000">SET WINDOW -Ｘ , X , -Y , 
+Y</font><br>で横-XからX、縦-YからYの大きさの平面を用意します。<br>座標平面なのでＸ座標、Ｙ座標で表します。<br>ここに絵を描きますが、描く命令として<br>
+<table style="WIDTH: 683px; HEIGHT: 80px" bordercolor="#00ff00" cellspacing="0" 
+cellPadding="0" width="683" border="1">
+  <tbody>
+  <tr>
+    <td><font color="#ff0000">PLOT POINTS&nbsp; :&nbsp; X , Y</font></td>
+    <td>座標( X , Y )に点を打つ　</td></tr>
+  <tr>
+    <td><font color="#ff0000">PLOT LINES : 1X , 1Y ; 2X , 2Y</font></td>
+    <td>座標( 1X , 1Y )から座標( 2X , 2Y )へ線分を引く</td></tr>
+  <tr>
+    <td><font color="#ff0000">PLOT AREA : 1X , 1Y ; 2X , 2Y ; 3X , 3Y</font></td>
+    <td>点の中の領域をぬりつぶす</td></tr></tbody></table><br>の三つがあります。<br>色は始めは黒ですが、これらの文を実行する前に<br><font 
+color="#ff0000">SET (POINT,LINES,AREA) COLOR 
+色番号　</font>　　<br>で対応する物の色が変わります。<br>色番号は下のとおりです。<br>
+<table cellspacing="0" cellpadding="0" width="75%" border="1">
+  <tbody>
+  <tr>
+    <td>色番号</td>
+    <td>0　</td>
+    <td>1</td>
+    <td>2</td>
+    <td>3</td>
+    <td>4</td>
+    <td>5</td>
+    <td>6</td>
+    <td>7</td>
+    <td>8</td>
+    <td>9</td>
+    <td>10</td>
+    <td>11</td>
+    <td>12</td>
+    <td>13</td>
+    <td>14</td>
+    <td>15</td></tr>
+  <tr>
+    <td>色</td>
+    <td>白　</td>
+    <td>黒　</td>
+    <td>青</td>
+    <td>緑　</td>
+    <td>赤　</td>
+    <td>水色</td>
+    <td>黄色　</td>
+    <td>赤紫</td>
+    <td>灰色</td>
+    <td>濃い青</td>
+    <td>濃い緑</td>
+    <td>青緑　</td>
+    <td>えび茶</td>
+    <td>オリーブ</td>
+    <td>濃い紫</td>
+    <td>銀色</td></tr></tbody></table><br>ほかに、点を打つ場合の点の形を<br><font color="#ff0000">SET 
+POINTS STYLE 番号</font><br>で変えられます。<br>番号は下のとおり（何も指定しないと３番の*になる）<br>
+<table style="WIDTH: 330px; HEIGHT: 54px" cellspacing="0" cellpadding="0" width="330" 
+border="1">
+  <tbody>
+  <tr>
+    <td>番号</td>
+    <td>1</td>
+    <td>2</td>
+    <td>3</td>
+    <td>4</td>
+    <td>5</td></tr>
+  <tr>
+    <td>形</td>
+    <td>・</td>
+    <td>+</td>
+    <td>*</td>
+    <td>○</td>
+    <td>×</td></tr></tbody></table><br>それでは例です。<br>
+<table style="WIDTH: 312px; HEIGHT: 364px" cellspacing="0" cellpadding="0" width="312" 
+align="left" border="1">
+  <tbody>
+  <tr>
+    <td>
+      <p align="left">SET WINDOW -10,10,-10,10<br>DRAW GRID<br><br>PLOT POINTS 
+      :&nbsp;&nbsp;1 , 1&nbsp;<br>SET POINT COLOR 2<br>SET POINT STYLE 4<br>PLOT 
+      POINTS :&nbsp; 3&nbsp;, 1&nbsp;<br><br>PLOT LINES : 1 , 2&nbsp; ;&nbsp; 2 
+      , 2<br>SET LINE COLOR 3<br>PLOT LINES :&nbsp;3 , 2&nbsp; ;&nbsp;&nbsp;4 , 
+      2<br><br>PLOT AREA : 0 , 0&nbsp; ;&nbsp; -1 , 0&nbsp; ;&nbsp; -1 , 
+      1<br>SET AREA COLOR 4<br>PLOT AREA :&nbsp;-1 , 0&nbsp; ;&nbsp; -2 , 
+      0&nbsp; ;&nbsp; -2 , 
+1</p></td></tr></tbody></table>画面を用意<br>座標軸と格子を描く<br><br>点（1,1）に黒点（*）<br>点の色を<font 
+color="blue">青</font>に<br>点の形を○に<br>点（3,1）に<font 
+color="blue">青○</font><br><br>点（1,2）から点（2,2）へ黒の線分<br>線の色を<font 
+color="green">緑</font>に<br>点（3,2）から点（4,2）へ<font 
+color="green">緑の線分</font><br><br>点（0,0）と点(-1,0)と点（-1,1）の三角形を黒でぬりつぶす<br>領域の色を<font 
+color="red">赤</font>に<br>点（-1,0）と点(-2,0)と点（-2,1）の三角形を<font 
+color="red">赤でぬりつぶす</font><br><br><font color="red">DRAW 
+GRID</font>で座標軸と格子を描きます<br>座標軸だけ欲しいときは<font color="red">DRAW 
+AXES</font>を使います。<br><br><strong>・グラフ<br></strong>やはり座標平面といえば数学のグラフです。<br>「えっ、グラフ！」と思ったかた、グラフを描くときにするめんどくさい計算やらなにやらをプログラムにさせようというのが<br>今回の目的です。<br>関数定義をつかえば手では描きづらい二次間数や三次関数のグラフを簡単に描くことができます。<br>関数定義は<br><font 
+color="#ff0000">DEF F( X )=2X ^ 2</font><br>のようにします。<br>この文の後にXの値を決めれば自動的にF( X 
+)の値も決まります。<br>今回は上の定義のようにa=2の二次関数のグラフを描きたいと思います。<br>まず、20×20の平面を用意して、<br>上の関数定義をする。<br>その後FOR文でXの値を-10～10に変えながら<br>PLOT 
+POINTS : X , F( X )<br>でそのときの X&nbsp;, F( X 
+)の座標に点を打っていきます。<br>この時、FOR文の増分を0.1きざみにして細かく点を打っていきます。<br><br>
+<table style="WIDTH: 253px; HEIGHT: 172px" cellspacing="0" cellpadding="0" width="253" 
+align="left" border="1">
+  <tbody>
+  <tr>
+    <td>
+      <p align="left">SET WINDOW -10,10,-10,10<br>DRAW GRID<br>DEF 
+      F(X)=2*X^2<br>FOR X=-10 TO 10 STEP 0.1<br>&nbsp;&nbsp; PLOT POINTS : 
+      X,F(X)<br>NEXT 
+X<br>END</p></td></tr></tbody></table>平面の用意<br>座標軸と格子<br>関数定義<br>Ｘを-10から10に0.1きざみで動かす<br>そのときの点を打つ<br><br><br><br>FOR文の増分をもっと細かくすればたくさんの点が打てます。<br>点を密集させれば線のようにみえます。<br>違うグラフを描きたい場合は関数定義を変えるだけで<br>簡単に描くことができます。<br><br><br><strong>・絵定義<br></strong>お絵かきに戻りますが、いろいろな四角形を描いてみたいと思います。<br>しかし、いちいちPLOT 
+LINESで一個づつ描いていては面倒です。<br>BASICには自分で基本となる図形を一つ決め、それに拡大、移動、回転処理を加えることができます。<br>これを絵定義といい<br><font 
+color="#ff0000">PICTURE (名前)<br>：<br>END 
+PICTURE</font><br>で、行います。<br><br>呼び出しにはDRAW　（名前）で行い、このとき必要ならば　WITHの後に<br>
+<table style="WIDTH: 490px; HEIGHT: 80px" bordercolor="#00ff00" cellspacing="0" 
+cellPadding="0" width="490" border="1">
+  <tbody>
+  <tr>
+    <td><font color="#ff0000">SCALE (&nbsp;X , Y&nbsp;)</font> </td>
+    <td>横をX倍、縦をY倍にして描きます　</td></tr>
+  <tr>
+    <td><font color="#ff0000">SHIFT ( X , Y&nbsp;)</font></td>
+    <td>（&nbsp;X , Y&nbsp;）の位置に移動させます</td></tr>
+  <tr>
+    <td><font color="#ff0000">ROTATE (&nbsp;R&nbsp;)</font></td>
+    <td>Ｒラジアン回転させます</td></tr></tbody></table>の処理を加えることができます。<br>ラジアンとは円弧が半径の何倍かで角度を表す方法でこの方が微積分などには都合がいいらしいですが、<br>OPTION 
+ANGLE 
+DEGREESをプログラムの最初に書けば、<br>普段使っている度（°）を単位とした回転処理が行えます。<br><br>例としてBOXという正方形にいろいろな変化をさせて描きたいと思います。<br>
+<table style="WIDTH: 334px; HEIGHT: 340px" cellspacing="0" cellpadding="0" width="334" 
+align="left" border="1">
+  <tbody>
+  <tr>
+    <td>OPTION ANGLE DEGREES<br>SET WINDOW -10,10,-10,10<br>DRAW 
+      GRID<br><br>DRAW BOX<br>DRAW BOX WITH SCALE( 2 , 3 )<br>DRAW BOX WITH 
+      SCALE( 2 )<br>DRAW BOX WITH SHIFT( 4 , 2 )<br>DRAW BOX WITH 
+      ROTATE(60)<br>DRAW BOX WITH SCALE(3) * SHIFT(-4,0)<br><br>PICTURE 
+      BOX<br>&nbsp;&nbsp; PLOT LINES:0,0;0,1;1,1;1,0;0,0<br>END 
+      PICTURE<br><br>END</td></tr></tbody></table>角度は度を使う<br>画面の用意<br>座標軸と格子<br><br>普通に描く<br>Ｘを2倍、Ｙを3倍<br>Ｘ、Ｙどちらも2倍<br>（ 
+4 , 2 
+）に移動<br>60°回転<br>3倍にして（-4,0）に描く<br><br>もとの正方形の定義<br><br><br><br><br><br>WITHの後は*で複数の効果をつなげられます。<br><br></p>
+<script type="text/javascript" src="./bhn_basic.js"></script>
+<form name="F1">
+<input onclick="back()" onmouseover="window.status='前に戻ります';" type="button" value="//back" name="B1">&nbsp; 
+<input onclick="location.href='../basic.html'" onmouseover="window.status='メニューに戻ります';" type="button" value="//home// " name="B2">&nbsp; 
+<input onclick="next()" onmouseover="window.status='進めません　最後ですから';" type="button" value="next//" name="B3"> 
+</form>
+</body>
+</html>

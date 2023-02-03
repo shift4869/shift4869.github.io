@@ -1,0 +1,188 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>プログラムテクニック覚え書き</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<base href="http://1st.geocities.jp/shift486909/program/">
+</head>
+<body>
+<p align="center"><br>
+<img border="0" alt="" src="./logo.gif" width="256" height="48"><br><br>
+ここではプログラムのアルゴリズムやテクニックを解説します。<br>
+下の項目より各ページへジャンプしてください。<br>
+「理解難易度」は自分が理解しやすかった(理解できた)かの<br>
+主観にもとづくものでなので、参考程度にしてください。<br>
+間違いとかがある可能性は十分にあるので、情報は取捨選択してください。<br>
+<br>
+<table border="1" cellspacing="0" width="700">
+	<tr>
+    	<td>No.</td>
+		<td>項目</td>
+		<td>理解度</td>
+		<td>更新日</td>
+	</tr>
+	<tr>
+    	<td>1</td>
+		<td><a href="./hermite.html">エルミート曲線軌道</a></td>
+		<td>☆☆☆★★(3)</td>
+		<td>2009/10/11</td>
+	</tr>
+	<tr>
+    	<td>2</td>
+		<td><a href="./bezier.html">ベジェ曲線軌道</a></td>
+		<td>☆☆☆★★(3)</td>
+		<td>2009/10/12</td>
+	</tr>
+	<tr>
+    	<td rowspan="3">3</td>
+		<td><a href="./library.html">ライブラリ制作の薦め</a></td>
+		<td>☆☆☆☆★(4)</td>
+		<td>2009/10/13</td>
+	</tr>
+	<tr>
+		<td><a href="./library2.html">Fileクラスの実装</a></td>
+		<td>☆☆☆☆★(4)</td>
+		<td>2009/10/17</td>
+	</tr>
+	<tr>
+		<td><a href="./library3.html">GreatNumberクラスの実装</a></td>
+		<td>☆☆☆★★(3)</td>
+		<td>2009/11/15</td>
+	</tr>
+	<tr>
+    	<td rowspan="2">4</td>
+		<td><a href="./lzss.html">Lzss圧縮法</a></td>
+		<td>☆☆★★★(2)</td>
+		<td>2009/11/22</td>
+	</tr>
+	<tr>
+		<td><a href="./dislzss.html">Lzss解凍法</a></td>
+		<td>☆☆☆★★(3)</td>
+		<td>2009/11/23</td>
+	</tr>
+	<tr>
+    	<td rowspan="2">5</td>
+		<td><a href="./packing.html">ファイルパッキング</a></td>
+		<td>☆☆☆☆★(4)</td>
+		<td>2009/11/28</td>
+	</tr>
+	<tr>
+		<td><a href="./dispacking.html">パッキング展開</a></td>
+		<td>☆☆☆☆★(4)</td>
+		<td>2009/11/28</td>
+	</tr>
+	<tr>
+    	<td>6</td>
+		<td><a href="./cipher.html">暗号化</a></td>
+		<td>☆☆☆☆☆(5)</td>
+		<td>2010/01/11</td>
+	</tr>
+	<tr>
+    	<td>7</td>
+		<td><a href="./spin.html">座標回転(回転行列)</a></td>
+		<td>☆☆☆☆★(4)</td>
+		<td>2012/12/08　追記</td>
+	</tr>
+	<tr>
+    	<td>8</td>
+		<td><a href="./collision.html">長方形と円の当たり判定</a></td>
+		<td>☆☆☆☆★(4)</td>
+		<td>2010/08/18　追記</td>
+	</tr>
+	<tr>
+    	<td>9</td>
+		<td><a href="./BernoulliTest.html">より精度の高いサイコロを目指して</a></td>
+		<td>☆☆☆★★(3)</td>
+		<td>2010/02/07</td>
+	</tr>
+	<tr>
+    	<td>10</td>
+		<td><a href="./VariableArg.html">可変長引数</a></td>
+		<td>☆☆☆☆★(4)</td>
+		<td>2010/02/13</td>
+	</tr>
+	<tr>
+    	<td>11</td>
+		<td><a href="./macro.html">マクロ</a></td>
+		<td>☆☆☆☆★(4)</td>
+		<td>2010/03/28</td>
+	</tr>
+	<tr>
+    	<td>12</td>
+		<td><a href="./CurveLazer.html">へにょりレーザー</a></td>
+		<td>☆☆☆★★(3)</td>
+		<td>2010/08/17</td>
+	</tr>
+	<tr>
+    	<td rowspan="3">13</td>
+		<td><a href="./MemoryAllocator1.html">メモリアロケーターとBoundaryTag アルゴリズム</a></td>
+		<td>☆☆★★★(2)</td>
+		<td>2013/04/07</td>
+	</tr>
+	<tr>
+		<td><a href="./MemoryAllocator2.html">TLSFメモリアロケータ（理論編）</a></td>
+		<td>☆☆★★★(2)</td>
+		<td>2013/04/07</td>
+	</tr>
+	<tr>
+		<td><a href="./MemoryAllocator3.html">TLSFメモリアロケータ（実践編）</a></td>
+		<td>☆☆★★★(2)</td>
+		<td>2013/04/07</td>
+	</tr>
+	<tr>
+		<td rowspan="3">14</td>
+		<td><a href="./QuadTree1.html">四分木探索（理論編）</a></td>
+		<td>☆☆☆★★(3)</td>
+		<td>2013/12/09</td>
+	</tr>
+	<tr>
+		<td><a href="./QuadTree2.html">四分木探索（実装編）</a></td>
+		<td>☆☆☆★★(3)</td>
+		<td>2013/12/09</td>
+	</tr>
+	<tr>
+		<td><a href="./QuadTree3.html">四分木探索（拡張編）</a></td>
+		<td>☆☆☆★★(3)</td>
+		<td>2014/02/06</td>
+	</tr>
+	<tr>
+		<td rowspan="2">15</td>
+		<td><a href="./Interpolation1.html">補間（パラメータ）</a></td>
+		<td>☆☆☆☆☆(5)</td>
+		<td>2013/12/30</td>
+	</tr>
+	<tr>
+		<td><a href="./Interpolation2.html">補間（曲線）</a></td>
+		<td>☆☆☆☆★(4)</td>
+		<td>2014/01/10</td>
+	</tr>
+	<tr>
+		<td>16</td>
+		<td><a href="./ReversePolishNotation.html">逆ポーランド記法とテンパズル</a></td>
+		<td>☆☆☆☆★(4)</td>
+		<td>2014/01/13</td>
+	</tr>
+	<tr>
+		<td rowspan="2">17</td>
+		<td><a href="./boost1.html">boostの薦め（導入編）</a></td>
+		<td>☆☆☆★★(3)</td>
+		<td><span class="red">2014/02/19</span></td>
+	</tr>
+	<tr>
+		<td><a href="./boost2.html">boostの薦め（紹介編）</a></td>
+		<td>☆☆☆★★(3)</td>
+		<td><span class="red">2014/02/19</span></td>
+	</tr>
+</table><br>
+
+<hr size="2">
+
+<script type="text/javascript">
+topic("index","../index.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+
+</p>
+</body></html>

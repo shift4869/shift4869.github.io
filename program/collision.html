@@ -1,0 +1,426 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>8.長方形と円の当たり判定</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<!--<base href="http://1st.geocities.jp/shift486909/">-->
+</head>
+<body>
+<p align="left"><br>
+<h1>長方形と円の当たり判定</h1><br>
+<span class="red">2010/08/18　追記<br>
+2.外積を用いた円と線分の当たり判定　<a href="#outer2">■</a><br>
+　参考サイト様リンク追加(外部サイト)　<a href="http://marupeke296.com/COL_2D_No5_PolygonToCircle.html">■</a></span>
+<hr>
+<br>
+<h2>・はじめに</h2>
+長方形と円の当たり判定は主にシューティングで、<br>
+レーザーとの当たり判定をとりたい時に使います。<br>
+いろいろな方法があると思いますが、ここではその一例を紹介します。<br>
+ベクトルの知識を使います。わからなければググりながら少しずつ見ていってください。<br>
+<br>
+<h2>・円と円の当たり判定</h2>
+その前にまず「円と円の当たり判定」のとり方を解説します。(わかっている人は<a href="#square">次へ</a>)<br>
+座標を表すクラスを次のようにします。<br>
+<pre>
+
+//座標クラス class
+Point{
+	public: float
+	x,y;//座標
+	Point(){x=y=0.0;}
+};
+</pre>
+・・・いろいろつっこみ所は満載だと思いますが(構造体でも良くね？とかfloat使うなとか)<br>
+とりあえず説明の便宜上、こうします。<br>
+あと適当にコピーコンストラクタとか作っとくとコードを簡略化できます。<br>
+<br>
+んで、<span class="red">移動物体</span>のクラスを次のようにします。<br>
+<pre>
+//移動物体クラス
+class Mover : public Point{
+public:
+	float r;//当たり半径
+	Mover(){r=0.0;}
+};
+</pre>
+これまたつっこみ所満(ry<br>
+新たに追加したメンバ r は当たり判定の円の半径です。<br>
+<br>
+さて、もう知っている人もいるかもしれませんが、<br>
+「円と円の当たり判定」は<span class="green" title="ピタゴラスの定理とも言う">三平方の定理</span>を使います。<br>
+<br>
+<img border="0" alt="" src="./collision/sannhehou.gif" width="316" height="256"><br>
+<br>
+ A(ax,ay)、B(bx,by) として各半径を ar , br とすると、<br>
+三平方の定理より<br>
+<img border="0" alt="" src="collision/shiki1.gif" width="315" height="35"><br>
+これより ar + br の方が大きかった場合、接触しています。<br>
+C++で平方根を返す関数sqrt()を使うと、処理速度が低下するので、長さの2乗を比較します。<br>
+では、Mover同士の当たり判定をとる関数を作りましょう。<br>
+<pre>
+//円と円の接触判定
+bool MoverCollision(const Mover &amp;m1,const Mover &amp;m2){
+	float dx,dy,r;
+	dx=m2.x-m1.x;//水平方向の距離
+	dy=m2.y-m1.y;//鉛直方向の距離
+	r =m2.r+m1.r;//半径の和
+    
+	//三平方の定理
+	return ((dx*dx)+(dy*dy)&lt;(r*r));//当たっていたらtrue
+}
+</pre>
+はい、これで「円と円の当たり判定」がとれました。<br>
+<br>
+<h2><a name="square">・長方形と円の当たり判定</a></h2>
+では、本題です。<br>
+レーザーは長方形です。<br>
+4点で制御するので、そのクラスを次のようにします。<br>
+<pre>
+//レーザークラス
+class Lazer{
+public:
+	Point p[4];
+};
+</pre>
+イメージはこちら<br>
+<img border="0" alt="" src="collision/laz.gif" width="316" height="157"><br>
+
+「長方形と円の当たり判定」をとるのは一筋縄にはいきません。<br>
+次の3ステップを踏みます。<br>
+<ol>
+<li>円の中にレーザーの端点があるかどうか</li>
+<li>円がレーザーの線分に触れてないがどうか</li>
+<li>円がレーザーの内部に入り込んでないかどうか</li>
+</ol>
+それぞれ次のような場合です
+<table border="1" cellspacing="0" cellpadding="5">
+  <tr>
+    <td>1.円の中にレーザーの端点があるかどうか</td>
+  </tr>
+  <tr>
+    <td><img border="0" alt="" src="collision/laz_ex1.gif" width="316" height="256"></td>
+  </tr>
+  <tr>
+    <td>2.円がレーザーの線分に触れてないがどうか</td>
+  </tr>
+  <tr>
+    <td><img border="0" alt="" src="collision/laz_ex2.gif" width="316" height="256"></td>
+  </tr>
+  <tr>
+    <td>3.円がレーザーの内部に入り込んでないかどうか</td>
+  </tr>
+  <tr>
+    <td><img border="0" alt="" src="collision/laz_ex3.gif" width="316" height="256"></td>
+  </tr>
+</table>
+それぞれのパターンに分けて考えていきます。<br><br>
+<h3>1.円の中にレーザーの端点があるかどうか</h3>
+これは各端点とMoverとの当たり判定をとれば簡単です。<br>
+<pre>
+//レーザーの端点との接触判定
+bool LazerCollision1(const Lazer &laz,const Mover &m){
+	Mover t;
+	
+	for(int i=0;i&lt;4;i++){
+		t.x=laz.p[i].x;	t.y=laz.p[i].y;
+		if(MoverCollision(t,m)){
+			return true;
+		}
+	}
+	
+	return false;
+}
+</pre>
+上記MoverCollision()を使ってます。<br>
+端点は半径0のMoverとみなすことができるので、前作った関数を流用します。<br>
+<br>
+<h3>2.円がレーザーの線分に触れてないがどうか</h3>
+次にレーザーの各辺(線分)と円の当たり判定をとります。<br>
+<br>
+円の中心mから線分pqへ垂線を下ろし、線分pqとの交点をhとすると、<br>
+垂線mhとmの半径との長さを比べればよい。<br>
+(ここからベクトルを使います。)<br><br>
+<img border="0" alt="" src="collision/line1.gif" width="256" height="157"><br>
+<br>
+引数として参照できるのはp,q,mの座標です。<br>
+そこからベクトルを2つ作成します。<br>
+2点からベクトルを作る関数を次のようにします。<br>
+<pre>
+//typedef宣言
+typedef Point Vector;
+
+//ベクトル生成関数
+Vector CreateVector(const Point &p,const Point &q){
+	return Vector(q.x-p.x,q.y-p.y);//p-&gt;qベクトル
+}
+</pre>
+ベクトルを表すクラスはPointと同じメンバ(意味合いは違うが)を持つのでtypedefで同一視しましょう。<br>
+ついでに後で使うのでベクトルに関する関数を先に作っちゃいましょう。<br>
+ベクトルの内積、外積、大きさの2乗を返す関数です。<br>
+<pre>
+//ベクトルの内積
+float InnerProduct(const Vector &a,const Vector &b){
+	return (a.x*b.x+a.y*b.y);//a・b
+}
+
+//ベクトルの外積
+float OuterProduct(const Vector &a,const Vector &b){
+	return (a.x*b.y-a.y*b.x);//a×b
+}
+
+//ベクトルの長さの2乗
+float VectorLength2(const Vector &v){
+	return InnerProduct(v,v);//v・v=|v|^2
+}
+</pre>
+<br>
+再掲図<br>
+<img border="0" alt="" src="collision/line1.gif" width="256" height="157"><br>
+まず、2ベクトル
+<img border="0" alt="" src="collision/vec_pq.gif" align="middle" width="24" height="24">
+<img border="0" alt="" align="middle" src="collision/vec_pm.gif" width="26" height="24">
+を取得します。<br>
+とすると点 h は直線 pq 上にあるので、<br>
+<img border="0" alt="" src="collision/shiki2.gif" align="middle" width="92" height="38">(kは実数)<br>
+と表せます。<br>
+<img border="0" alt="" src="collision/shiki3.gif" width="134" height="37">より<br>
+<img border="0" alt="" src="collision/shiki4.gif" width="144" height="38"><br>
+ mh と直線 pq は垂直なので<br>
+<img border="0" alt="" src="collision/shiki5.gif" width="161" height="37"><br>
+<img border="0" alt="" src="collision/shiki6.gif" width="182" height="29"><br>
+<img border="0" alt="" src="collision/shiki7.gif" width="190" height="35"><br>
+<img border="0" alt="" src="collision/shiki8.gif" width="112" height="58"><br>
+<br>
+ここで<img border="0" alt="" align="middle" src="collision/shiki2.gif" width="92" height="38">なので<br>
+k&lt;0の時
+<img border="0" alt="" align="middle" src="collision/vec_pq.gif" width="24" height="24">
+の逆側に
+<img border="0" alt="" align="middle" src="collision/vec_ph.gif" width="24" height="28">
+があり、<br>
+線分 pq 上に h が存在しない。<br>
+<img border="0" alt="" src="collision/line2.gif" width="284" height="145"><br>
+<br>
+k&gt;1の時
+<img border="0" alt="" align="middle" src="collision/vec_pq.gif" width="24" height="24">
+を超えて
+<img border="0" alt="" align="middle" src="collision/vec_ph.gif" width="24" height="28">
+があり、<br>
+線分 pq 上に h が存在しない。<br>
+<img border="0" alt="" src="collision/line3.gif" width="270" height="126"><br>
+<br>
+よって、0&lt;k&lt;1の時に線分 pq 上に h が存在する。<br>
+<img border="0" alt="" src="collision/line1.gif" width="256" height="157"><br>
+ mh の長さの2乗は<br>
+<img border="0" alt="" src="collision/shiki9.gif" width="326" height="95"><br>
+ここで<img border="0" alt="" align="middle" src="collision/shiki8.gif" width="112" height="58">なので<br>
+<img border="0" alt="" src="collision/shiki10.gif" width="378" height="135"><br>
+これとMoverの半径の2乗とを比較します。<br>
+<pre>
+//レーザーの各辺(線分)と円の接触判定
+bool LazerCollision2(const Lazer &laz,const Mover &m){
+	Vector pq,pm;
+	float inner,k,pqd2,pmd2,phd2,d2;
+
+	const int n[][4]={{0,1,3,2},{1,3,2,0}};
+	for(int i=0;i&lt;4;i++){
+		pq=CreateVector(laz.p[n[0][i]],laz.p[n[1][i]]);//0.1.3.2:1.3.2.0
+		pm=CreateVector(laz.p[n[0][i]],(Point)m);
+
+		inner=InnerProduct(pq,pm);//内積
+		pqd2 =VectorLength2(pq);  //大きさの2乗
+		pmd2 =VectorLength2(pm);  //大きさの2乗
+
+		k=inner/pqd2;
+       
+		if(k&lt;0 || 1&lt;k)continue;//hが線分 pq 上にあるかどうか
+
+		phd2=(inner*inner)/pqd2;  //phの大きさの2乗
+
+		d2=pmd2-phd2;  //垂線の大きさの2乗
+
+		if(d2&lt;m.r*m.r)return true;//比較
+	}
+	
+	return false;
+}
+</pre>
+<br>
+
+<h3>3.円がレーザーの内部に入り込んでないかどうか</h3>
+<img border="0" alt="" src="collision/laz_p3.gif" width="284" height="191"><br>
+図において、円がレーザーの内部に入り込んでいるときは&theta;0,&theta;1ともに0&deg;～90&deg;となる。<br>
+&theta;はやはりベクトルを使って導きます。<br>
+&theta;0に着目すると、&theta;0はp[0],p[1],mの3点から成っています。<br>
+そこで、2ベクトル<img border="0" alt="" align="middle" src="collision/vec_pp.gif" width="29" height="24">,
+<img border="0" alt="" align="middle" src="collision/vec_pm.gif" width="26" height="24">を取得して、<br>
+内積が
+|<img border="0" alt="" align="middle" src="collision/vec_pp.gif" width="29" height="24">|
+|<img border="0" alt="" align="middle" src="collision/vec_pm.gif" width="26" height="24">|
+cos&theta;という性質をもっていることから、<br>
+内積を各ベクトルの大きさで割ってcos&theta;から導くという方法がありますが、これには問題があります。<br>
+<br>
+純粋なベクトルの大きさをだすにはどうしてもsqrt()関数を使う必要がでてきます。<br>
+前述した通り、sqrt()関数は実行速度を低下させる原因になります。<br>
+なんとかsqrt()関数を使わないような単純な演算だけですましたいのです。<br>
+<br>
+ベクトルには内積のほかに<span class="red">外積</span>というものがあります。<br>
+(外積は平面ではあまり使われないようですが・・・)<br>
+その定義と利用法は次の通りです。<br>
+<img border="0" alt="" src="collision/vec_ng.gif" width="336" height="136"><br>
+<br>
+よって、外積を内積で割ると2ベクトルがなす角&theta;のtanが取得できます。<br>
+tan&theta;から&theta;をだすには<span class="red">atan2()</span>関数を使います。<br>
+atan()はtanの逆関数のことで、アークタンジェントです。<br>
+atan()関数でtanがはずせると考えてください。<br>
+<br>
+さて、導かれる&theta;はラジアン単位です。<br>
+「&theta;が0&deg;～90&deg;の時」なので単位が合ってません。<br>
+どちらかにそろえて比較しますが、どちらかというと度(&deg;)に合わせた方がわかりやすいかと思います。<br>
+そこで、こんなマクロを作っておきます。<br>
+<pre>
+#define PI 3.141592
+#define RTOD(RAD) ((RAD)*(180/PI))
+#define DTOR(DEG) ((DEG)*(PI/180))
+</pre>
+使うのはRTODです。radian to degree を意図しています。<br>
+これで度(&deg;)に変換してから比較します。<br>
+<pre>
+//レーザー内部に入り込んでいないかの判定
+bool LazerCollision3(const Lazer &laz,const Mover &m){
+	Vector pp,pm;
+	float inner,outer,theta[2];
+
+	for(int i=0;i&lt;2;i++){
+		pp=CreateVector(laz.p[i*3],laz.p[1+i]);//0.1:3.2
+		pm=CreateVector(laz.p[i*3],(Point)m);
+
+		inner=InnerProduct(pp,pm);
+		outer=OuterProduct(pp,pm);
+
+		theta[i]=RTOD(atan2(outer,inner));
+	}
+
+	if(0&lt;=theta[0] && theta[0]&lt;=90 &&
+	   0&lt;=theta[1] && theta[1]&lt;=90){
+			return true;
+	}
+
+	return false;
+</pre>
+<br>
+さて、これで「長方形と円の当たり判定」をとる関数が全てそろいました。<br>
+まとめて一つの関数にしましょう。関数ポインタを使います。<br>
+<pre>
+//レーザー(長方形)と円の接触判定
+bool LazerCollision(const Lazer &laz,const Mover &m){
+	bool(*lazer_collision[])(const Lazer &laz,const Mover &m)={
+		LazerCollision1,
+		LazerCollision2,
+		LazerCollision3,
+	};
+
+	for(int i=0;i&lt;3;i++){
+		if((*lazer_collision[i])(laz,m)){
+			return true;
+		}
+	}
+	return false;
+}
+</pre>
+<br>
+今回の全体ソースコードはこちら<br>
+<a href="./collision/Collision.cpp">Collision.cpp</a><br>
+<br>
+<h1>・追記</h1>
+<h2><a name="outer2">2.外積を用いた円と線分の当たり判定</a></h2>
+上記の2ステップ目「円と線分の当たり判定」は内積だけしか使ってませんでした。<br>
+外積を用いるとより簡単に書けますが、仕組みは理解しづらいかと思います。<br>
+まず、内積と外積の定義を再掲します。<br>
+<img src="collision/vec_ng2.gif" width="336" height="68" alt=""><br>
+そしてまず距離 d を求めます。<br>
+<img src="collision/line4.gif" width="307" height="360" alt=""><br>
+上の図の直角三角形pmhにおいて、<br>
+<img src="collision/shiki11.gif" width="121" height="43" alt=""><br>
+であり、2ベクトル<img src="collision/vec_pm.gif" width="26" height="24" alt="">
+<img src="collision/vec_pq.gif" width="24" height="24" alt="">の外積が<br>
+<img src="collision/shiki12.gif" width="224" height="43" alt=""><br>
+なので、距離 d は<br>
+<img src="collision/shiki13.gif" width="136" height="74" alt=""><br>
+と表せられます。<br>
+で、やはりベクトルの長さを直にだすにはsqrt()なんちゃら～　で遅いので、<br>
+dの2乗と円の半径の2乗同士を比較します。<br>
+そして、円の半径の方が大きかったらそこから 線分 pq 上に h があるかを調べます。<br>
+つまり上記の方法とは比較の順番が違います。<br>
+<br>
+線分 pq 上に h があるかを調べる方法ですが、<br>
+結論から言うと内積同士を乗算して0以下になれば h は線分 pq 上にあります。<br>
+<img src="collision/shiki14.gif" width="225" height="47" alt=""><br>
+このときはなす角が(鋭角・鈍角)、(鈍角・鋭角)にしかならないためです。<br>
+詳しくは参考サイト様を参照してください(←丸投げ<br>
+以下ソースです。<br>
+<pre>
+//レーザーの各辺(線分)と円の接触判定
+bool LazerCollision2(const Lazer &laz,const Mover &m){
+	Vector pq,pm,qm;
+	float d2,cross;
+	const int n[][4]={{0,1,3,2},{1,3,2,0}};
+	
+	for(int i=0;i&lt;4;i++){
+		pq=CreateVector(laz.p[n[0][i]],laz.p[n[1][i]]);
+		pm=CreateVector(laz.p[n[0][i]],m);
+		qm=CreateVector(laz.p[n[1][i]],m);
+
+		cross=OuterProduct(pm,pq);
+		d2=cross*cross/VectorLength2(pq);//距離の2乗
+
+		if(d2&lt;m.r*m.r){//当たる可能性がある
+			if(InnerProduct(pm,pq)*InnerProduct(qm,pq)&lt;0){//内側にある
+				return true;
+			}
+		}
+	}
+	return false;
+}
+</pre>
+だいぶ簡単になりましたね。内容は難しいですが(^^<br>
+参考サイト様の方がはるかにわかりやすいです。<br>
+<br>
+<span class="red">2010/08/18　ここまで追記</span><br>
+<br>
+<h2>・感想</h2>
+シューティングゲームを作る時に、つまずくのはこのレーザーの実装だと思います。<br>
+なので、少しでも助けになればと思いこのページを書きました。<br>
+「円と円の当たり判定」は簡単だけれど「長方形と円の当たり判定」になると途端に難しくなります。<br>
+ベクトルについての深い知識が必要になります。<br>
+わからないところはググりながら見ていってください。<br>
+<br>
+<h2>・参考サイト様</h2>
+<a href="http://dixq.net/rp/34.html">龍神録プログラミングの館(34章　レーザーを作ってみよう)</a><br>
+このページ(現在ページ)の内容はこちら(リンク先)に準拠しています。わかりやすく解説されてます。<br><br>
+<a href="http://dixq.net/g/54.html">Ｃ言語～ゲームプログラミングの館～(s11. 当たり判定。)</a><br>
+「円と円の当たり判定」についてです。<br><br>
+<a href="http://www7b.biglobe.ne.jp/~robe/cpphtml/html03/cpp03009.html">ロベールのＣ＋＋教室 - 第９章 関数ポインタ -</a><br>
+関数ポインタについてです。忘れた時に見てます。<br>
+関数ポインタは使いこなせれば強い武器になります。<br>
+<br>
+<a href="
+http://marupeke296.com/COL_2D_No5_PolygonToCircle.html">2D衝突編その5　円と線分から多角形と円へ</a><br>
+いろいろな衝突判定を書かれています。<br>
+正直こちらのページにあることはこちらに全てありますorz<br>
+<br>
+このページ(現在ページ)で示したのはあくまでも一例です。<br>
+「当たり判定」や「接触判定」といった語でググれば、別の手法を紹介しているサイト様にも巡り会えるでしょう。<br>
+<br>
+<hr>
+<script type="text/javascript">
+write_locate(12);
+topic("index","../index.html");
+topic("プログラムテクニック覚え書き","./program_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+<p></p>
+</body></html>

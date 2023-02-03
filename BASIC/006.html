@@ -1,0 +1,46 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<link rel="stylesheet" type="text/css" href="bg.css">
+<title>組み込み関数</title>
+<base href="http://1st.geocities.jp/shift486909/BASIC/">
+</head>
+<body>
+<p 
+align="left"><br><strong>・組み込み関数<br></strong>関数と聞くと難しそうですが、要はひとつの値を渡すと<br>違う値にして返すものだと考えればわかりやすいです。<br><br>簡単なものを4つ紹介します。<br>・<font 
+color="#ff0000">INT(&nbsp;x )<br></font>xの小数点以下を切り捨てた整数を返します<br><br>・<font 
+color="#ff0000">MOD( x , y )</font><br>xをyで割ったあまりを返します<br><br>・<font 
+color="#ff0000">SQR( x )</font><br>xの平方根を返します<br><br>・<font color="#ff0000">ABS( x 
+)</font><br>xの絶対値を返します <br><br>使用例を下に示します<br><br></p>
+<p align="left">
+<table style="WIDTH: 594px; HEIGHT: 396px" cellspacing="0" cellpadding="0" width="594" 
+border="1">
+  <tbody>
+  <tr>
+    <td>
+      <p align="left">REM * INT 使用例<br>LET x=3.141592763<br>LET y=0<br>LET y=INT( 
+      x )<br>PRINT "xの小数点以下を切り捨てるので";<br>PRINT y<br>END</p></td>
+    <td>
+      <p align="left"><br><br>REM * MOD 使用例<br>LET x=12<br>LET y=0<br>LET y=MOD( 
+      x&nbsp;, 5 )<br>PRINT "12(x)を5で割ったあまりは";<br>PRINT y<br>END　</p>
+      <p align="left">　</p></td></tr>
+  <tr>
+    <td>　 
+      <p align="left">REM * SQR 使用例<br>LET x=9<br>LET y=0<br>LET y=SQR(x)<br>PRINT 
+      "9(x)の平方根は";<br>PRINT y<br>END</p></td>
+    <td>　 
+      <p align="left">REM *&nbsp;ABS 使用例<br>LET x=-3<br>LET y=0<br>LET 
+      y=ABS(x)<br>PRINT "-3(x)の絶対値は";<br>PRINT 
+y<br>END</p></td></tr></tbody></table></p>
+<p align="left"><br><br><font color="#ff0000">REM</font><font 
+color="#000000">はプログラムの実行に影響をあたえずに<br>メモを書くための文です。<br>ちなみに始め以外のところにメモを書きたい場合は、<br>!　(エクストラテンションマーク)の後に書けます。<br><br>PRINT文の後に　;　(セミコロン)をつけると<br>改行せずに続けて表示できます。<br><br><br>ほかにもいろいろな関数があります。<br>このようにはじめからある関数を<br><font 
+color="#ff0000">組み込み関数<br></font>といいます。<br><br><br>次回は組み込み関数のひとつRNDについて<br>説明します。<br></p></font>
+<script type="text/javascript" src="./bhn_basic.js"></script>
+<form name="F1">
+<input onclick="back()" onmouseover="window.status='前に戻ります';" type="button" value="//back" name="B1">&nbsp; 
+<input onclick="location.href='../basic.html'" onmouseover="window.status='メニューに戻ります';" type="button" value="//home// " name="B2">&nbsp; 
+<input onclick="next()" onmouseover="window.status='次に進みます';" type="button" value="next//" name="B3"> 
+</form>
+</body>
+</html>

@@ -1,0 +1,156 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Script-Type" content="text/javascript; charset=shift_jis">
+<link rel="stylesheet" href="cpp.css" type="text/css">
+<script type="text/javascript" src="./cpp.js"></script>
+<!--<span title="&#13;=enter"> &lt;=< &gt;=> -->
+<title>004 条件判断</title>
+</head>
+<body>
+<p>
+<h1>条件判断</h1>
+条件判断の文は<span class="red">　if　(条件式)　真の時実行する構文;　</span>とします。<br>
+条件式とは「正しい（真）」か「正しくない（偽）」かの式です。<br>
+正しいときに後の構文が実行されます。<br>
+例えば、5&gt;3という式は（大小関係が）「正しい」ので<code>if(5&gt;3)cout&lt;&lt;"正しい"&lt;&lt;endl;</code>とした場合<br>
+<code>cout&lt;&lt;"正しい"&lt;&lt;endl;</code>は実行されます。<br>
+5&lt;3とした場合は（大小関係が）「正しくない」ので<code>if(5&lt;3)cout&lt;&lt;"正しい"&lt;&lt;endl;</code>とすると、<br>
+<code>cout&lt;&lt;"正しい"&lt;&lt;endl;</code>は実行されません。<br>
+条件式で使える記号と意味は次の通りです。<br>
+<table border="1">
+  <tr>
+    <td align="center"><strong>数学</strong></td>
+    <td align="center">等しい(=)</td>
+    <td align="center">大きい(&gt;)</td>
+    <td align="center">小さい(&lt;)</td>
+    <td align="center">以上(≧)</td>
+    <td align="center">以下(≦)</td>
+    <td align="center">等しくない(≠)</td>
+    <td align="center">～かつ～</td>
+    <td align="center">～または～</td>
+    <td align="center">～でない～</td>
+  </tr>
+  <tr>
+    <td align="center"><strong>cpp</strong></td>
+    <td align="center">==</td>
+    <td align="center">&gt;</td>
+    <td align="center">&lt;</td>
+    <td align="center">&gt;=</td>
+    <td align="center">&lt;=</td>
+    <td align="center">!=</td>
+    <td align="center">&&</td>
+    <td align="center">||</td>
+		<td align="center">!</td>
+  </tr>
+</table>
+大体わかりますね。<br><br>
+実行したい構文が複数の場合は<br>
+<span class="red">
+<pre>
+if(条件式){
+　　 実行する構文1;
+    実行する構文2;
+     :
+     :
+}
+</pre>
+</span>
+として<span title="{}で囲まれた部分のところ。&#13;プログラム本体もある意味ブロック。">ブロック</span>にします。<br>
+それでは例です。<br>
+<span class="blue">「入力された数値が10以上か、10未満か判断して表示する。」</span><br>
+<hr>
+<pre>
+#include &lt;iostream&gt;
+using namespace std;
+
+void main(){
+	int num;
+	
+	cout&lt;&lt;"整数を入力"&lt;&lt;endl;	
+	cin&gt;&gt;num;
+
+	if(num&gt;=10)cout&lt;&lt;"10以上の数が入力されました。"&lt;&lt;endl;
+	if(num&lt;10)cout&lt;&lt;"10未満の数が入力されました。"&lt;&lt;endl;
+}
+</pre>
+<hr>
+結果::<br>
+<table border="0">
+	<tr>
+		<td>
+    	<img height="81" alt="" src="004_1.gif" width="342" border="0">
+		</td>
+		<td>
+    	<img height="81" alt="" src="004_2.gif" width="342" border="0">
+		</td>
+	</tr>
+ 	<tr>
+		<td>
+			入力値が10未満(2)の時
+		</td>
+		<td>
+			入力値が10以上(14)の時
+		</td>
+	</tr>
+
+</table>
+<hr>
+BASICと同じように
+<span class="red">
+<pre>
+if(条件式){}
+else {}
+</pre>
+<font color="black">や</font>
+<pre>
+if(条件式1){}
+else if(条件式2){}
+else {}
+</pre>
+</span>
+が使えます。<br>
+上のコード中のif文2個はif(){} else{}に書き換えられます。<br>
+<hr>
+<h2>複数の条件式</h2>
+条件式を重ねるには<span class="red">&&(かつand)、||(またはor)、!（でないnot）</span>でつなげます。<br>
+
+<pre>
+<code>
+int num;
+cin&gt;&gt;num;
+if(3&lt;num && num&lt;10){cout&lt;&lt;"4～9なら実行される。"&lt;&lt;endl;}
+</code>
+</pre>
+<hr>
+<h2>真と偽</h2>
+真とは「正しい」ことですが、同時に二進ビットで「1」でもあります。<br>
+逆に偽とは「正しくない」ことで、同時に二進ビットで「0」でもあります。<br>
+真、偽をそれぞれ「true」「false」といいます。
+なので、<span class="blue">if(true)cout&lt;&lt;"必ず実行される。"&lt;&lt;endl;</span>となります。<br>
+変数型boolはこのような真偽値を扱います。<br>
+<span title="0以外の数は全て「1」とみなされます">boolは「true」か「false」しか値を保存できません。</span><br>
+「じゃあint型の方がよくね？」と思われるはずです。<br>
+確かにint型でも十分ですが、intはあくまで<strong>整数</strong>を表しますので、整数以外のところでintを使うのはよくありません。<br>
+それに、変数1個の<span title="後でまたやります">サイズ</span>もintは4バイト、boolは1バイトなので小さくなります。<br>
+小さなプログラムでは気になりませんが大きくなってくると差がでます。<br>
+節約できるところは節約しましょう。　限りある資源を大切に。<br>
+boolは主にフラグとして使われます。
+<pre>
+bool flag;
+
+flag=true;    //flagをtrueに
+if(flag)cout&lt;&lt;"実行される。"&lt;&lt;endl;
+
+flag=false;   //flagをfalseに
+if(flag)cout&lt;&lt;"実行されない。"&lt;&lt;endl;
+</pre>
+<hr>
+<script type="text/javascript">
+<!--
+write();
+-->
+</script>
+</p>
+</body>
+</html>

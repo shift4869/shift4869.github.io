@@ -1,0 +1,224 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>.Fileクラスの実装</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+
+<!--<base href="http://1st.geocities.jp/shift486909/">-->
+</head>
+<body>
+<p align="left"><br>
+<h1>Fileクラスの実装</h1><br>
+<hr size="2">
+<h2>・実装機能</h2>
+Fileクラスで実装する機能は以下の通りとします。<br>
+<ol>
+<li>コンストラクタでファイルオープン</li>
+<li>デストラクタでファイルクローズ</li>
+<li>「&lt;&lt;」演算子をオーバーロードしてファイルへ出力</li>
+<li>「&gt;&gt;」演算子をオーバーロードしてファイルから入力</li>
+<li>「FILE*」「FILE」型への変換コンストラクタ</li>
+</ol>
+正直最後の5番だけやればいいです。<br>
+なぜなら「FILE*」型に変換できれば、標準のファイルを扱う関数(fopen_s,fprintf)とかが使えるので。<br>
+とりあえずこれでやっていきます。<br>
+なお、これは元々ログ出力等の簡単なファイル操作を想定しています。<br>
+よって、安全でない場合があります(後で述べます)<br>
+<h2>・実装</h2>
+では、サクっと実装していきます。<br>
+内部処理的には標準のファイルを扱う関数を使います。<br>
+短い処理が多いですが、宣言(ヘッダー)と実装(ソース)を分けます。<br>
+<table border="1">
+<tr>
+	<td>FileLib.cpp</td>
+	<td>FileLib.h</td>
+</tr>
+<tr>
+	<td>
+    <pre>
+#include "FileLib.h"
+
+File::File(){
+	fp=NULL;
+}
+
+File::File(const char *path, const char *mode){
+	open(path,mode);
+}
+
+File::~File(){
+	if(fp!=NULL){
+		close();
+	}
+}
+
+void File::open(const char *path, const char *mode){
+	fopen_s(&fp,path,mode);
+	if(!fp){
+		throw "file open error";
+	}
+}
+
+void File::close(){
+	fclose(fp);
+}
+	</pre>
+	</td>
+	<td>
+    <pre>
+#include <iostream>
+using namespace std;
+
+class File{
+private:
+	FILE *fp;
+public:
+	File();
+	File(const char *path,const char *mode);
+	~File();
+
+	void open(const char *path,const char *mode);
+	void close();
+};
+
+
+
+
+
+
+
+
+
+
+
+
+	</pre>
+	</td>
+</tr>
+</table>
+はい、これでコンストラクタとデストラクタの実装が完了しました。<br>
+次に演算子のオーバーロード「&lt;&lt;」「&gt;&gt;」を一気にやってしまいます。<br>
+(追加部分だけ示します)
+<table border="1">
+<tr>
+	<td>FileLib.cpp</td>
+	<td>FileLib.h</td>
+</tr>
+<tr>
+	<td>
+    <pre>
+
+File& File::operator <<(const char *str){
+	fputs(str,fp);
+	return *this;
+}
+
+File& File::operator <<(const char &c){
+	fputc(c,fp);
+	return *this;
+}
+
+File& File::operator >>(char *str){
+	fgets(str,1024,fp);
+	return *this;
+}
+
+File& File::operator >>(char &c){
+	c=fgetc(fp);
+	return *this;
+}
+	</pre>
+	</td>
+	<td>
+    <pre>
+File& operator <<(const char *str);
+File& operator <<(const char &c);
+File& operator >>(char *str);
+File& operator >>(char &c);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	</pre>
+	</td>
+</tr>
+</table>
+それぞれのfput,fgetを読んでいるだけですね。<br>
+最後に変換系の実装をば。<br>
+<table border="1">
+<tr>
+	<td>FileLib.cpp</td>
+	<td>FileLib.h</td>
+</tr>
+<tr>
+	<td>
+    <pre>
+File::operator FILE *(){
+	return fp;
+}
+
+File::operator FILE (){
+	return *fp;
+}
+	</pre>
+	</td>
+	<td>
+    <pre>
+operator FILE*();
+operator FILE();
+
+
+
+
+
+	</pre>
+	</td>
+</tr>
+</table>
+はい、これで実装完了です。<br><br>
+<h2>・問題点</h2>
+わかる人にはわかると思いますがこの実装は<span class="red">思いっきり</span>手抜きしてます。<br>
+まず、<span class="red">「コンストラクタ内で例外を投げない方がいい」</span>というのがあります。<br>
+これはnewでクラスのインスタンスが作られた場合、その途中で例外を投げて<br>
+コンストラクト処理を抜けてしまうと、デストラクタが呼ばれず、メモリリークする。とのことです。<br>
+これについては参照リンクを参照してください。<br>
+それに、デストラクタにvirtual指定もしてませんしね（＾＾<br><br>
+「C++ならFILEじゃなくてストリーム使え」ってのもありますし。<br>
+あと、コピーコンストラクタ、代入演算子のオーバーロードとか、改良すべきところはたくさんあります。<br><br>
+余裕があるかたは改良してみてください。<small>(自分が実装するのがめんどいってことではないorz)</small><br>
+こういうクラスを創るのはクラスの機能の再確認にもなりますからね。<br><br>
+
+<h2>・参照リンク</h2>
+<a href="http://www.geocities.jp/chacha_yhk1219/prog/prog004.html">C++はコンストラクタで例外投げてはいけないのか？</a><br>
+<a href="http://d.hatena.ne.jp/tt_clown/20081115/p1">コンストラクタと例外 - Life like a clown</a><br>
+<a href="http://www.kijineko.co.jp/tech/superstitions/dont-throw-exception-from-constructor.html">[迷信] コンストラクタから例外を送出してはならない | 株式会社きじねこ</a><br>
+どうやら対策法はあるみたいです。<br>
+<a href="http://d.hatena.ne.jp/amachang/20090430/1241071098">C++ の型変換 - IT戦記</a><br>
+クラスの型変換について。<br><br>
+クラス全般に関しては様々な入門サイトがあるので割愛。<br>
+自分にあったクラス創りをしてください(-_-)<br>
+
+
+<hr size="2">
+<script type="text/javascript">
+write_locate(4);
+topic("index","../index.html");
+topic("プログラムテクニック覚え書き","./program_menu.html");
+topic("ライブラリ制作の薦め","./library.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+</p>
+</body></html>

@@ -1,0 +1,41 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>テトリス全体の流れ</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<meta http-equiv="content-type" content="text/css; charset=shift_jis">
+<link rel="stylesheet" href="./styleTet.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<base href="http://1st.geocities.jp/shift486909/tetlec/">
+</head>
+<body>
+<p align="left"><br>
+<img src="chapter_g/05g.gif" width="402" height="60" alt="テトリス全体の流れ"><br>ここからがテトリス固有のものです。<br>
+テトリスのルールを知らない人はいないと思いますが、<br>
+プログラムとしてどう処理していくのかを考えます。<br>
+<br>
+テトリスのゲーム部分のみを考えると(タイトルとかスタート・ゲームオーバー画面を除くと)<br>
+以下のような流れになると思います。<br>
+<br>
+<img src="05/05_1.gif" width="383" height="336" alt=""><br>
+<br>
+テトリミノとは4つのブロック群(T字型とかL字型とかあるやつ)のことで、<br>
+細かい定義は後でしますが、それぞれをクラス化して扱います。<br>
+<br>
+この画像中では②が難しいです。<br>
+回転は思いの他簡単にはいきません。<br>
+<br>
+今回は短いですがこれで終了です。<br>
+次回は画像を読み込んだりする初期化処理を書いていきます。<br>
+</p>
+<hr size="2">
+
+<script type="text/javascript">
+write_locate(6);
+topic("index","../index.html");
+topic("テトリス作成講座","./tetlec_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+
+</body></html>

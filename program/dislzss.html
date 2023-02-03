@@ -1,0 +1,128 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>.Lzss解凍法</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+
+<!--<base href="http://1st.geocities.jp/shift486909/">-->
+</head>
+<body>
+<p align="left"><br>
+<h1>Lzss解凍法</h1><br>
+<hr>
+<h2>・Lzss解凍</h2>
+解凍するのは圧縮するのより簡単です。<br>
+ヘッダー部に必要な情報が入っているので、<br>
+それを正しく読み取れれば圧縮と逆の方法で解凍できます。<br><br>
+<h2>・フローチャート</h2>
+流れは圧縮と大体同じです。<br>
+<ol>
+<li>指定ファイルパスを取得する</li>
+<li>ファイルサイズを求め、メモリ上に展開する</li>
+<li>ヘッダーを読み込み、解釈する</li>
+<li>データを解凍する</li>
+<li>新しいファイルを開き、解凍したデータを保存する</li>
+<li>終了</li>
+</ol>
+1.　2.　5.　は圧縮と同じなので割愛。<br><br>
+
+<h3>3.ヘッダーを読み込み、解釈する</h3>
+ヘッダーから読み込む情報は「エンコードコード」「元拡張子」の２つです。<br>
+エンコードコードは一番始めに記録されているのでそれを取得します。<br>
+元拡張子はタブ記号'\t'までをstringとして読み込めばokです。<br>
+<pre>
+{//ヘッダー情報を読み込む
+    //エンコードコード
+    encode_code=src[src_it];
+    src_it++;
+
+    //元の拡張子取得
+    vector&lt;BYTE&gt;::iterator it=find(src.begin()+1,src.end(),'\t');
+    copy(src.begin()+1,it,back_inserter(ext));
+
+    //ヘッダー分は後々邪魔なので削除
+    src.erase(src.begin(),it+1);
+    //サイズ取得
+    src_size=src.size();
+    //圧縮データの一番始めにする
+    src_it=0;
+}
+</pre>
+vector&lt;BYTE&gt; src,destとして、srcに圧縮データ(".lzs")。destに解凍データを入れます。<br>
+元の拡張子取得を取得するときにfind(),copy()を使ってます。<br>
+ヘッダーは'\t'で終わるので、それをまずfind()で探します。<br>
+そしてそこまでをstring extにコピーします。<br><br>
+
+<h3>4.データを解凍する</h3>
+srcのループ時にイテレータを使ってもいいと思いますが、<br>
+圧縮時と同じようにsrc[src_it]としてアクセスしてます。<br>
+<pre>
+{//解凍
+    int index,equal_num;
+    while(src_it&lt;src_size){
+        //エンコードコードと一致していたら
+        if(src[src_it]==encode_code){
+            src_it++;
+            //エンコードコードそのものなら
+            if(src[src_it]==encode_code){
+                //そのまま出力
+                dest.push_back(src[src_it]);
+                src_it++;
+            }
+            else{//圧縮情報の開始なら
+                //何byte前から同じか--------------------
+                index=src[src_it];
+                src_it++;
+                if(index&gt;=encode_code)index--;
+                //----------------------------------------
+
+                //何byte同じか--------------------------
+                equal_num=src[src_it];
+                src_it++;
+                //----------------------------------------
+
+                //index分前の位置からequal_num分メモリをコピー--
+                UINT dest_it=dest.size();
+                for(int i=0;i&lt;equal_num;i++){
+                    dest.push_back(dest[dest_it-index+i]);
+                }
+                //----------------------------------------------
+            }
+        }
+        else{
+            //そのまま出力
+            dest.push_back(src[src_it]);
+            src_it++;
+        }
+    }
+}
+</pre>
+圧縮時に適応したルールを逆に適応します。<br>
+エンコードコードと一致して2重にあったらエンコードコードそのものと判断して出力。<br>
+圧縮情報の「何byte前から同じか」がエンコードコードより大きかったら+1されてるので元に戻します。<br>
+メモリをコピーするときにcopy()が使えるかと思ったらどうやら自身をcopy()はできないみたい？誰か検証して～<br>
+これで解凍したデータがdestに入ります。<br><br>
+
+<h3>6.終了</h3>
+問題を作るのより解く方が簡単なように、<br>
+圧縮に比べたら解凍するのは簡単です。<br>
+このほかにも圧縮法はいろいろあるので探して挑戦してみてください（＾＾<br><br>
+<br>
+全体ソースは<a href="lzss/dislzss.cpp" target="_blank">こちら</a>。<br>
+<h2>・参考サイト様</h2>
+<a href="http://homepage2.nifty.com/natupaji/DxLib/lecture/Press/press.html">データ圧縮プログラムについてざっくり学ぶ</a><br>
+ここに解凍についてのサンプルソースもあります。<br>
+<br>
+
+<hr>
+<script type="text/javascript">
+write_locate(7);
+topic("index","../index.html");
+topic("プログラムテクニック覚え書き","./program_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+</p>
+</body></html>

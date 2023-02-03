@@ -1,0 +1,247 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>16.逆ポーランド記法とテンパズル</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<!--<base href="http://1st.geocities.jp/shift486909/program/">-->
+</head>
+<body>
+<p align="left"><br>
+<h1>逆ポーランド記法とテンパズル</h1><br>
+<hr>
+<br>
+<h2>・逆ポーランド記法</h2>
+四則演算を計算することを考えます。<br>
+通常私達が数式として認識しているものは例えば以下のものがあります。<br>
+<img src="ReversePolishNotation/shiki01.png" width="256" height="46"><br>
+答えが10なことはすぐ分かります。（簡単な算数でバカにしているつもりはありません）<br>
+意識していませんがこの私達が通常目にしている数式記法を<font class="red">中置記法</font>と呼びます。<br>
+四則演算の演算子[+,-,*,/]が演算対象(オペランド)の真ん中に配置されています。<br>
+今回はこの数式をプログラムで計算させることについて調べていきます。<br>
+<br>
+「計算させると言っても上の式をプログラム中に打てば計算してくれるじゃん」とお思いでしょうが、<br>
+例えば「任意の<font class="red">計算式</font>を受け取り、その結果を返す」といった電卓プログラムを作ることを考えてみてください。<br>
+C++では『<font class="red">計算式</font>』を表す型はありません。任意の計算式を受け取る場合もコマンドライン引数などとして<font class="red">文字列</font>として受け取るでしょう。<br>
+この計算式を表す文字列を解析して適切な数値計算をして結果を返す。こうした流れになります。<br>
+ちょっとした字句解析というかコンパイラちっくなことをしようとしていることでその難しさが分かるでしょうか。<br>
+<br>
+さて、文字列として上の計算式str="(1+4)*(3+7)/5"を受け取ったとき、まず始めの文字から見ていくと、開きカッコ'('があります。<br>
+この開きカッコがどこで閉じられるか分からないのでとりあえずここに開きカッコがあったことだけ記憶しておきます。<br>
+次の文字を見ると数字の'1'です。これは数字ですので次に演算子が来れば計算できそうです。<br>
+而して次が'+','4'と続きますのでこれで1+4の計算ができると思いますが<font class="red">そうとは限りません</font>。<br>
+もし'4'のあとに乗算*,除算/が続いていたらそちらが優先されますし、最初の開きカッコはどこに行ったのでしょう。<br>
+<br>
+今のは一例で、通常記法のまま解析しようとすると問題点が多いです。<br>
+<ol>
+<li>演算子の優先順位については全体を眺めないと分からない（字句解析は逐次的にも関わらず）</li>
+<li>カッコの対応も同様</li>
+<li>正しい計算式が入力されるとは限らない</li>
+</ol>
+これらの問題点を解決するためにいろいろと制限を加える必要がありそうです。<br>
+<br>
+ここでやっと表題の<font class="red">逆ポーランド記法</font>が登場します。<small>長かった・・・</small><br>
+一番始めの計算式が表している内容を言葉で書くと<br>
+<BLOCKQUOTE>『（1と4を足したもの）と（3と7を足したもの）を乗算してその結果を5で割ったもの』</BLOCKQUOTE>
+と書けます。<BR>
+ここから数字と足す・乗算・割るなどのみに着目して左から順に拾っていくと、<br>
+<img src="ReversePolishNotation/shiki02.png" width="196" height="41"><br>
+という記号列ができます。これを<font class="red">逆ポーランド記法（Reverse Polish Notation：RPN）</font>と呼びます。<br>
+私達が通常目にしている中置記法に対してこちらは<font class="red">後置記法</font>とも呼ばれ、演算子がオペランドの後方に置かれています。<br>
+見慣れない記法ですが計算式を言葉に直し、そのまま表記すれば良いので<br>
+慣れれば思考をそのまま表記できる逆ポーランド記法の方が良い、とする愛好家達は多いです。<br>
+<br>
+さて、お気づきでしょうか。逆ポーランド記法に直したところ<font class="red">カッコが消えました</font>。<br>
+さらに演算子の優先順位も何も<font class="red">左から順に適用して</font>いけばよくなりました。<br>
+あら、問題点の３つのうち２つがもう解決しました。<br>
+<br>
+３番目の問題についてはもう仕様としたいところですがそれでもいくつか条件はあります。<br>
+まず、前提として使用する記号は数字={'0','1','2','3','4','5','6','7','8','9'}と演算子={'+','-','*','/'}のみとします。<br>
+四則演算以外、及び10以上の数値を表す数字は計算式中に現れないものとします。<br>
+以上を踏まえて逆ポーランド記法として正しい計算式を表す記号列の条件として、<br>
+<ol>
+<li>演算子が現れた時には少なくとも２つ以上の数字が既に現れている</li>
+<li>記号列のどの地点においても数字の方が演算子より多い</li>
+<li>最終的には　数字の個数=演算子の個数+1　が成り立つ</li>
+</ol>
+などが挙げられます。詳しくは後ろに載せるコードを実装する時にまた触れます。<br>
+<br>
+<br>
+<h2>・逆ポーランド記法を計算する</h2>
+仮定として正しい逆ポーランド記法で記述された文字列が渡されたとしましょう。<br>
+逆ポーランド記法は<font class="red">スタック構造</font>と相性が良く、数字か演算子かを判定しながらスタックに積んでいけば簡単に計算できます。<br>
+スタック構造についてはググっていただくとして、とりあえずLIFO(Last In,First Out)な構造だとだけ述べておきます。<br>
+<img src="ReversePolishNotation/fig01.png" width="477" height="354"><br>
+まず記号列を左から逐次的に読み込んでいき、数字ならばスタックにそのまま積みます。<br>
+例の式だと'1','4'は数字なのでそのままスタックに積まれます。（①）<br>
+演算子が来たとき、条件よりスタックには必ず２つ以上数字が積まれています。<br>
+よってスタックから２つ取り出して演算子に対応する演算を行い（②）、結果を再度スタックに積みます。（③）<br>
+<br>
+以上の操作を記号列の最後まで繰り返します。<br>
+②でスタックから２つ取り出せなかった場合はエラー（スタックアンダーフロー）、<br>
+また最後にスタックに計算結果の要素が１つ残らなければエラーです。<br>
+<br>
+<h2>・仮想分数</h2>
+計算結果ですがintとは限りません。<br>
+除算'/'を含むためこの系はintで閉じていません。<br>
+浮動小数点型を使ってもよいですがなるべく処理途中では小数のことは考えたくありません。<br>
+よって小数の代わりに分数で扱い、その分子と分母をそれぞれintとして実装します。<br>
+プログラムで分数を扱うための仮想分数クラスの例を以下に示します。<br>
+<pre>
+//CSudoDiv.h
+
+//仮想分数
+class SudoDiv{
+private:
+	int num;//分子
+	int den;//分母
+	
+public:
+	//コンストラクタ
+	SudoDiv(){
+		setMember(0,0);
+	}
+	SudoDiv(int numerator,int denominator){
+		setMember(numerator,denominator);
+	}
+	//デストラクタ
+	virtual ~SudoDiv(){}
+
+	//メンバ設定用関数
+	void setMember(int numerator,int denominator){
+		num=numerator;
+		den=denominator;
+	}
+	
+public:
+	//メンバ設定用「()」
+	void operator()(int numerator,int denominator){
+		setMember(numerator,denominator);
+	}
+
+	//四則演算
+	//「+」
+	SudoDiv operator+(const SudoDiv& sd){
+		SudoDiv t;
+		t.num=num*sd.den+sd.num*den;
+		t.den=den*sd.den;
+		return  t;
+	};
+	//「-」
+	SudoDiv operator-(const SudoDiv& sd){
+		SudoDiv t;
+		t.num=num*sd.den-sd.num*den;
+		t.den=den*sd.den;
+		return  t;
+	};
+	//「*」
+	SudoDiv operator*(const SudoDiv& sd){
+		SudoDiv t;
+		t.num=num*sd.num;
+		t.den=den*sd.den;
+		return  t;
+	};
+	//「/」
+	SudoDiv operator/(const SudoDiv& sd){
+		SudoDiv t;
+		t.num=num*sd.den;
+		t.den=den*sd.num;
+		return  t;
+	};
+
+	//値の取得
+	double getValue(){
+		return num/(double)den;
+	}
+};
+</pre>
+分数の四則演算を定義しておくと自然に計算できます。<br>
+続いてこの仮想分数クラスを使って逆ポーランド記法を計算するプログラムを示します。<br>
+<table border="0">
+<tr>
+<td>
+<pre>
+//RPN.cpp
+//逆ポーランド記法を解く
+double RPN(String rpnStr){
+	//逆ポーランド用スタック
+	stack&lt;SudoDiv&gt; byteStack;
+	SudoDiv t;
+	byte b;
+
+	//全文字チェック
+	for(int i=0,s=rpnStr.size();i&lt;s;i++){
+		//解析対象の文字
+		b=rpnStr[i];
+
+		//数値ならスタックに積む
+		if(isdigit(b)){
+			uint n=b-'0';
+			t(n,1);
+			byteStack.push(t);
+			continue;
+		}
+		
+		//演算子なら
+		//スタックアンダーフローチェック
+		if(byteStack.size()&lt;2)throw "Stack underflow : error";
+		//スタックから２つ取り出す
+		SudoDiv t1,t2;
+		t1=byteStack.top();
+		byteStack.pop();
+		t2=byteStack.top();
+		byteStack.pop();
+
+		//演算して結果をスタックに積む
+		switch(b){
+			case '+':{
+				byteStack.push(t2+t1);
+				break;
+			}
+			case '-':{
+				byteStack.push(t2-t1);
+				break;
+			}
+			case '*':{
+				byteStack.push(t2*t1);
+				break;
+			}
+			case '/':{
+				byteStack.push(t2/t1);
+				break;
+			}
+			default:throw "Invalid operator : error";
+		}
+
+	}
+
+	//逆ポーランド記法チェック
+	if(byteStack.size()!=1)throw "Invalid syntax : error";
+
+	//結果取得
+	t=byteStack.top();
+	byteStack.pop();
+
+	//結果を返す
+	return t.getValue();
+}
+</pre>
+</td>
+<td valign="top">
+<b>フローチャート</b><br>
+<img src="ReversePolishNotation/flow1.png" width="542" height="1223"><br>
+</tr>
+</table><br>
+未定義の型がそこそこありますがそれっぽいもので読み替えてください。<br>
+
+<hr>
+<script type="text/javascript">
+write_locate(23);
+topic("index","../index.html");
+topic("プログラムテクニック覚え書き","./program_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+</p>
+</body></html>

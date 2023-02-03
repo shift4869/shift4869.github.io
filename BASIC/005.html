@@ -1,0 +1,124 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<link rel="stylesheet" type="text/css" href="bg.css">
+<title>何回も繰り返す</title>
+<base href="http://1st.geocities.jp/shift486909/BASIC/">
+</head>
+<body>
+<p align="left">今までのプログラムは一回一回いちいち実行しなけれけばいけません。<br>面倒ですので5回ぐらい何回も繰り返せれば便利です。</p>
+<p align="left">・<strong>回数が決まっているループ<br></strong>回数を決めて繰り返す場合<font 
+color="#ff0000">FOR～NEXT<br>
+<table style="WIDTH: 378px; HEIGHT: 112px" cellspacing="0" cellpadding="0" width="378" 
+border="1">
+  <tbody>
+  <tr>
+    <td>
+      <p align="left">FOR 変数＝初期化式 TO 最小値&nbsp; STEP&nbsp;&nbsp;増加量&nbsp;&nbsp; 
+      <br><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ループさせる文<br><br>NEXT 
+  変数</p></td></tr></tbody></table></font><br>という文を使います。<br>STEP増加量は省略できます(その場合1になる)<br>前作った、足し算のプログラムを改良して5回繰り返せるようにしましょう<br></p>
+<p align="left">
+<table style="WIDTH: 168px; HEIGHT: 166px" cellspacing="0" cellpadding="0" width="139" 
+align="left" border="1">
+  <tbody>
+  <tr>
+    <td width="135">
+      <p align="left">FOR I=1 TO 5<br>&nbsp;&nbsp;&nbsp; INPUT 
+      A<br>&nbsp;&nbsp;&nbsp; INPUT B<br>&nbsp;&nbsp;&nbsp; LET 
+      C=A+B<br>&nbsp;&nbsp;&nbsp; PRINT C<br>&nbsp;&nbsp;&nbsp; PRINT I<br>NEXT 
+      I<br><br>END</p></td></tr></tbody></table></p>
+<p 
+align="left"><br><br><br><br><br><br><br><br><br><br>Iがどのような値をとるのか見るために繰り返しの中にI自身の値を<br>表示させています。<br>Iは1→2→3→4→5と変化していきます。</p>
+<p align="left">これを利用すればいくつかまでの数の合計を求めるプログラムが作れます。<br></p>
+<p align="left">
+<table style="WIDTH: 166px; HEIGHT: 148px" cellspacing="0" cellpadding="0" width="142" 
+align="left" border="1">
+  <tbody>
+  <tr>
+    <td width="138">
+      <p align="left">LET SUM=0<br><br>FOR I=1 TO 10<br>&nbsp;&nbsp;&nbsp; 
+      SUM=SUM+I<br>NEXT I<br><br>PRINT SUM<br>END</p></td></tr></tbody></table></p>
+<p 
+align="left"><br><br><br><br><br><br><br><br><br>これはSUMという変数に1～10までの合計を入れて表示するプログラムです。<br><br>FORループ<br><br></p>
+<p align="left">
+<table style="WIDTH: 306px; HEIGHT: 142px" cellspacing="0" cellpadding="0" width="306" 
+align="left" border="1">
+  <tbody>
+  <tr>
+    <td>
+      <p align="center">回数</p></td>
+    <td>
+      <p align="center">　実行される文</p></td>
+    <td>
+      <p align="center">SUMの値　</p></td></tr>
+  <tr>
+    <td>
+      <p align="center">　1回目</p></td>
+    <td>
+      <p align="center">　SUM=0(SUM)+1(I)</p></td>
+    <td>
+      <p align="center">　1</p></td></tr>
+  <tr>
+    <td>
+      <p align="center">　2回目</p></td>
+    <td>
+      <p align="center">　SUM=1(SUM)+2(I)</p></td>
+    <td>
+      <p align="center">　3</p></td></tr>
+  <tr>
+    <td>
+      <p align="center">　3回目</p></td>
+    <td>
+      <p align="center">　SUM=3(SUM)+3(I)</p></td>
+    <td>
+      <p align="center">　6</p></td></tr>
+  <tr>
+    <td>
+      <p align="center">　4回目</p></td>
+    <td>
+      <p align="center">　SUM=6(SUM)+4(I)</p></td>
+    <td>
+      <p align="center">　10</p></td></tr>
+  <tr>
+    <td>
+      <p align="center">　　：</p></td>
+    <td>
+      <p align="center">　　　　　　：　　　　　　</p></td>
+    <td>
+      <p align="center">　：　</p></td></tr>
+  <tr>
+    <td>
+      <p align="center">　10回目</p></td>
+    <td>
+      <p align="center">　SUM=45(SUM)+10(I)</p></td>
+    <td>
+      <p align="center">　55</p></td></tr></tbody></table></p>
+<p 
+align="left"><br><br>SUMにいままでのSUMとIの値を足していけば合計値になります。<br>TOの後(何回繰り返すか)のところには変数も使用できるので、<br>INPUT 
+文と組み合わせることでこちらからいくつまでの合計を<br>求めるか指定することもできます。</p>
+<p align="left"><br>&nbsp;</p>
+<p align="left">・<strong>回数が決まっていないループ</strong><br>回数が決まっていないループは<font 
+color="#ff0000">DO～LOOP</font>を使います。<br>ただし、これを使う場合は条件判断(IF文)を使ってEXIT 
+DOを<br>実行しないといつまでもでられなくなって<br>終わらなくなってしまう(無限ループ)ので注意してください。</p>
+<p align="left">ちなみにFORループでもEXIT FORを実行すれば<br>回数に達していなくても終了できます。<br><br></p>
+<p align="left">
+<table style="WIDTH: 218px; HEIGHT: 202px" cellspacing="0" cellpadding="0" width="200" 
+align="left" border="1">
+  <tbody>
+  <tr>
+    <td width="196">
+      <p align="left">LET SUM=0<br>LET I=0<br><br>DO <br>&nbsp;&nbsp;&nbsp; LET 
+      I=I+1<br>&nbsp;&nbsp;&nbsp; LET SUM=SUM+1<br>&nbsp;&nbsp;&nbsp; IF I=10 
+      THEN EXIT DO<br>LOOP<br><br>PRINT SUM<br>END</p></td></tr></tbody></table></p>
+<p 
+align="left"><br><br><br><br><br><br><br><br><br><br><br><br>これは前のプログラムと同様の動きをします。<br><br><br></p>
+<p align="left">次回は組み込み関数について説明します。<br><br><br><br></p>
+<script type="text/javascript" src="./bhn_basic.js"></script>
+<form name="F1">
+<input onclick="back()" onmouseover="window.status='前に戻ります';" type="button" value="//back" name="B1">&nbsp; 
+<input onclick="location.href='../basic.html'" onmouseover="window.status='メニューに戻ります';" type="button" value="//home// " name="B2">&nbsp; 
+<input onclick="next()" onmouseover="window.status='次に進みます';" type="button" value="next//" name="B3"> 
+</form>
+</body>
+</html>

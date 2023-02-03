@@ -1,0 +1,61 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<link rel="stylesheet" type="text/css" href="bg.css">
+<base href="http://1st.geocities.jp/shift486909/BASIC/">
+<title>乱数</title>
+</head>
+<body>
+<p align="left">・<strong>乱数</strong> 
+<br>数当てゲームを作りましょう。<br>数当てゲームは正解の数をひとつ決めて、<br>予想される数を入力してもらい、<br>正解より小さいか大きいかを表示して<br>正解と同じならば終了するというゲームです。</p>
+<p 
+align="left"><br>入力にはINPUT文を使えばいいですが、<br>正解の数はどのように決めればいいでしょうか？<br>10や15などてきとうに決めても一回やってもらうごとに<br>変えなければいけません。（わかってしまうから）<br>毎回変化する数があれば便利です。<br><br><br></p>
+<p 
+align="left">BASICには乱数があります(あくまで計算で求めた数なので<br>完全な乱数ではなく擬似乱数といいます。しかし、見た目上は乱数なので<br>問題ありません。)<font 
+color="#ff0000">組み込み関数のRND</font>です。本当にランダムなのか見てみましょう。<br></p>
+<p align="left">
+<table style="WIDTH: 121px; HEIGHT: 95px" cellspacing="0" cellpadding="0" width="121" 
+border="1">
+  <tbody>
+  <tr>
+    <td>
+      <p>FOR I=1 TO 10<br>&nbsp;&nbsp;&nbsp; PRINT RND<br>NEXT I</p>
+      <p>END </p></td></tr></tbody></table></p>
+<p 
+align="left">RNDを10回表示させ、ランダムなのか見てみましょう。<br>たしかにランダムですが、0.085469................などあまりに小さいです。<br>RNDは0≦RND＜1という値の中からランダムにとります。<br>サイコロを例に考えて見ましょう。<br>0≦RND＜1ですからRND×6は0≦RND×6＜6のなかからランダムにとるはずです。<br>つまりこれに1を足せば1≦RND×6+1≦6となり、<br>1から6までのサイコロになります。<br>このままでは少数も入っていますので切り捨てるINTも使ってサイコロを作ります。</p>
+<p align="left">いままでぐだぐだいいましたが次のようにすれば作れます。</p>
+<p align="left"><font color="#ff0000">INT(RND*最大値+1)</font></p>
+<p align="left">では、サイコロを10回ふってみましょう。<br></p>
+<p align="left">
+<table style="WIDTH: 244px; HEIGHT: 186px" cellspacing="0" cellpadding="0" width="244" 
+border="1">
+  <tbody>
+  <tr>
+    <td>
+      <p>REM * サイコロをふる<br>LET X=0</p>
+      <p>FOR I=1 TO 10<br>&nbsp;&nbsp;&nbsp; X=INT(RND*6+1) 
+      !6までの乱数<br>&nbsp;&nbsp;&nbsp; PRINT X<br>NEXT I</p>
+      <p>END<br></p></td></tr></tbody></table></p>
+<p 
+align="left">どうでしょうか。多少のばらつきはあるもののランダムです。<br>もっと回数をふやせばそれぞれ6分の1の確率ででていることがわかるはずです。</p>
+<p 
+align="left">しかし、何回実行しても同じ乱数がでてきてしまいます。<br>これでは乱数とはいえません。<br>これを防ぐためには乱数の初期化が必要です。<br><font 
+color="#ff0000">RANDOMIZE</font>を書くだけでいいです。</p>
+<p align="left">
+<table style="WIDTH: 156px; HEIGHT: 94px" cellspacing="0" cellpadding="0" width="156" 
+border="1">
+  <tbody>
+  <tr>
+    <td>REM * サイコロをふる<br>RANDOMIZE<br>LET X=0<br>&nbsp;&nbsp;&nbsp;&nbsp; 
+      ：<br>&nbsp;&nbsp;&nbsp;&nbsp; ：</td></tr></tbody></table></p>
+<p align="left"><br>これで完全な(十分な)乱数が作れるようになりました。</p>
+<p align="left"><br>次回は数当てゲームを作ってみようと思います。<br><br><br><br></p>
+<script type="text/javascript" src="./bhn_basic.js"></script>
+<form name="F1">
+<input onclick="back()" onmouseover="window.status='前に戻ります';" type="button" value="//back" name="B1">&nbsp; 
+<input onclick="location.href='../basic.html'" onmouseover="window.status='メニューに戻ります';" type="button" value="//home// " name="B2">&nbsp; 
+<input onclick="next()" onmouseover="window.status='次に進みます';" type="button" value="next//" name="B3"> 
+</form>
+</body>
+</html>

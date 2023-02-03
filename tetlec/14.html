@@ -1,0 +1,157 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>着地後の猶予時間を設定する</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<meta http-equiv="content-type" content="text/css; charset=shift_jis">
+<link rel="stylesheet" href="./styleTet.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<base href="http://1st.geocities.jp/shift486909/tetlec/">
+</head>
+<body>
+<p align="left"><br>
+<img src="chapter_g/14g.gif" width="402" height="60" alt=""><br>
+<br>
+回転ができるようになり、だいぶテトリスらしくなってきましたね。<br>
+今回はちょっとしたとこの修正ですが、<br>
+時間を追うのでよく考えてください。<br>
+<br>
+どうでしょうか？実際に動かしてプレイしてみると感じると思いますが、<br>
+<span class="red">着地後と次のテトリミノ出現までの時間がない</span>と思います。<br>
+つまり、着地と同時に次のテトリミノが出てきます。<br>
+<br>
+実際のテトリスは(ハードドロップしない限り)着地しても<br>
+一定時間経たないと次のテトリミノがでてきません。<br>
+その間にちょこちょこと微調整ができるものなんですが・・・<br>
+今回はその猶予時間を設定しましょう。<br>
+<br>
+<hr>
+<pre>
+//<span class="red">control.cpp</span>
+#include "../include/main.h"
+
+//コントロール
+void Control(){
+	if(cur.flag){
+		//入力状況を取得
+		int input[]={
+			CheckStatePad(config.left),
+			CheckStatePad(config.right),
+			CheckStatePad(config.up),
+			CheckStatePad(config.down),
+			CheckStatePad(config.lspin),
+			CheckStatePad(config.rspin),
+			CheckStatePad(config.stock),
+		};
+
+		//自動落下の間隔
+		int interval=40;
+
+		//左
+		if(input[0]==1 || (input[0]>12 &amp;&amp; input[0]%5==0)){
+			AddX(cur,-BS);
+			if(!IsValid(cur))AddX(cur,BS);
+		}//右
+		else if(input[1]==1 || (input[1]>12 &amp;&amp; input[1]%5==0)){
+			AddX(cur,BS);
+			if(!IsValid(cur))AddX(cur,-BS);
+		}//上
+		else if(input[2]==1){
+			while(IsValid(cur)){
+				AddY(cur,BS);
+			}
+			AddY(cur,-BS);
+			<span class="red">cur.wait=40;//即終了</span>
+		}//下
+		else if(input[3]){
+			interval=5;
+		}
+
+		//回転
+		if(input[4]==1){
+			Spin(cur,true);
+		}
+		else if(input[5]==1){
+			Spin(cur,false);
+		}
+
+		if(cur.cnt%interval==0){
+			//自動落下
+			AddY(cur,BS);
+			if(!IsValid(cur)){
+				AddY(cur,-BS);
+				<span class="red">cur.wait++;//猶予時間へ</span>
+			}
+		}
+
+		<span class="red">//着地したら
+		if(cur.wait&gt;0){
+			cur.wait++;//猶予カウントアップ
+		}
+
+		//猶予時間経過したら
+		if(cur.wait&gt;40){
+			//現在のテトリミノは終了
+			cur.flag=false;
+			//保持しているblkをフィールドへ追加
+			for(int i=0;i&lt;4;i++){
+				blkList.push_back(cur.blk[i]);
+			}
+		}</span>
+
+		//カウントアップ
+		cur.cnt++;
+	}
+	else{
+		//新テトリミノ生成
+		cur=CreateTetriMino(Point(FX+BS*6,FY-BS*2),(BLK_COL)GetRand(BLK_KND_NUM-1));
+		//画面内有効フラグをtrueに
+		cur.flag=true;
+	}
+}
+</pre>
+<hr>
+さらに、回転したら猶予時間をリセットさせます。<br>
+<hr>
+<pre>
+//<span class="red">Spin.cpp</span>
+#include "../include/main.h"
+
+//テトリミノの回転処理
+bool Spin(TetriMino&amp; t,bool isLeft){
+
+	//黄色は回転しない
+	if(t.blk[0].knd==YELLOW)return true;
+
+	//キャッシュ
+	TetriMino n=t;
+	//キャッシュのfieldをクリア
+	memset(n.field,false,sizeof(bool)*5*5);
+	<span class="red">//猶予時間リセット
+	n.wait=0;</span>
+	
+	・
+	・
+	・
+}
+</pre>
+<hr>
+これで着地した後少しだけ融通が利くようになりました。<br>
+自然とプレイできるようになったのではないでしょうか？<br>
+<br>
+実行結果:<br>
+<img src="14/14_1.gif" alt=""><br>
+<br>
+今回はここまでです。<br>
+次回はネクストブロックリストを表示させたいと思います。<br>
+</p>
+<hr size="2">
+<script type="text/javascript">
+write_locate(15);
+topic("index","../index.html");
+topic("テトリス作成講座","./tetlec_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+
+</body></html>

@@ -1,0 +1,65 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Script-Type" content="text/javascript; charset=shift_jis">
+<link rel="stylesheet" href="tec.css" type="text/css">
+<!--<DESIGNTIMESCRIPT type="text/javascript" src="./cpp.js"><!0></SCRIPT>-->
+<!--<span title="&#13;=enter">-->
+<title>001</title>
+</head>
+<body>
+<p>
+参考サイト<br>
+<a href="http://econom01.cc.sophia.ac.jp/sda/02/random.htm">http://econom01.cc.sophia.ac.jp/sda/02/random.htm</a><br>
+こちらの15 16番の項目<br>
+</p>
+<hr>
+<p>
+<font size="5">ベルヌーイ試行を用いたランダムな値の指定</font><br>
+ベルヌーイ試行とはある事象がある確率で起こるときに、<br>
+成功か失敗かに区分して行うランダムな試行のことである。<br><br>
+これを利用して「テトリスの色指定」を考えていきたい。<br><br>
+<strong>・テトリスの色指定</strong><br>
+テトリスには一般に色が7色ある。<br>
+この7色のうち次に出す色を単純に乱数で指定すると。<br>
+<pre>
+    int color=GetRand(6);    //GetRandは0～引数までの乱数を返す
+</pre>
+となる。<br>
+しかし、これでは完全な乱数なので、「1,1,1」と不自然に連続したり、逆に全くでない色もある。<br>
+<br>
+そこで、各色の出る確率を決め、出た色の確率を減らし、次回抽選時に<span title="&quot;選ばれない&quot;ではない"><font color="green">選ばれにくく</font></span>するために、<br>
+ベルヌーイ試行を用いる。
+</p>
+<p>
+<strong>・ベルヌーイ試行</strong><br>
+長さ1の箱を用意し、その箱をテトリスの全色数である7で割る。<br>
+これは、始めはどの色も確率1/7(=14.28％)ということである。<br>
+画像<br>
+乱数r(0≦r≦1)を作り、その数値が入った箱の番号を色にする<br>
+画像<br>
+入った箱を小さくして残りの箱に分配する(全体の長さは変わらない)<br>
+画像<br>
+箱が大きいほど選定されやすく、小さいほど選定されにくくなるので、<br>
+全体的にランダムに色が選定される。<br>
+(プログラムで作る場合は誤差があるので演算する度に全体の長さが縮んでしまう。<br>
+これでは確立が保てないので誤差の修正も考慮に入れること。)<br><br>
+以下にプログラムのコードを示す。<br>
+
+コード.cpp<br>
+</p>
+<p>
+<strong>・結果　考察</strong><br>
+今回、この操作により、単純にランダムに色を選ぶよりも偏りが少ない色の指定ができると思った。<br>
+テトリスにおいては、ある程度は連続した色（テトリミノ）が出てもいいと思ったので、今回の方法を採用した。<br>
+この操作の特徴は同じ色は出れば出るほど、後に出る確率が下がっていくことだ。<br>
+そうやって全体の確率が等しくなっていく。<br>
+それでもやはり、一部分だけみると、3連続ぐらいは同じ色が出てくることがあった。<br>
+しかし、普通に違和感なく、テトリスができるので大丈夫だと判断した。<br>
+</p>
+<hr>
+<p>
+
+</p>
+</body>
+</html>

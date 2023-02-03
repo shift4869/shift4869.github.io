@@ -1,0 +1,202 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>6.暗号化</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<!--<base href="http://1st.geocities.jp/shift486909/">-->
+</head>
+<body>
+<p align="left"><br>
+<h1>暗号化</h1><br>
+<hr>
+<br>
+<h2>・ビット演算について</h2>
+暗号化にはビット単位でデータにアクセスしていく必要があります。<br>
+ビット演算について少し説明したいと思います。<br>
+<br>
+C++では4種類のビット演算ができます。<br>
+<span class="red">( | & ^ ~ )</span>です。それぞれ論理和・論理積・排他的論理和・否定となります。<br>
+<table border="1" cellspacing="0" cellpadding="0" width="50%">
+  <tr>
+    <td> | (論理和 棒記号?)</td>
+    <td> & (論理積 アンパサンド記号)</td>
+  </tr>
+  <tr>
+    <td>A | B</td>
+    <td>A & B</td>
+  </tr>
+  <tr>
+    <td>0011 | 0101 = 0111</td>
+    <td>0011 & 0101 = 0001</td>
+  </tr>
+  <tr>
+    <td><img border="0" alt="//論理和図" src="./cipher/ronnriwa.gif" width="208" height="192"></td>
+    <td><img border="0" alt="//論理積図" src="./cipher/ronnriseki.gif" width="208" height="192"></td>
+  </tr>
+  <tr>
+    <td> ^ (排他的論理和 ハット記号)</td>
+    <td> ~ (否定 チルダ記号)</td>
+  </tr>
+  <tr>
+    <td>A ^ B</td>
+    <td> ~A</td>
+  </tr>
+  <tr>
+    <td>0011 ^ 0101 = 0110</td>
+    <td> ~0011 = 1100</td>
+  </tr>
+  <tr>
+    <td><img border="0" alt="//排他的論理和図" src="./cipher/h_ronnriwa.gif" width="208" height="192"></td>
+    <td><img border="0" alt="//否定図" src="cipher/hitei.gif" width="208" height="192"></td>
+  </tr>
+</table><br>
+表中の01は2進数の数値です。<br>
+この中で注目してほしいのは、<span class="red">排他的論理和</span>です。<br>
+排他的論理和は<span class="red">2回同じ操作をすると元に戻る</span>性質があります。<br>
+表中 0011 ^ 0101 = 0110 ですが、この結果の0110をもう一度0101で排他的論理和をとると、<br>
+0110 ^ 0101 = 0011 と最初に戻ります。<br>
+数値だとわかりづらいという方は、<br>
+A ^ B = C<br>
+C ^ B = A<br>
+だとどうでしょう？(あんま変わらんか(^_^)<br>
+この性質を暗号に応用します。<br><br>
+
+<h2>・暗号におけるビット演算の応用</h2>
+暗号には<span class="red">原文</span>・<span class="red">暗号文</span>・<span class="red">鍵</span>があります。<br>
+上記<br>
+A ^ B = C<br>
+C ^ B = A<br>
+において、Aが<span class="red">原文</span>、Bが<span class="red">鍵</span>、Cが<span class="red">暗号文</span>です。<br>
+この方式の暗号化は1バイト(8bit)単位でするので、B(鍵)が実質的に256通りしかありません。<br>
+よって、256通り全てブルートフォースで総当たりされたらすぐ解読されますが、<br>
+パッと見にはかなりぐちゃぐちゃになってわかりません。<br><br>
+
+・フロー<br>
+ファイルを読み込み、暗号化して、ファイルを保存。<br>
+基本的な流れは変わりません。<br>
+今回はB(鍵)は自分の好きな数字でもいいのですが、おすすめはそのファイルのサイズです。<br>
+ファイルごとに違うのでわざわざ考える必要がなくていいです。<br>
+ファイルサイズをシードにして、乱数と排他的論理和を取って暗号化します(※1)<br>
+流れは<br>
+<ol>
+<li>ファイル読み込み</li>
+<li>ファイルの内容を1バイトずつ暗号化</li>
+<li>ファイルを保存</li>
+</ol>
+簡単ですね(^^<br><br>
+
+<h2>・コード</h2>
+今回は短いので一気に全部コード載せます。<br>
+<pre>
+//インクルード
+#include &lt;iostream&gt;
+#include &lt;fstream&gt;
+#include &lt;vector&gt;
+#include &lt;string&gt;
+
+using namespace std;
+
+//typedef宣言
+typedef unsigned char BYTE;
+typedef unsigned int UINT;
+
+//ファイルサイズを返す
+UINT file_size(ifstream &fin);
+
+//メイン関数
+int main(int argc,char *argv[]){
+
+    if(argc&lt;2){
+        cout&lt;&lt;"ファイルをドラッグドロップしてください"&lt;&lt;endl;
+        getchar();
+        return -1;
+    }
+    
+    string path=argv[1];//入力ファイルパス
+    vector&lt;BYTE&gt; data;  //ファイルデータ
+    UINT size;          //ファイルサイズ
+    
+    {//ファイルの読み込み
+        setlocale(LC_ALL,"japanese");//ロケール設定
+
+        ifstream fin(path.c_str(),ios::binary);//ファイルオープン
+        
+        if(fin.fail()){
+            return -1; //ファイル読み込みエラー
+        }
+
+        size=file_size(fin);//ファイルサイズ取得
+        data.resize(size);//メモリ確保
+        fin.read((char*)&data[0],size);//読み込み
+    }
+
+    {//暗号化
+        srand(size);//乱数初期化
+        for(UINT i=0;i&lt;size;i++){//全データループ
+            data[i]=(data[i] ^ rand());//排他的論理和を取る
+        }
+    }
+
+    {//保存
+        string outstr=path;
+        ofstream fout(outstr.c_str(),ios::binary);
+        fout.write((char*)&data[0],size);
+    }
+
+    return 0;
+    
+}
+
+//ファイルサイズを返す
+UINT file_size(ifstream &fin){
+    UINT pos=fin.tellg();//現在位置保存
+    
+    UINT size=fin.seekg(0,ios::end).tellg();//最後にシークして位置取得→サイズ
+    
+    fin.seekg(pos);//元の位置に戻す
+
+    return size;//サイズを返す
+}
+</pre><br>
+乱数は同じシードなら全く同じ数値が得られるので大丈夫です。<br>
+暗号化したファイルをもう一度このプログラムに通すと元に戻ります(排他的論理和の性質ですね)<br>
+その他は特に難しいことをしているところはないので大丈夫だと思います。<br><br>
+
+これ以外にも暗号化の手法は多々あります。<br>
+ビット演算や別の暗号化法に興味を持ったかたは参考サイト様やググるなりして見てください。<br><br>
+
+<h2>・感想</h2>
+今回は簡易的な暗号化をしました。<br>
+破ろうと思えば破れるので、セキュリティは弱いですが、<br>
+素人相手ならわかりません。<br>
+玄人に目をつけられるようになるころには、もっといい暗号化の方法を知っているはずです。<br>
+<br>
+<h2>・参考サイト様</h2>
+<a href="http://www.asahi-net.or.jp/~AX2S-KMTN/ref/logicope.html">論理演算</a><br>
+論理演算について<br><br>
+Ｃ言語～ゲームプログラミングの館～<br>
+<a href="http://dixq.net/g/59.html">t1. セーブデータの作り方　(簡易暗号化編)</a><br>
+<a href="http://dixq.net/g/60.html">t2. セーブデータの作り方　(暗号化編)</a><br>
+t1は今回のと同じ手法、t2は論理和と論理積を用いたより強固な手法です。<br>
+セーブデータの内容をばれないように、改竄されないように、ということを解説していらっしゃいます。<br><br>
+
+苦しんで覚えるC言語<br>
+<a href="http://homepage3.nifty.com/mmgames/c_guide/a_code-exor.html">シーザー、排他的論理和法</a><br>
+C言語で今回の手法を詳しく解説しています。<br>
+(しかし思い切ったサイト名をつけたもんですね)<br>
+<br>
+※1 乱数生成ルーチンはコンパイラによって違うようなので、コンパイラが違うと復号できなくなるかも。<br><br>
+
+
+<hr>
+<script type="text/javascript">
+write_locate(10);
+topic("index","../index.html");
+topic("プログラムテクニック覚え書き","./program_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+</p>
+</body></html>

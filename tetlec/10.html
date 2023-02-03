@@ -1,0 +1,299 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>テトリミノの制御(2)</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<meta http-equiv="content-type" content="text/css; charset=shift_jis">
+<link rel="stylesheet" href="./styleTet.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<base href="http://1st.geocities.jp/shift486909/tetlec/">
+</head>
+<body>
+<p align="left"><br>
+<img src="chapter_g/10g.gif" width="402" height="60" alt=""><br>
+<br>
+<h2>テトリミノの操作</h2>
+テトリミノを動かしていきます。<br>
+<br>
+ベースとなるテトリミノ自体のx,yだけでなく、<br>
+4つのblkも同期させて動かす必要があります。<br>
+このときにfieldを元に設定しなおす必要がでてきます。<br>
+だからさっきFieldToBlk()関数として再利用できるようにしておいたのです。<br>
+<br>
+それらの処理を行う移動用の関数をx方向・y方向それぞれで創ります。<br>
+func.cppにAddX(),AddY()関数を追加<br>
+<hr>
+<pre>
+//<span class="red">func.cpp</span>
+#include "../include/main.h"
+
+//フィールド情報から各ブロックの座標を設定する
+//tそのもののベース点はフィールドの(2,2)の座標とする
+bool FieldToBlk(TetriMino&amp; t){
+	int i=0;
+	for(int x=0;x&lt;5;x++){
+		for(int y=0;y&lt;5;y++){
+			if(t.field[x][y]){
+				t.blk[i].x=t.x+BS*(x-2);
+				t.blk[i].y=t.y+BS*(y-2);
+				i++;
+			}
+		}
+	}
+	return (i==4);
+}
+
+//テトリミノ移動関数(x)
+bool AddX(TetriMino&amp; t,int add){
+
+	//エラーチェック
+	if(abs(add)%BS!=0)return false;
+
+	//ベース点移動
+	t.x+=add;
+
+	//blk同期
+	FieldToBlk(t);
+
+	//成功
+	return true;
+}
+
+//テトリミノ移動関数(y)
+bool AddY(TetriMino&amp; t,int add){
+
+	//エラーチェック
+	if(abs(add)%BS!=0)return false;
+
+	//ベース点移動
+	t.y+=add;
+
+	//blk同期
+	FieldToBlk(t);
+
+	//成功
+	return true;
+}
+</pre>
+<hr>
+<br>
+それでは制御用の関数Control()を創って行きます。<br>
+sourceフォルダにcontrol.cppを追加して編集します。<br>
+入力状況を取得して、押されたキーに応じて移動します。<br>
+<hr>
+<pre>
+//<span class="red">control.cpp</span>
+#include "../include/main.h"
+
+//コントロール
+void Control(){
+	if(cur.flag){
+		//入力状況を取得
+		int input[]={
+			CheckStatePad(config.left),
+			CheckStatePad(config.right),
+			CheckStatePad(config.up),
+			CheckStatePad(config.down),
+			CheckStatePad(config.lspin),
+			CheckStatePad(config.rspin),
+			CheckStatePad(config.stock),
+		};
+
+		//左
+		if(input[0]==1 || (input[0]>12 &amp;&amp; input[0]%5==0)){
+			AddX(cur,-BS);
+		}//右
+		else if(input[1]==1 || (input[1]>12 &amp;&amp; input[1]%5==0)){
+			AddX(cur,BS);
+		}
+
+		if(cur.cnt%40==0){
+			//自動落下
+			AddY(cur,BS);
+		}
+
+		//カウントアップ
+		cur.cnt++;
+	}
+}
+</pre>
+<hr>
+ちょっと入力検知の条件が複雑ですが、<br>
+最初に押されたのを検知するのが左側の条件。<br>
+または、ある程度押し続けているかを検知するのが右の条件。<br>
+<br>
+カウンタを使って、一定周期で自動落下をさせます。<br>
+これでは動かすだけなので、全然チェックをしてません。<br>
+<br>
+なので、どこまでも右(左)へ飛んでいきます(^^<br>
+時間が経つと、下へ消えていきます。<br>
+<br>
+よって次にこの辺のチェックを行う関数を創ります。<br>
+sourceフォルダにIsValid.cppを追加して編集します。<br>
+<hr>
+<pre>
+//<span class="red">IsValid.cpp</span>
+#include "../include/main.h"
+
+//指定された座標がフィールド内にあるか
+//true->フィールド内にある false->フィールド内にない
+bool IsInField(const Point&amp; p){
+	return ((FX&lt;=p.x) && (p.x&lt;FMX) && (p.y&lt;FMY));
+}
+
+//指定されたテトリミノがフィールド内にあるか
+//true->フィールド内にある false->フィールド内にない
+bool IsInField(const TetriMino&amp; t){
+	for(int i=0;i&lt;4;i++){
+		if(!IsInField((Point)t.blk[i]))return false;
+	}
+	return true;
+}
+</pre>
+<hr>
+一番下に着いたらフラグを消して、また生成し直します。<br>
+では、以上を考慮して、再度Control()等を編集します。<br>
+<hr>
+<pre>
+//<span class="red">control.cpp</span>
+#include "../include/main.h"
+
+//コントロール
+void Control(){
+	if(cur.flag){
+		//入力状況を取得
+		int input[]={
+			CheckStatePad(config.left),
+			CheckStatePad(config.right),
+			CheckStatePad(config.up),
+			CheckStatePad(config.down),
+			CheckStatePad(config.lspin),
+			CheckStatePad(config.rspin),
+			CheckStatePad(config.stock),
+		};
+
+		//左
+		if(input[0]==1 || (input[0]>12 &amp;&amp; input[0]%5==0)){
+			AddX(cur,-BS);
+			<span class="red">if(!IsInField(cur))AddX(cur,BS);</span>
+		}//右
+		else if(input[1]==1 || (input[1]>12 &amp;&amp; input[1]%5==0)){
+			AddX(cur,BS);
+			<span class="red">if(!IsInField(cur))AddX(cur,-BS);</span>
+		}
+
+		if(cur.cnt%40==0){
+			//自動落下
+			AddY(cur,BS);
+			<span class="red">if(!IsInField(cur)){
+				cur.flag=false;
+			}</span>
+		}
+
+		//カウントアップ
+		cur.cnt++;
+	}
+	<span class="red">else{
+		//新テトリミノ生成
+		cur=CreateTetriMino(Point(FX+BS*6,FY-BS*2),(BLK_COL)GetRand(BLK_KND_NUM-1));
+		//画面内有効フラグをtrueに
+		cur.flag=true;
+	}</span>
+}
+<hr>
+//<span class="red">func.h</span>
+	・
+	・
+	・
+//func.cpp//
+//フィールド情報から各ブロックの座標を設定する
+//tそのもののベース点はフィールドの(2,2)の座標とする
+bool FieldToBlk(TetriMino&amp; t);
+//テトリミノ移動関数(x)
+bool AddX(TetriMino&amp; t,int add);
+bool AddY(TetriMino&amp; t,int add);
+
+//control.cpp//
+void Control();
+
+//IsValid.cpp//
+//指定された座標がフィールド内にあるか
+//true->フィールド内にある false->フィールド内にない
+bool IsInField(const Point&amp; p);
+//指定されたテトリミノがフィールド内にあるか
+//true->フィールド内にある false->フィールド内にない
+bool IsInField(const TetriMino&amp; t);
+<hr>
+//<span class="red">ini.cpp</span>
+#include "../include/main.h"
+
+//画像イメージのネームスペースを使用する
+using namespace IMG;
+
+//初期化処理
+void ini(){
+	・
+	・
+	・
+	//初期テトリミノ生成
+	cur=CreateTetriMino(Point(FX+BS*6,FY-BS*2),(BLK_COL)GetRand(BLK_KND_NUM-1));
+	<span class="red">//画面内有効フラグをtrueに
+	cur.flag=true;</span>
+}
+<hr>
+//<span class="red">main.cpp</span>
+#define FIRST_LOADING
+#include "../include/main.h"
+	・
+	・
+	・
+//メイン関数
+int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLine, int nCmdShow ){
+
+	ChangeWindowMode(TRUE);//ウィンドウモード
+	if(DxLib_Init()==-1 || SetDrawScreen( DX_SCREEN_BACK )!=0) return -1;//初期化と裏画面化
+
+	try{
+		ini();
+
+		while(ProcessLoop()){
+
+			<span class="red">Control();</span>
+
+			DrawMain();
+
+			fps();
+
+			ScreenFlip();
+		}
+	}
+	catch(const char* e){
+		MessageBox(NULL,e,"error",NULL);
+		DxLib_End();
+		return -1;
+	}
+
+	DxLib_End();
+	return 0;
+}
+</pre>
+<hr>
+移動後にチェックして、画面外にあったらキャンセルするように逆に動かします。<br>
+<br>
+今回はまだ下に行っても消えてしまいます。<br>
+次回は実際にフィールド上に積ましたいと思います。<br>
+そうすると今度は既にあるブロックの位置も考慮する必要になるので、<br>
+テトリミノが有効な位置にあるかどうかのチェックが難しくなります。<br>
+しっかりついてきてください～<br>
+</p>
+<hr size="2">
+
+<script type="text/javascript">
+write_locate(11);
+topic("index","../index.html");
+topic("テトリス作成講座","./tetlec_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+
+</body></html>

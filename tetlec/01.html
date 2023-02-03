@@ -1,0 +1,110 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>全体の構成</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<meta http-equiv="content-type" content="text/css; charset=shift_jis">
+<link rel="stylesheet" href="./styleTet.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<base href="http://1st.geocities.jp/shift486909/tetlec/">
+</head>
+<body>
+<p align="left"><br>
+<img src="./chapter_g/01g.gif" width="402" height="60" alt="全体の構成" border="0"><br>
+<br>
+それではVisual Studioでテトリスのプロジェクトを作っていきましょう。<br>
+C++の基本がわかっている皆さんならあまり詳しすぎる説明は冗長的ですが、<br>
+とりあえず必要なところを解説していきたいと思います。<br>
+<br>
+では「<span class="red">ファイル-&gt;新規作成-&gt;プロジェクト</span>」でプロジェクトを作成しましょう。<br>
+<img src="01/01_1.gif" width="660" height="413" alt=""><br>
+<br>
+プロジェクトの設定は「<span class="red">空のプロジェクト</span>」。<br>
+プロジェクト名は「<span class="red">Tetris</span>」とします。<br>
+場所はどこでもいいですが、ちゃんとどこに作るかを把握しておいてください。<br>
+「<span class="red">ソリューションのディレクトリ</span>」はフォルダ階層が深くなるので、作りません。<br>
+で、「<span class="red">OK</span>」を押す、っと。<br>
+<img src="01/01_2.gif" width="645" height="516" alt=""><br>
+<br>
+初期ソリューション構成はこんな感じになるはずです。<br>
+<img src="01/01_3.gif" width="279" height="245" alt=""><br>
+<br>
+ここで、一端Visual Studioを離れて、エクスプローラを使います。<br>
+プロジェクトを作った場所を開き、次のようにディレクトリを作ります。<br>
+<img src="01/01_4.gif" width="117" height="84" alt=""><br>
+これは、今後いろいろとソースファイル(*.cpp)やヘッダーファイル(*.h)を追加していくので<br>
+それを分類するために作ります。<br>
+<br>
+そして、再びVisual Studioに戻って来て、<br>
+ソリューションエクスプローラの「<span class="red">すべてのファイルを表示</span>」を押します。<br>
+すると、先ほどのディレクトリ構成が表示されます。<br>
+<img src="01/01_5.gif" width="249" height="182" alt=""><br>
+<br>
+さて、ではこれにソースファイルとヘッダーファイルを追加していきましょう。<br>
+まだ中身は空でいいですが、全てのソースファイルの先頭に、<br>
+<pre>
+#include &quot;../include/main.h&quot;
+</pre>
+と書いておいてください。<br>
+追加すべきファイルは次のような名前にしてください。<br>
+・ソースファイル<br>
+<img src="01/01_6.gif" width="634" height="112" alt=""><br>
+・ヘッダーファイル<br>
+<img src="01/01_7.gif" width="612" height="92" alt=""><br>
+<br>
+先ほどのincludeは、ヘッダーファイルの一つ「main.h」をインクルードするものです。<br>
+main.hから他の全てのヘッダーファイルをインクルードします。<br>
+(構造的にどうかとは思いますが・・・)<br>
+それぞれのファイルの役割は次の通りです。<br>
+<table border="1">
+	<tr>
+		<td>draw.cpp</td>
+		<td>描画関連の処理を記述します</td>
+		<td>class.h</td>
+		<td>クラス定義を記述します</td>
+	</tr>	<tr>
+		<td>fps.cpp</td>
+		<td>fps表示の処理を記述します</td>
+		<td>define</td>
+		<td>定数やマクロを記述します</td>
+	</tr>	<tr>
+		<td>func.cpp</td>
+		<td>あまり大きくない各種関数の処理を記述します</td>
+		<td>func.h</td>
+		<td>関数プロトタイプ宣言を記述します</td>
+	</tr>	<tr>
+		<td>ini.cpp</td>
+		<td>初期化処理を記述します</td>
+		<td>GV.h</td>
+		<td>グローバル変数を記述します</td>
+	</tr>	<tr>
+		<td>key.cpp</td>
+		<td>キー入力関連の処理を記述します</td>
+		<td>main.h</td>
+		<td>メインヘッダーです</td>
+	</tr>	<tr>
+		<td>main.cpp</td>
+		<td>メイン関数を記述します</td>
+		<td>typedef.h</td>
+		<td>typedef宣言を記述します</td>
+	</tr>
+</table><br>
+後々このほかにも用途に応じてファイルを創っていきます。<br>
+ソリューションエクスプローラではこのようになるはずです。<br>
+<img src="01/01_8.gif" alt=""><br>
+<br>
+これで初期準備は完了です。<br>
+これからプログラムを創っていくときには、ファイルを追加していきます。<br>
+ごちゃごちゃしないようにきちんと整理して管理しましょう。<br>
+<br>
+<hr size="2">
+
+<script type="text/javascript">
+write_locate(2);
+topic("index","../index.html");
+topic("テトリス作成講座","./tetlec_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+
+</body></html>

@@ -1,0 +1,277 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>14-3.四分木探索（拡張編）</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<base href="http://1st.geocities.jp/shift486909/program/">
+</head>
+<body>
+<p align="left"><br>
+<h1>四分木探索（拡張編）</h1><br>
+<hr>
+<br>
+<h2>・多対多判定</h2>
+前回までは1対多の当たり判定をとることに着目していました。<br>
+ここでは多対多の当たり判定をとることに着目したいと思います。<br>
+<br>
+多対多、つまり個数をnとしてn対nの当たり判定をとるためにはどうしたら良いでしょうか。<br>
+ここでの目的は「全体を見渡して衝突している物体同士のペアをもれなく発見・抽出する」ことですので、<br>
+前回の1対n判定をn回回すことでは実現できません。<br>
+なぜなら前回の1対n判定は「対象(1対nの'1'側)が一つでも他の物体に当たっているか」を返すため、<br>
+複数同時に衝突している可能性は加味していないためです。<br>
+<br>
+ではどうするか、言うまでもなく単純なn*nの総当たりは愚策です。<br>
+組み合わせなので内側のforループの始点をずらしていけば重複なく全通り比較できますが<br>
+それでも比較回数は<img src="QuadTree/shiki12.png" width="39" height="29">=n(n-1)/2のn*nオーダー&omicron;<i>(n^2)</i>には変わりません。<br>
+<table border="0">
+<tr>
+<td align="center">n*n全探索</td>
+<td align="center">n*(n-1)/2組み合わせ探索</td>
+</tr>
+<tr>
+<td><img src="QuadTree/fig20.png" width="512" height="512"></td>
+<td><img src="QuadTree/fig21.png" width="512" height="512"></td>
+</tr>
+</table><br>
+物体qiに対しての衝突判定を図にすると上のような表になります（T,Fは適当です）。<br>
+組み合わせ比較は例えば(q0,q3)が衝突しているときは(q3,q0)も衝突しているというある種当たり前の性質を使うことで比較回数を半分にしています。<br>
+しかし&omicron;<i>(n^2)</i>なことには変わりないので物体総数が増えれば比較時間がかさみます。<br>
+<br>
+今回はこの全探索を四分木を用いて高速化しようというのが目的です。<br>
+<br>
+<br>
+<h2>・四分木探索</h2>
+前回のCellListでは線形四分木として一次元配列上に空間リストを保持しましたが、四分木の本質はその名の通り木構造です。<br>
+空間番号0のルート空間から４つの枝を持ち、次の子空間へ繋がります。<br>
+<img src="QuadTree/fig16.png" width="768" height="280"><br>
+↓<br>
+<img src="QuadTree/fig22.png" width="774" height="459"><br>
+赤い丸の中の番号が空間番号です。<br>
+1対多の当たり判定をとるとき、上位判定と下位判定を組み合わせて衝突している可能性がある空間内を探索しましたが、<br>
+今回はルート空間（番号0の空間）から<font class="red">1回だけ</font>この木をまわり、判定していきます。<br>
+変則下位探索オンリーといったところでしょうか。<br>
+<br>
+その方法ですが、まずルート空間に所属している物体同士の衝突判定をとります。<br>
+この時は仕方ないので組み合わせ探索を行い、衝突していた物体の組み合わせを<font class="red">衝突判定リスト</font>に保存します。<br>
+組み合わせ探索は&omicron;<i>(n^2)</i>ですが範囲を"ある空間に所属している物体"と限定すればその個数は全探索より少なく見積もることができます。（後で詳しく考察します）<br>
+ルート空間内の判定が終わったら次は子空間ですが、このとき子空間の処理に移る前に現在の空間に所属する物体を全てスタックに積んでおきます。<br>
+そしてそのスタックを引き継いだまま子空間の処理を再帰します。<br>
+ルート空間からの一番始めの再帰先は1番の空間です。<br>
+1番の空間でもまず1番の空間に所属している物体同士の組み合わせ探索を行い。<br>
+そしてさらに予めスタックに積んでおいた物体（上位に存在し、衝突している可能性がある）とも判定をとります。<br>
+これで1番の空間での処理は終わりますが1番は子空間を持ちますので、自身の持つ物体を全てスタックに積んで再帰します。<br>
+この時点でスタックには[0番（ルート）に所属する物体集合][1番に所属する物体集合]が積まさっています。<br>
+このスタックを引き継いで1番の子空間の1番始め、5番の空間の処理に移ります。<br>
+5番の空間でもその空間内、およびスタックと判定をとった後、再帰しようとしますが5番は子空間を持ちません。<br>
+よって自身の物体をスタックに<font class="red">積まずに</font>処理を返します。<br>
+処理が返ってくると1番の段階に戻ります。そして次の子空間である6番に処理が移り、7番、8番と続けていきます。<br>
+1番の子空間を全て探索し終わったら、<font class="red">スタックから[1番に所属する物体]</font>を取り除いて0番に処理を返します。<br>
+0番は同様に2番、3番、4番と再帰していけば上位との判定もとりながら全ての空間内の全ての物体同士の判定がとれたことになります。<br>
+木構造を探索するのには再帰とスタックが有効です。これで<font class="red">1回だけ</font>木をまわることで<font class="red">衝突判定リスト</font>が作成できました。<br>
+<br>
+以上の深さ優先探索を行うコードは以下のようになります。<br>
+なお、前回の空間リストクラスCellListを改良し、多対多の衝突判定リストを作成する関数もこのCellListクラスの機能として実装します。<br>
+ベースは前回コードを見てください。<a href="./QuadTree2.html#CellList">■</a><br>
+<hr>
+<pre>
+//CCellList.h
+//空間リストクラス
+class CellList{
+	・
+	・
+	・
+private:
+	//空間探索用再帰関数<span class="red">
+	void GetAllCollisionList(int index,list&lt;Cell*&gt;&amp; upperStack,vector&lt;pair&lt;Mover*,Mover*&gt; &gt;&amp; res);</span>
+public:
+	//衝突判定リスト
+<span class="red">	vector&lt;pair&lt;Mover*,Mover*&gt; &gt; GetColisionList();</span>
+};
+</pre>
+<hr>
+<pre>
+//CellList.cpp
+	・
+	・
+	・
+//再帰しながら当たり判定をとりresに衝突リストを形成していく
+void CellList::GetAllCollisionList(int index,list&lt;Cell*&gt;&amp; upperStack,vector&lt;pair&lt;Mover*,Mover*&gt; &gt;&amp; res){
+	//現在探索中の空間に所属している物体へのポインタ
+	//呼び出しが煩雑になることを防止する受け皿目的
+	Mover *cm,*tm;
+
+	//現在indexの空間に所属するCell(物体)同士の組み合わせで当たり判定をとる
+	for(Cell* cur=cpList[index].next;cur!=&amp;cpList[index];cur=cur-&gt;next){
+		cm=cur-&gt;mp;
+		
+		//現在の空間リストと当たり判定(n(n-1)/2)
+		for(Cell* t=cur-&gt;next;t!=&amp;cpList[index];t=t-&gt;next){
+			tm=t-&gt;mp;
+			//衝突していれば衝突判定リストへ追加
+			if(cm &amp;&amp; tm &amp;&amp; cm!=tm &amp;&amp; cm-&gt;IsCollision(tm)!=NULL){
+				res.push_back(make_pair(cm,tm));
+			}
+		}
+
+		//上位スタックと当たり判定
+		for(list&lt;Cell*&gt;::iterator it=upperStack.begin();it!=upperStack.end();++it){
+			tm=(*it)-&gt;mp;
+			//衝突していれば衝突判定リストへ追加
+			if(cm &amp;&amp; tm &amp;&amp; cm-&gt;IsCollision(tm)!=NULL){
+				res.push_back(make_pair(cm,tm));
+			}
+		}
+	}
+
+	//子空間の番号
+	int nextIndex=4*index+1;
+	//範囲外チェック（現在の空間は子空間を持たない）
+	if(nextIndex&gt;=Cell::GetIndex(N+1,0))return;
+
+	//現在の空間が子を持つならば
+	//現在の空間をスタッキング
+	int n=0;
+	for(Cell* cur=cpList[index].next;cur!=&amp;cpList[index];cur=cur-&gt;next){
+		upperStack.push_back(cur);
+		n++;
+	}
+
+	//子空間に移動(現在空間のスタックを引き継ぐ)
+	for(int i=0;i&lt;4;i++){
+		GetAllCollisionList(nextIndex+i,upperStack,res);
+	}
+
+	//スタック解放
+	for(int i=0;i&lt;n;i++)upperStack.pop_back();
+
+}
+
+//衝突判定リスト
+vector&lt;pair&lt;Mover*,Mover*&gt; &gt; CellList::GetColisionList(){
+	//結果(衝突している物体のペアリスト)
+	vector&lt;pair&lt;Mover*,Mover*&gt; &gt; res;
+
+	//再帰しながら衝突判定リストを取得
+	GetAllCollisionList(0,list&lt;Cell*&gt;(),res);
+
+	return res;
+}
+</pre>
+<hr>
+先程から使っている「衝突判定リスト」とは衝突している物体の組み合わせを表したペアのリストで多対多衝突判定の結果となるものです。<br>
+このページ一番始めに載せた図の表の例だと、表に現れているものに限るとして、<br>
+res={(q0,q3),(q0,qn-1),(q1,qn-2),(q2,qn-2),(q3,qn-1)}<br>
+となります。これらのペアは「衝突している」と判定されました。<br>
+<br>
+実装上は「リスト」といいつつvector&lt;pair&lt;Mover*,Mover*&gt; &gt;となります。<br>
+再帰関数の中でも解説のとき「スタック」といいつつlist&lt;Cell*&gt;を使っています。<br>
+<br>
+<br>
+<h2>・処理時間</h2>
+ではこの四分木を用いた実装により処理時間がどれくらい高速化したのか計算してましょう。<br>
+ここでは物体同士の比較操作(IsCollision)のみをステップ数としてカウントし、それ以外の処理にかかる時間を全て無視します。<br>
+（本来は再帰にかかるオーバーヘッドやリストの要素間のコピーなどの時間も含まれますがそれを無視します。）<br>
+<br>
+これから長々と計算していきますが結論としては&omicron;<i>(n^2)</i>から&omicron;<i>(n・log(n))</i>に改善されました。<br>
+（計算を読み飛ばして処理時間の実測へ進む－＞<a href="QuadTree3.html#PTime">■</a>）<br>
+<br>
+<br>
+まず画面上に存在する全オブジェクト数を<i>B</i>とします。<br>
+これらオブジェクトは必ずどこかの空間に所属しています。<br>
+見方を変えると各空間は0個以上のオブジェクトを保持しています。そこである空間iはmi個の物体を保持しているとします。<br>
+<img src="QuadTree/fig23.png" width="975" height="486"><br>
+<br>
+前回同様ルート空間のレベルLを0,最大分割レベルをN=2とすると、空間数cはLの等比関数で表され、<br>
+<img src="QuadTree/shiki13.png" width="129" height="40"><br>
+空間数の総計を<i>C</i>とすると<br>
+<img src="QuadTree/shiki14.PNG" width="436" height="114"><br>
+全オブジェクト数<i>B</i>は<br>
+<img src="QuadTree/shiki15.PNG" width="151" height="115"><br>
+と表される。<br>
+今、Bが平均的に空間に所属している、即ち全ての空間に等しい個数のオブジェクトが所属しているとすると平均<i>M</i>は<br>
+<img src="QuadTree/shiki16.PNG" width="563" height="77"><br>
+<br>
+レベルLにある空間一つあたりにかかる時間を<i>T(L)</i>とすると、<br>
+L=0のルート空間については番号0の空間内の判定に組み合わせ探索よりn(n-1)/2,さらに4つの子空間の和より<br>
+<img src="QuadTree/shiki18.PNG" width="372" height="75"><br>
+なお上式において今、レベル1にある空間はどの空間でも保持物体数がMで等しく対称なので処理時間は等しいとした(式中の4T(1))<br>
+どの空間でも保持物体数がMで等しいので、空間内の探索にかかる時間をmと置き換えると組み合わせ探索より<br>
+<img src="QuadTree/shiki17.PNG" width="235" height="80"><br>
+とするとT(0)は<br>
+<img src="QuadTree/shiki19.PNG" width="248" height="42"><br>
+同様にT(1)を考えると、子空間4T(2)、自分の空間内m、上位を表すスタック（要素M個）との比較にM^2かかるので、<br>
+<img src="QuadTree/shiki20.PNG" width="353" height="39"><br>
+もう少し考えてT(2)について、子空間4T(3)、自分の空間内m、上位を表すスタック（要素2M個）との比較に2M*Mかかるので、<br>
+<img src="QuadTree/shiki21.PNG" width="369" height="40"><br>
+これを繰り返していくといつかは葉ノードにたどりつき、最高レベルNについて考えると<br>
+<img src="QuadTree/shiki22.PNG" width="460" height="86"><br>
+ここで葉ノードは個空間を持たないので<font class="red">T(N+1)=0</font>とした。<br>
+<br>
+以上よりT(0)を求めると<br>
+<img src="QuadTree/shiki23.PNG" width="712" height="310"><br>
+T(N)=m+NM^2かつmの項のオーダーは&omicron;<i>(4^N)</i>,Mの項のオーダーは&omicron;<i>(N4^N)</i>より結局、<br>
+<img src="QuadTree/shiki24.PNG" width="359" height="47"><br>
+ここで最大レベルでの空間数について<br>
+<img src="QuadTree/shiki25.PNG" width="380" height="51"><br>
+とすると<br>
+<img src="QuadTree/shiki26.PNG" width="369" height="38"><br>
+<i>C</i>と<i>c(N)</i>のオーダーは同じ、かつ<img src="QuadTree/shiki28.PNG" width="159" height="39" align="middle">と<br>
+<img src="QuadTree/shiki27.PNG" width="235" height="76">より<br>
+<img src="QuadTree/shiki29.PNG" width="339" height="150"><br>
+今、<i>M</i>と<i>B</i>について<i>B</i>の方が支配的だとすると<br>
+<img src="QuadTree/shiki30.PNG" width="258" height="38"><br>
+<i>B</i>は全オブジェクト数だったので、これで&omicron;<i>(n・log(n))</i>が示せました。<br>
+<br>
+かなり論理が怪しいのは勘弁してください。<br>
+もちろんこれは完全に平均的(分散0)な時を考えた理想的な状況を想定しています。<br>
+最悪は平均<i>M</i>について<i>B</i>がある一つの空間に<font class="red">全て</font>所属している時で、このときは漸化式もなく<br><img src="QuadTree/shiki31.PNG" width="422" height="85"><br>
+と組み合わせ探索と同じく&omicron;<i>(n^2)</i>オーダーです。<br>
+<br>
+オブジェクトの所属の偏りについては統計学的な解析が必要ですがここではそこまで立ち入らないこととします。<br>
+平均か一極集中かどちらが「ありそう」かと言えば圧倒的に前者だということは納得していただけますでしょうか(^^;<br>
+<br>
+<br>
+<span id="PTime">前回同様処理時間を測ってみました。</span><br>
+その計測結果がこちら（環境によって変わりますのであくまで参考です）<br>
+<img src="QuadTree/time5.png" width="752" height="452"><br>
+おなじみのn=1000までのグラフ<br>
+<img src="QuadTree/time6.png" width="752" height="452"><br>
+横軸が画面上に存在するオブジェクトの個数。<br>
+縦軸がマイクロ秒(10^(-6)[sec])です。<br>
+波線で示したオーダーの基準となる式の指標は、始点と傾きをn対nの始めと合わせました。<br>
+やはり<i>n・log(n)</i>に近い結果得られました。<br>
+木構造で示されるアルゴリズムは大体<i>n・log(n)</i>オーダーになります。<br>
+<br>
+線形nとはいきませんでしたが<i>n・log(n)</i>なら一見実用に耐えられるんじゃないかと思います。<br>
+が、よく見てください、前回60fpsを確保するなら160マイクロ秒までに押さえる必要があると言いました。<br>
+上のグラフをみると50対50ぐらいでもう160超えてます。<br>
+原因としては再帰やコピーのオーバーヘッドでしょうか。実用には微妙なところですね。<br>
+<br>
+<br>
+<h2>・まとめ</h2>
+なんともあいまいな終わりですがここまでとしておきます。<br>
+参考サイト様も前回と同様です。<br>
+一般に出回っているゲームではどのように判定してるのでしょうか。<br>
+衝突判定は興味深いですね。<br>
+<br>
+<br>
+<small>あー１対nの定数オーダーがすばらしい～</small>
+<br>
+<br>
+<h2>・参考サイト様</h2>
+マルペケつくろーどっとコム　―　ゲームつくろー！　衝突判定編　<br>
+<a href="http://marupeke296.com/COL_2D_No8_QuadTree.html">その８ 4分木空間分割を最適化する！（理屈編）</a><br>
+<br>
+<br>
+<hr>
+<script type="text/javascript">
+write_locate(22);
+topic("index","../index.html");
+topic("プログラムテクニック覚え書き","./program_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+</p>
+</body></html>

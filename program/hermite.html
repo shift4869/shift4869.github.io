@@ -1,0 +1,145 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>1.エルミート曲線軌道</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<!--<base href="http://1st.geocities.jp/shift486909/">-->
+</head>
+<body>
+<p align="left"><br>
+<h1>エルミート曲線軌道</h1><br>
+<hr size="2">
+<h2>・エルミート曲線</h2>
+ある2点を始点と終点と見立て、<br>
+始点から終点へ移動するのを考えます。<br>
+<img border="0" alt="直線移動" src="hermite/graph1.gif" width="286" height="200"><br><br>
+その時直線移動ならば単純に角度と速度を与えて進めてやれば終点に着きます。<br>
+所用時間や加速度も設定してやれば物理的に自然な動きにすることも可能です。<br><br>
+しかし、始点から終点へ<span class="red">曲線軌道</span>で着かせるにはどうしたらいいでしょう？<br>
+<img border="0" alt="曲線移動？" src="hermite/graph2.gif" width="286" height="200"><br>
+
+x,yの加速度(ベクトル)で指定すると、ある程度は曲がりますが、<br>
+終点に着かせるのが難しいし、指定時にどのような曲線を描くかイメージできません。<br><br>
+
+そこで使うのが<span class="red">エルミート曲線です</span>。<br>
+エルミート曲線は始点と終点をなめらかな曲線で結ぶための補間法です。<br>
+具体的には始点と終点の2点を通る3次関数を求める方法です。<br>
+3次関数のグラフを知っているでしょうか？<br>
+<small>(知らないなら、この先 微分あたりまでの数学知識が必要なので、ググってみてね)</small><br>
+その軌道を2点間に描きます。<br>
+<img border="0" alt="エルミート曲線" src="hermite/graph3.gif" width="286" height="200"><br>
+<small>(図は使い回しwwww)</small><br>
+
+<h2>・式の導出までの手順</h2>
+<!-- -->
+エルミート曲線の指定情報は(始点、始点でのベクトル、終点、終点でのベクトル)と、あと所用時間です。<br>
+各ベクトルは最初は 始点でのベクトル 方向に飛び出していって、<br>
+曲がりながら最後に 終点でのベクトル の方向で終了します。<br>
+「どの方向にどのくらい曲げるか」をこれで指定します。<br><br>
+
+ここから少しプログラムに入っていきます。<br>
+(実際のソースは<a href="#source">下</a>に示しますが)<br>
+クラス　Pointクラス,Vectorクラスはともに(x,y)のメンバをもつとします。(意味合いは違います)<br><br>
+始点・終点座標をPoint  p1(x1,y1), p2(x2,y2) ;<br>
+始点・終点でのベクトルをVector v1 , v2 ;<br>
+所用時間をtとします。<br><br>
+
+ここで　3次関数の一般系はy=f(x)とすると<br>
+<img border="0" alt="" src="./hermite/her1.gif" width="319" height="36"><br>
+と表されます。<br>
+ある地点での傾きを調べたいのでこの式を<span class="red">微分</span>します。<br>
+<img border="0" alt="" src="./hermite/her2.gif" width="288" height="38"><br><br>
+ここでxは0～1までの変域をもつとして、0で始点の位置、1で終点の位置になるようにします。<br>
+まずy座標についてだけ考えます。<br>
+y=f(x)なので始点のy座標は y1=f(0)=d; と表せます。<br>
+<img border="0" alt="" align="absMiddle" src="hermite/her3.gif" width="182" height="39"><big>・・・①</big><br>
+同様に終点のy座標は y2=f(1)=a+b+c+d; と表せます。<br>
+<img border="0" alt="" align="absMiddle" src="hermite/her4.gif" width="319" height="37"><big>・・・②</big><br><br>
+さらに始点における接線の傾きがv1のy成分なので<br>
+<img border="0" alt="" align="absMiddle" src="hermite/her5.gif" width="189" height="39"><big>・・・③</big><br>
+同様に終点における接線の傾きがv2のy成分なので<br>
+<img border="0" alt="" align="absMiddle" src="hermite/her6.gif" width="311" height="36"><big>・・・④</big><br><br>
+②式に①式と③式を代入して<br>
+<img border="0" alt="" align="absMiddle" src="hermite/her7.gif" width="211" height="33"><big>・・・⑤</big><br>
+④式に③式を代入して<br>
+<img border="0" alt="" align="absMiddle" src="hermite/her8.gif" width="191" height="26"><big>・・・⑥</big><br><br>
+移項して、⑤式と⑥式をa,bについての連立方程式とみて解くと<br>
+<img border="0" alt="" align="left" src="hermite/her9.gif" width="258" height="56">
+<big>・・・⑥</big><br><big>・・・⑤</big><br clear="all">
+<small>(ここから具体的な計算に入りますが、自分でやった方がわかりやすいと思います)</small><br>
+<table border="1" cellspacing="0" width="700">
+	<tr>
+	<td>⑥-2*⑤</td>
+	<td>⑥-3*⑤</td>
+	</tr>
+	<tr>
+	<td><img border="0" alt="" src="hermite/her10.gif" width="380" height="85"><br><br></td>
+	<td><img border="0" alt="" src="hermite/her11.gif" width="383" height="112"></td>
+	</tr>
+</table><br><br>
+これで a,b,c,d 4つの係数の値が出ましたので最初のf(x)に代入して、結論は<br>
+<img border="0" alt="" src="hermite/her12.gif" width="795" height="40"><br>
+となります。<br>
+この式に合わせて計算すれば、y座標がわかります。<br>
+同様にしてx座標もわかります<br><br>
+<h2>・プログラムでの記述</h2>
+受け取る引数は<br>
+( Point  p1 ,  Vector  v1 ,  Point p2 ,  Vector v2 , int time )<br>
+です。<br>
+<a name="source">ソース</a>は以下のように書けます。<br>
+<pre>
+	Point p[4]={p1,v1,p2,v2};
+    
+	float k=(float)cnt/t;
+	float s[3]={k*k*k,k*k,k};
+	float mx[4]={p[0].x,p[1].x,p[2].x,p[3].x};
+	float my[4]={p[0].y,p[1].y,p[2].y,p[3].y};
+
+	x=( (2 *mx[0])+(  mx[1])-(2*mx[2])+(mx[3]) )*s[0]+
+	  ( (-3*mx[0])-(2*mx[1])+(3*mx[2])-(mx[3]) )*s[1]+
+	  (mx[1])*s[2]+(mx[0]);
+	y=( (2 *my[0])+(  my[1])-(2*my[2])+(my[3]) )*s[0]+
+	  ( (-3*my[0])-(2*my[1])+(3*my[2])-(my[3]) )*s[1]+
+	  (my[1])*s[2]+(my[0]);
+
+	if(cnt>t)flag=false;
+	cnt++;
+    
+	return Point(x,y);
+</pre>
+cntは毎フレーム増えるカウンタと思ってください。<br>
+引数は配列にまとめてしまったほうが処理が楽なので最初にまとめてます。<br>
+別に保持してもいいでしょう。<br>
+ k はf(x)にわたす0～1までの数です。<br>
+cntは始めは0なのでkはcntが所用時間tに近づくにつれて1になります。<br>
+配列sはf(x)におけるxの部分です。それぞれ3乗・2乗・1乗を設定してます。<br>
+mx,myは入力点のx成分だけ、y成分だけを抽出してまとめてます。<br>
+で、上記の式にあてはめて現在のx,yを計算しています<br>
+所用時間tを超えたら終了です。<br><br>
+書いてて非常にわかりづらいかな～と思ったので、<br>
+ぜひ自分で紙と鉛筆で処理内容を追ってくださいm(-_-)m<br><br>
+
+<h2>・参考サイト様</h2>
+外部リンクです<br>
+<a href="http://d.hatena.ne.jp/kenmo/20050918">2005-09-18 - ゲームプログラムめも日記</a><br>
+このページはここを参考に作りました。<br>
+<a href="http://www.bloodymary.net/y-uehara/is/java/hermite.html">Hermite Curve</a><br>
+実行時のようすjavaアプレットで表現しています。<br>
+javaソースもあるので参考にしてください。<br>
+このページには実行時の様子がないのでこちらを参照。<br>
+<a href="http://www.eonet.ne.jp/~gekkao/gamedev/level1/level1_0202.html">２．２．移動の補間</a><br>
+移動の補間方法について。<br><br>
+あとはググってください。<br>
+・・・・Wikipediaにはエルミート曲線についての記事がないのか？orz<br>
+<hr size="2">
+<script type="text/javascript">
+write_locate(1);
+topic("index","../index.html");
+topic("プログラムテクニック覚え書き","./program_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+</p>
+</body></html>

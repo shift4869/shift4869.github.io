@@ -1,0 +1,25 @@
+//CBezierLazer.h
+//2010/08/14
+
+class BezierLazer : public LazerBase{
+public:
+	list<Point> trail;
+	Point p1,p2,c1,c2;
+	BezierLazer(const Point& from,const Point& to,
+				const Point& cont1,const Point& cont2,
+				float widthV,float heightV,float r,
+				int time,int color):
+	LazerBase(from,0,0,0,widthV,heightV,0,0,0,color,0,0,time),
+	p1(from),p2(to),c1(cont1),c2(cont2)
+	{
+		//LazerBase::SetPH()“à‚Åalive=false‚É‚È‚Á‚Ä‚µ‚Ü‚¤‚Ì‚Å
+		alive=true;
+		this->r=r;
+		trail.push_back(Point(x,y));
+	}
+	virtual ~BezierLazer(){}
+
+	virtual void Move();
+	virtual void Draw();
+	virtual bool IsCollision(const Mover& m);
+};

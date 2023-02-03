@@ -1,0 +1,166 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>ライン消去</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<meta http-equiv="content-type" content="text/css; charset=shift_jis">
+<link rel="stylesheet" href="./styleTet.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<base href="http://1st.geocities.jp/shift486909/tetlec/">
+</head>
+<body>
+<p align="left"><br>
+<img src="chapter_g/18g.gif" width="402" height="60" alt=""><br>
+<br>
+ライン消去は現在テトリミノが着地した時点で、<br>
+一番下からフィールド上にあるブロックを探索して、<br>
+1行全て埋まっているかを調べます。<br>
+<img src="18/18_1.gif" width="640" height="480" alt=""><br>
+<br>
+探索・カウント・削除にファンクタを使っています。<br>
+わからない場合は「ファンクタ」や「叙述関数」でググってみてください。<br>
+使うのはcount_if()とlistのremove_if()です。<br>
+<br>
+ファンクタで比較しているのはy座標です。<br>
+<br>
+新たにDeleteLine.cppを創り、DeleteLine()関数を作成します。<br>
+<hr>
+<pre>
+//<span class="red">DeleteLine.cpp</span>
+#include "../include/main.h"
+
+//ライン消去
+//帰り値は消したライン数
+int DeleteLine(){
+	//y座標だけを比較するファンクタ
+	class BlkLineFunctor{
+	public:
+		int y;
+		BlkLineFunctor(int Y){
+			y=Y;
+		}
+		bool operator()(Block blk){
+			return (y==blk.y);
+		}
+	};
+	
+	//1行内のブロックの個数・消去したライン数
+	int num=0,delLine=0;
+	//一番下の行から探索
+	for(int y=BMY+1;y>=0;y--){
+		//その行にあるブロックの個数を取得
+		num=count_if(blkList.begin(),blkList.end(),BlkLineFunctor(y*BS));
+		
+		//1行全て埋まっていたら
+		if(num==BMX){
+			//その行の全てのブロックを消す
+			blkList.remove_if(BlkLineFunctor(y*BS));
+			
+			//その行より上にあるブロックを一段下ろす
+			for(list&lt;Block&gt;::iterator it=blkList.begin();
+				it!=blkList.end();++it){
+				if(it-&gt;y&lt;y*BS){
+					it-&gt;y+=BS;
+				}
+			}
+
+			//消去ライン数カウント
+			delLine++;
+
+			//同じところから探索再開
+			y++;
+
+		}//一つもなければ探索終了
+		else if(num==0){
+			break;
+		}
+	}
+
+	//消去したライン数を返す
+	return delLine;
+}
+</pre>
+<hr>
+forとifが複雑に絡んでいるので、よく流れを追ってみてください。<br>
+そしてfunc.hにプロトタイプ宣言を書いて、<br>
+controlの↓の位置からDeleteLine()関数を呼び出します。<br>
+<hr>
+<pre>
+//<span class="red">func.h</span>
+	・
+	・
+	・
+//Spin.cpp//
+bool Spin(TetriMino& t,bool isLeft);
+
+//<span class="red">DeleteLine.cpp</span>//
+//ライン消去
+//帰り値は消したライン数
+int DeleteLine();
+<hr>
+//<span class="red">control.cpp</span>
+#include "../include/main.h"
+
+//ストックフラグ
+static bool stockFlag=false;
+
+//コントロール
+void Control(){
+	if(cur.flag){
+			・
+			・
+			・
+		//着地したら
+		if(cur.wait>0){
+			cur.wait++;
+		}
+
+		//猶予時間経過したら
+		if(cur.wait>60){
+			//着地完了
+			cur.flag=false;
+
+			//保持しているblkをフィールドへ追加
+			for(int i=0;i&lt;4;i++){
+				blkList.push_back(cur.blk[i]);
+			}
+
+			<span class="red">//ライン消去
+			DeleteLine();</span>
+
+			//ストックフラグをoffに
+			stockFlag=false;
+		}
+
+		//カウントアップ
+		cur.cnt++;
+	}
+	else{
+		・
+		・
+		・
+	}
+}
+</pre>
+<hr>
+着地したらDeleteLine()関数を呼び出します。<br>
+これでライン消去の処理ができあがりました。<br>
+<br>
+実行結果:<br>
+<img src="18/18_2.gif" width="214" height="443" alt="">→
+<img src="18/18_3.gif" width="214" height="445" alt=""><br>
+<br>
+これでテトリスのシステムの骨格ができあがりました。<br>
+次回からはより見栄えをよくするような処理や、<br>
+内部的な処理をしていきます。<br>
+</p>
+<hr size="2">
+<script type="text/javascript">
+write_locate(19);
+topic("index","../index.html");
+topic("テトリス作成講座","./tetlec_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+
+</body></html>

@@ -1,0 +1,274 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>13-1.メモリアロケーターとBoundaryTag アルゴリズム</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<!--<base href="http://1st.geocities.jp/shift486909/">-->
+</head>
+<body>
+<br>
+<h1>メモリアロケーター</h1><br>
+<hr>
+<br>
+<h2>・メモリの確保</h2>
+　プログラムでいういわゆる「メモリの確保」のことを英語で「アロケート」(割り当て)といいます。<br>
+メモリを確保するときはC言語ならmalloc、C++ならnewを用いるのが一般的ですね。<br>
+しかし、標準で実装されているnew系統は様々な用途のために一般化・安全化されていて、少し遅いです。<br>
+普通に使う分には気にならない程の遅延ですが、短時間に多くのnew-deleteが行われる、<br>
+例えばゲームではメッセージ処理のためには実行ループ全体の処理を1/60s=16.66ms以下に抑える必要があります。<br>
+その多くは描画に使われますが、内部処理のnewでも結構時間を喰います。(特に制御すべき物体が多い場合)<br>
+<br>
+そこでそのような高速で行われるメモリ確保を実現すべく、<span class="red">TLSFメモリアロケータ(TLSF:Two-Level Segregate Fit)</span>という機構を実装していきたいと思います。<br>
+<br>
+アロケータにはその実装形態により、長所と短所が決まります。<br>
+ある程度万能な用途に使えるようにしたもの、安全性に特化したもの、メモリ容量の節約に特化したもの、いろいろあります。<br>
+一般のnew・mallocはバランスがとれた万能用途だと言えます。<br>
+そのなかでTLSFメモリアロケータは速度に特化したアロケータです。<br>
+<br>
+指針として時間がかかるforループとifは極力使わず、代わりに高速なbit演算をメインに使って組みますが、<br>
+実装の前に下準備が必要なのでその解説から入ります。<br>
+<br>
+<h2>・ステップ</h2>
+TLSFメモリアロケータを創るのはなかなかに大変で、<br>
+いくつものステップを踏んで、順に創っていきます。<br>
+<ol>
+<li><span class="red">BoundaryTag アルゴリズムの理論</span>　←ここで解説する内容</li>
+<li><span class="red">BoundaryTag アルゴリズムの実装</span>　←すぐ実装編をみたい方は<a href="#implement">こちら</li>
+<li><a href="MemoryAllocator2.html">TLSFメモリアロケータの理論</a></li>
+<li><a href="MemoryAllocator3.html">TLSFメモリアロケータの実装</a></li>
+</ol>
+それぞれ難しいので　かなり長くなります。<br>
+じっくりと考えていきましょう。<br>
+<br>
+<h2><a name="theory">・BoundaryTag アルゴリズム(理論編)</a></h2>
+まず説明するのは<span class="red">BoundaryTag アルゴリズム</span>です。<br>
+TLSFメモリアロケータに限らず、アロケータは一番初めに一塊の大きなメモリを(newで)確保して、<br>
+外部からのメモリ要求に対して、順次切り出して貸し出します。<br>
+<br>
+先に、無事そのメモリを切り出すことができたとして、その個々の振る舞いを考えてみましょう。<br>
+今、大きな黒枠のメモリから以下の赤枠のようにメモリを切り出したとします。<br>
+<img src="MemoryAllocator/01.gif" width="478" height="75"><br>
+メモリ帯は線形に連続していると仮定します。<br>
+②と③の境界から見て、③のメモリブロックのサイズを知るためにはどのような情報が必要でしょうか。<br>
+<br>
+②と③の境界から辿って③と④の境界を検出して差分で出す？　いえいえそんな面倒なことはしたくありません。<br>
+メモリの大きさがわからないので下手したら検出にかなり時間がかかります。指針からforもあまり使いたくありません。<br>
+そこでメモリを切り出すときに③の先頭に③のサイズを書き込んでおきます。<br>
+そうすれば境界に立ちながら③のサイズを取得できます。<br>
+<br>
+③の保持メモリサイズが40byteだとすると、サイズを書き込むスペースが4byte(unsigned int)分増えて全部で44byte確保する必要があります。<br>
+というわけで各メモリブロックの先頭にタグをつけるようにします。<br>
+<img src="MemoryAllocator/02.gif" width="249" height="103"><br>
+こうすると、②と③の境界から③のサイズを取得して、そのままそのサイズ分ジャンプすれば③と④の境界までいけます。<br>
+これを繰り返すことで順方向へは自由にポンポンとジャンプして参照することができます。<br>
+・<br>
+・<br>
+・<br>
+では逆方向へはどういけばいいでしょうか。<br>
+同じようにメモリブロックの末尾に終端タグを入れればうまくいきそうです。<br>
+ただし書き込むサイズは先頭タグ分も含めたサイズです。<br>
+当然終端タグ分もメモリは増えますのでさらに4byte(unsigned int)分増えて全部で48byte確保することになります。<br>
+<img src="MemoryAllocator/03.gif" width="249" height="103"><br>
+これでこうすると、③と④の境界から先頭タグ分も含めた③のサイズを取得して、そのサイズ分ジャンプすれば②と③の境界までいけます。<br>
+これを同じように繰り返すことで逆方向へも自由にポンポンとジャンプして参照することができます。<br>
+<br>
+終端タグを入れた影響で、順方向へたどるときは　（先頭タグに書かれているサイズ分）＋（終端タグそのもののサイズ4byte(unsigned int)）　だけジャンプすることになります。<br>
+後者は定数なので問題ありません。<br>
+なぜこのようにしたかと言うと、先頭タグは管理しているメモリサイズそのもの、終端タグは占有している全体のメモリサイズをそれぞれ表すようにしたかったからです。<br>
+<br>
+<br>
+このように前後のメモリブロックへポンポンと自由にアクセスできるような機構をBoundaryTag アルゴリズムといいます。<br>
+この機構の強みとして、隣同士の領域の統合（マージ）・ある領域の分割（デバイド）が容易な点にあります。<br>
+<img src="MemoryAllocator/04.gif" width="249" height="233"><br>
+領域自体は線形に繋がっていると仮定しているので、先頭タグと終端タグの値の書き換えだけで実現できます。<br>
+この性質は今回用いる高速アロケータを実現するにあたって大きな武器となります。<br>
+<br>
+実際はこれらを踏まえてクラス化するので、先頭タグ部分は単純なunsigned intではなく、その管理クラス分の大きさを確保します。<br>
+<br>
+<br>
+<h2><a name="implement">・BoundaryTag アルゴリズム(実装編)</a></h2>
+では、実際に実装していきましょう。<br>
+今回はTLSFアロケータに用いるために少し特化させますので余分なものがくっつきますが本質は変わりません。<br>
+（BoundaryTagだけクラス化してそこからTLSF用に継承してもいいですがめんどうなので（＾＾；　）<br>
+<br>
+今回創るBoundaryTagBlockクラスは↑の理論編を考慮して次のメンバを持ちます。<br>
+<ul>
+<li>運用メモリのサイズを表す <i>unsigned int</i> size</li>
+<li>運用メモリの確保、アクセス用 <i>unsigned char</i> ポインタ p</li>
+<li>終端タグアクセス用 <i>unsigned int</i> ポインタ c</li>
+</ul>
+先頭タグはクラス作成時のthisを当てはめます。<br>
+実際には先頭タグの部分にBoundaryTagBlockクラスの実体があることになるので、thisが先頭となります。<br>
+<img src="MemoryAllocator/05.gif" width="543" height="283"><br>
+<br>
+さらにTLSF用に特化させるために<br>
+<ul>
+<li>その確保されたメモリが使用中がどうかを表すフラグ <i>bool</i> flag</li>
+</ul>
+同じFLI,SLIを持つフリーブロックとしてまとめるために(後述)
+<ul>
+<li>双方向リストを形成する <i>BoundaryTagBlock</i> ポインタ prevとnext</li>
+</ul>
+<br>
+次にメンバ関数ですが、流儀の問題でカプセル化はガン無視して外部から操作しまくりますので全てpublicです。<br>
+<ul type="circle">
+<li>デフォルトコンストラクタ</li>
+<li>運用メモリ先頭のポインタ(メンバとしてのp)とデータサイズを受け取るコンストラクタ</li>
+<li>デストラクタ</li>
+<li>運用データサイズを取得する<i>unsigned int </i>GetDataSize()</li>
+<li>自身が占有する全てのデータサイズを取得する<i>unsigned int </i>GetAllSize()</li>
+<li>双方向リストへ入れる<i>BoundaryTagBlock* </i>Regist(BoundaryTagBlock* nbp)</li>
+<li>双方向リストから抜ける<i>BoundaryTagBlock* </i>Remove();</li>
+</ul>
+メンバ関数に関しては難しいものはありません。全て説明の通りです。<br>
+運用データサイズは即ち<i>unsigned int </i>sizeの参照用ですし、占有する全てのデータサイズも<i>unsigned int</i> ポインタ cを通して取得可能です。<br>
+双方向リストに関しても一般的なものと変わりません。<br>
+<br>
+（そろそろ型の名前を打つのが面倒になってきたので（実際はコピペしてますが）<br>
+typedef unsigned int <span class="red">uint</span>;<br>
+typedef unsigned long <span class="red">ulong</span>;<br>
+typedef unsigned char <span class="red">byte</span>;<br>
+typedef BoundaryTagBlock <span class="red">BBlock</span>;<br>
+typedef TLSFMemoryAllocator <span class="red">TLSF</span>;<br>
+・・・とさせてください）<br>
+<br>
+以上よりコードは次のようになります。実装と合わせてごらんください<br>
+<pre>
+//<span class="red">BoundaryTagBlock.h</span>
+
+//Boundary Tag
+//[先頭タグ][データ部][終端タグ]
+class BoundaryTagBlock{
+public:
+	//データマップ
+	//[this](sizeof(BoundaryTagBlock))[p](size)[c](sizeof(uint))
+	bool flag;	//使用フラグ
+	uint size;	//データ部サイズ
+	byte* p;	//データ部への先頭ポインタ
+	uint* c;	//endTagへのポインタ
+	BoundaryTagBlock *prev,*next;//BoundaryTagBlockの双方向リスト
+
+	//コンストラクタ
+	BoundaryTagBlock();
+	BoundaryTagBlock(byte* dataP,uint size);
+	//デストラクタ
+	~BoundaryTagBlock();
+
+	//運用データサイズを取得
+	uint GetDataSize();
+	//自身が占有する全てのデータサイズを取得
+	uint GetAllSize();
+	//双方向リストへ入れる
+	BoundaryTagBlock* Regist(BoundaryTagBlock* nbp);
+	//双方向リストを抜ける
+	BoundaryTagBlock* Remove();
+};
+typedef BoundaryTagBlock BBlock;
+<hr>
+//<span class="red">BoundaryTagBlock.h</span>
+#include "main.h"
+
+//コンストラクタ
+BoundaryTagBlock::BoundaryTagBlock():
+flag(false),size(0),p(NULL),c(NULL){
+	prev=next=this;//初期化
+}
+BoundaryTagBlock::BoundaryTagBlock(byte* dataP,uint size):
+flag(false),p(dataP){
+	prev=next=this;	//初期化
+	this-&gt;size=size;//運用メモリサイズ
+	if(p!=NULL){
+		//cはpからsizeだけ後方にある終端タグを指す
+		c=(uint*)(dataP+size);
+		*c=sizeof(BoundaryTagBlock)+size+sizeof(uint);//占有する全メモリ
+	}
+	else{c=NULL;}
+}
+//デストラクタ
+BoundaryTagBlock::~BoundaryTagBlock(){}
+
+//運用データサイズを取得
+uint BoundaryTagBlock::GetDataSize(){
+	return size;
+}
+
+//自身が占有する全てのデータサイズを取得
+uint BoundaryTagBlock::GetAllSize(){
+	return *c;
+}
+
+//双方向リストへ入れる
+BoundaryTagBlock* BoundaryTagBlock::Regist(BoundaryTagBlock* nbp){
+	//呼び出し元は常にダミーリストの先頭ブロック
+	nbp-&gt;next=next;
+	nbp-&gt;prev=this;
+	nbp-&gt;prev-&gt;next=nbp-&gt;next-&gt;prev=nbp;
+	return this;
+}
+
+//双方向リストを抜ける
+BoundaryTagBlock* BoundaryTagBlock::Remove(){
+	prev-&gt;next=next;
+	next-&gt;prev=prev;
+	prev=next=this;
+	return this;
+}
+</pre>
+<hr>
+コード載せて丸投げしといてなんですけどとりあえず<i>BoundaryTagBlock</i>についての理論と実装はこんな感じです。<br>
+双方向リストの運用については次のTLSF編で説明します。<br>
+すぐに次へ進む-&gt;<a href="./MemoryAllocator2.html">TLSFメモリアロケータ（理論編）</a><br>
+<br>
+<br>
+<h3>BoundaryTagBlockを用いる有用性</h3>
+<img src="MemoryAllocator/00.gif" width="362" height="189"><br>
+<br>
+メモリアロケータは最初に一括で大きなメモリブロック塊を確保します。newはこの時にしか使用しません。<br>
+そして要求されるメモリサイズに対してメモリブロックを切り出して分け与えます。<br>
+<br>
+ここで要求されるメモリサイズに対して切り出すメモリブロックのサイズが求まったとして、そのサイズを元にこのメモリブロック上にBBlockを作成します。<br>
+このとき、newを使いますが新しくメモリを確保したりはしません。placement newを使って指定されたポインタに作成します。<br>
+placement newは指定されたポインタ上にインスタンスを確保する命令文です。<br>
+<img src="MemoryAllocator/07.gif" width="362" height="189"><br>
+上図の赤枠それぞれがBBlockだと思ってください。<br>
+運用メモリブロックは切り出して（外部に）分け与えていますので「使用中」です。よってflagは<span class="blue">true</span>です<br>
+<br>
+今、このうちひとつが「解放」されて不要になったとします。つまりflagを<span class="blue">false</span>にすると　こうです。<br>
+<img src="MemoryAllocator/08.gif" width="362" height="189"><br>
+もうひとつ「解放」してみましょう<br>
+<img src="MemoryAllocator/09.gif" width="362" height="189"><br>
+さて、このあとにまたメモリが欲しくなったとして下図のようなサイズのメモリ要求がきたとするとどこにBBlockを作成すればいいでしょうか。<br>
+<img src="MemoryAllocator/10.gif" width="362" height="189"><br>
+右端に新たに作りましょうか、いえいえそんなことをするとあっという間に全体のメモリ限界がきてしまいます。<br>
+ここは「解放」されて不要になった領域を<span class="red">マージ</span>して空きを増やして新しいメモリ要求を受け入れましょう。<br>
+<img src="MemoryAllocator/11.gif" width="362" height="189"><br>
+「解放」されて不要になった領域はどういじくりまわしても外部に影響はないので、<br>
+小さな空き領域をマージして大きくして運用しましょう。<br>
+大きすぎた場合はちょうど良いくらいまで分割もできます。<br>
+<br>
+お気づきでしょうか、この一連の操作を構成する要素は<br>
+<ul>
+<li>一塊のメモリブロックからの<span class="red">切りだし（分割）</span></li>
+<li>隣接した不要ブロックの<span class="red">マージ（統合）</span></li>
+</ul>
+サイズ管理も含めてBoundaryTag アルゴリズムの特性そのままです。<br>
+隣接した不要ブロックのマージを常に行うと<span class="red">「未使用」領域は2つ以上隣接して存在することはない</span>ということも重要な性質です。<br>
+（つまり本当は上の図で二つめの領域を「解放」した時点で既に「不要」領域はマージされている）<br>
+<br>
+<br>
+これでとりあえず前提となるBoundaryTag アルゴリズムの解説は終わりです。<br>
+以上を踏まえて、次のページからメインのTLSFメモリアロケータについて考えていきましょう<br>
+<br>
+-&gt;<a href="./MemoryAllocator2.html">TLSFメモリアロケータ（理論編）</a>へ<br>
+<br>
+<hr>
+<script type="text/javascript">
+write_locate(17);
+topic("index","../index.html");
+topic("プログラムテクニック覚え書き","./program_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+</body></html>

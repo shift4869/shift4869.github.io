@@ -1,0 +1,497 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>13-2.TLSFメモリアロケータ（理論編）</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<!--<base href="http://1st.geocities.jp/shift486909/">-->
+</head>
+<body>
+<br>
+<h1>TLSFメモリアロケータ(理論編)</h><br>
+<hr>
+<h2>・ステップ</h2>
+<ol>
+<li><a href="MemoryAllocator1.html#theory">BoundaryTag アルゴリズムの理論</a></li>
+<li><a href="MemoryAllocator1.html#implement">BoundaryTag アルゴリズムの実装</a></li>
+<li><span class="red">TLSFメモリアロケータの理論<span>　←ここで解説する内容</li>
+<li><a href="MemoryAllocator3.html">TLSFメモリアロケータの実装</a></li>
+</ol>
+<h2>・TLSFメモリアロケータ(理論編)</h2>
+メモリを確保するアロケータの役割はおおまかに言うと<br>
+「プログラム開始時に一塊の大きなメモリブロックを確保して、<br>
+メモリ要求があったときにメモリを切り出して貸し出し、管理する。」<br>
+という役割です。<br>
+<br>
+以下の図を見ながら考えてきましょう<br>
+<br>
+まずひとまとまりの大きなメモリを確保しておきます。<br>
+例として1024byte確保したとします。<br><br>
+<img src="MemoryAllocator/00.gif" width="362" height="189" alt="メモリブロック"><br><br>
+そこに「24byteのメモリが欲しい」という要求が来た場合、TLSFは適切な大きさのメモリを切り出します。<br>
+そのために2段階の検索を行います。<br>
+<br>
+<span class="red">第一段階</span><br>
+まず「要求されたbyteを超える２のべき乗数」を求めます。<br>
+これは2進数bitで考えると簡単で、24byteの例に対しては<br>
+<blockquote>24 = 000<span class="red">1</span> 1000</blockquote>
+と、bitが立っている最大の位は下位から数えると5番目にあります。<br>
+ここは１０進数でいうと16で、24が16(=2^<span class="red">4</span>)より大きく、32(=2^5)以下であることが一発で分かります。<br>
+この4を要求byte24に対する<span class="red">FLI</span> - (First Level Index)　と呼びます。<br>
+<br>
+<span class="red">第二段階</span><br>
+24が16～32の間にあることは分かりましたが、どのくらいの大きさのメモリを切り出せばいいでしょうか。<br>
+要求されたサイズ以上の大きさのメモリを返せればいいので32byte返しても問題はなさそうですがさすがに無駄が多いです（要求byte数が多くなると特に）<br>
+そこでこの区間をさらに分割します。<br>
+ここでも高速化のために２のべき乗に分割します。ここでは4(=2^2)分割することとし、<br>
+ひとつの区間あたり大きさは、(32-16)/4=4　となるので<br>
+<table border="1" cellspacing="1">
+<tr align="center">
+	<td>SLI</td>
+	<td>区間範囲</td>
+</tr>
+<tr align="center">
+<td>0</td>
+<td>16～19</td>
+</tr>
+<tr align="center">
+<td>1</td>
+<td>20～23</td>
+</tr>
+<tr align="center">
+<td><span class="red">2</span></td>
+<td><span class="red">24～27</span></td>
+</tr>
+<tr align="center">
+<td>3</td>
+<td>28～31</td>
+</tr>
+</table>
+と、24は3番目の区間に入ることになります。<br>
+このときの<span class="red">一つ前</span>(後述)のインデックス"1"（0ベース）を24の<span class="red">SLI</span> - (Second Level Index)　と呼びます。<br>
+<br>
+このFLIとSLIを高速で求めて要求byte数にgood fit（ぴったりではないが準適当）するメモリブロックを求めるのがTLSFです。<br>
+best fit（ぴったり適当）なメモリを返すわけではないのでフラグメンテーションは起こります。<br>
+しかしそれよりも速度を重視するのがこのアルゴリズムの特徴でしょう。（導入部で言った速度重視とはこのこと）<br>
+<br>
+<br>
+<h3>フリーリストとアクティブリスト</h3>
+切り出したメモリブロックを管理するために、「使用中」や「解放」・「不要」などの扱いについて考えていきます。<br>
+BoundaryTagBlockにはまさにそのフラグを変数としてもっています。<br>
+<a href="MemoryAllocator1.html">BoundaryTag アルゴリズム</a>については前のページを参照してください。<br>
+<br>
+ここで管理の立場から<span class="red">フリーリスト</span>と<span class="red">フリーリストビット</span>というものを導入します。<br>
+フリーリストはBoundaryTagBlockが保持している運用メモリのサイズによって分類(index)される双方向リストの基点（ダミー）の配列です。<br>
+追随してフリーリストビットはあるindexにおけるフリーリストが(ひとつでも)存在しているかを示すフラグの配列です。<br>
+どちらも配列の長さは同じです。<br>
+運用メモリのサイズによる分類とははじめに述べたFLIとSLIのことで、指定サイズがどの区間のindexかを表します。<br>
+<br>
+そのindexを求めるためにはFLIとSLIを求める必要があります。<br>
+FLIとSLIは指定サイズのみから求まります。<br>
+bit演算を多分に用いますので苦手な方はこの機会に身につけてください。<br>
+<br>
+<br>
+<h3>FLIの求め方</h3>
+まず、forを使わないで立っているbitをカウントする関数<i>byte </i>GetBitCount(<i>ulong </i>value)を作ります。<br>
+とりあえず32bitのulongではなく8bitのbyteについて考えてみましょう。<br>
+たとえば24を考えます。24は二進数では次のようになります。<br>
+<blockquote>24 = [0001 1000]</blockquote>
+GetBitCountに24を渡して"2"という返り値が欲しいのです。<br>
+では実際にどうするかというと次のようにします。<br>
+まずvalを元の値val=[0001 1000](=24)として、[0101 0101](=0x55)との論理積&amp; をとります(=val1)<br>
+<pre>
+val = [0001 1000]
+   &amp;  [0101 0101]
+val1= [0001 0000]
+</pre>
+<br>
+また、valを１だけ右シフトした値と[0101 0101]との論理積をとったものをval2とすると
+<pre>
+(val >> 1)= [0000 1100]
+          &amp; [0101 0101]
+   val2   = [0000 0100]
+</pre>
+val1とval2の単純な和とると、次のようになります。<br>
+<blockquote>val1 + val2 = [00<span class="red">01</span> 01<span class="red">00</span>]</blockquote>
+2桁づつ区切ってみると、元々の24=[0001 1000]のbitが立っている箇所の個数が（2進数で）個々に現れています。<br>
+<br>
+val=val1 + val2 = [00<span class="red">01</span> 01<span class="red">00</span>]として<br>
+続けて同じように今度は[0011 0011](=0x33)に対して同様の操作を行います。<br>
+ただしval2を作るときの右シフトは２とします。<br>
+<pre>
+val = [0001 0100]
+   &amp;  [0011 0011]
+val1= [0001 0000]
+
+(val >> 2)= [0000 0101]
+          &amp; [0011 0011]
+   val2   = [0000 0001]
+
+val=val1 + val2=[0001 <span class="red">0001</span>]
+</pre>
+今度は4桁区切りでのbitの個数が出てきました。（どちらも1ですが・・・）<br>
+<br>
+最後に[0000 1111](=0x0f)に対して行います。右シフトは4です。<br>
+<pre>
+val = [0001 0001]
+   &amp;  [0000 1111]
+val1= [0000 0001]
+
+(val >> 4)= [0000 0001]
+          &amp; [0000 1111]
+   val2   = [0000 0001]
+
+val=val1 + val2=[<span class="red">0000 0010</span>]
+</pre>
+はい、ご所望の"2"が求まりました。<br>
+「逆に計算多くなってんじゃねえか」とお思いでしょうが、bit演算は高速です。<br>
+よってbit演算部を無視すると正味3回の和演算だけで済んでいます。<br>
+forで愚直にいくとなると8回回りますし、何よりifが入ります。これでは遅いです。<br>
+8bitで和演算3回、16bitなら4回、32bitなら5回とbitが多くなればなるほど差がでるのはべき乗とlogに通じるものがあります。<br>
+<br>
+今回はメモリアロケータという特性上、32bitのulongに対応するものを作っておきます。<br>
+説明用にvalを用いて演算しましたがひとつの式にまとめてもOKです。その際は計算の優先順位に気をつけて（）をつけるのをお忘れなく。<br>
+<pre>
+//立っているビット数をカウントする(32bit ulong)
+int TLSFMemoryAllocator::GetBitCount(ulong value){
+	ulong count = (value &amp; 0x55555555) + ((value &gt;&gt; 1) &amp; 0x55555555);
+	count = (count &amp; 0x33333333) + ((count &gt;&gt; 2) &amp; 0x33333333);
+	count = (count &amp; 0x0f0f0f0f) + ((count &gt;&gt; 4) &amp; 0x0f0f0f0f);
+	count = (count &amp; 0x00ff00ff) + ((count &gt;&gt; 8) &amp; 0x00ff00ff);
+	return (count &amp; 0x0000ffff) + ((count &gt;&gt; 16) &amp; 0x0000ffff);
+}
+</pre>
+<br>
+<br>
+それでは本命のFLIについて、FLIを求める関数<i>int</i> GetMSB(<i>ulong</i> value)について考えていきます。<br>
+MSBは<i>Most Significant Bit</i>のことで、とりあえず今は「FLIと同じようなもの」と認識しておいてください。（あとで微妙な違いを説明します）<br>
+MSBは立っている中で一番上位のbitのことです。これを取得します。<br>
+<br>
+また24を例にとります。val=[0001 1000](=24)ならばMSBは"4"(0ベース)と出て欲しいわけです。<br>
+これをbit演算で簡単に求める操作は以下のようになります。<br>
+まず元のbit列と同じval1=val=[0001 1000]と右へひとつシフトしたval2=(val &gt;&gt; 1)=[0000 1100]との<span class="red">論理和</span>をとります。<br>
+<blockquote>val=(val1 + val2)=[0001 1100]</blockquote>
+続いて右シフトを2として繰り返します。<br>
+<pre>
+val1 = [0001 1100]
+val2 = [0000 0111]
+val = (val1 + val2) = [0001 1111]
+</pre>
+同様に右シフトを4とすると。<br>
+<pre>
+val1 = [0001 1111]
+val2 = [0000 0001]
+val = (val1 + val2) = [0001 1111]
+</pre>
+最大位のbit以下全てのbitが立ちました。あとはこれを先ほどのGetBitCountにぶち込んでカウントすれば"5"とすぐ出ます。<br>
+0ベースなのを忘れずにマイナス1すれば"4"が求まりました。<br>
+<br>
+それではMSBとFLIは何が違うのでしょうか？答えは２のべき乗ぴったりの数の扱いです。<br>
+例えば32 = [0010 0000]について、MSBは5、FLIは4です。（どちらも0ベース）<br>
+<br>
+FLIに関しては、FLIは対象となる値valに対してval&le;2^(n+1)である最小のnと等しいものです。<br>
+つまりFLIは2^n<span class="red">より大きく</span>～2^(n+1)<span class="red">以下</span>のどのnに分類されるかを表す指標です。（2^n &lt; val &le; 2^(n+1)）<br>
+一方MSBは2進数の桁上がりの性質からある数が2^n<span class="red">以上</span>～2^(n+1)<span class="red">未満</span>であることを示す分類です。（2^n &le; val &lt; 2^(n+1))<br>
+具体的な計算は省きますが32周辺のFLIとMSBについて表にまとめます。<br>
+<table border="1" cellspacing="1">
+<tr align="center">
+	<td>数値val</td><td>MSB(val)</td><td>FLI</td><td>MSB(val-1)</td>
+</tr>
+<tr align="center">
+	<td>・</td><td>・</td><td>・</td><td>・</td>
+</tr>
+<tr align="center">
+	<td>31</td><td>4</td><td>4</td><td>4</td>
+</tr>
+<tr align="center">
+	<td><span class="red">32</span></td><td><span class="red">5</span></td><td><span class="red">4</span></td><td><span class="red">4</span></td>
+</tr>
+<tr align="center">
+	<td>33</td><td>5</td><td>5</td><td>5</td>
+</tr>
+<tr align="center">
+	<td>・</td><td>・</td><td>・</td><td>・</td>
+</tr>
+</table><br>
+というわけで表中でネタバレしてますがMSBをFLIに変換するにはval-1をGetMSBに渡す必要があります。<br>
+２のべき乗ぴったりでなければMSBとFLIは共通です。未満や以下で１だけずれているだけなのでval-1すれば解決します。<br>
+これによって（まー心配ないと思うけど）0を渡すと-1で<i><span class="red">unsigned </span>long</i>にひっかかるのでエラーチェックが必要です。<br>
+<br>
+こうした&plusmn;1のズレはindexの0ベースも相まって非常に発生しやすいうえに修正もしにくいという厄介なものなので注意が必要です。<br>
+ともかく、これでFLIを求めることができました。<br>
+<pre>
+//2^x&lt;=valueとなるxを返す(MSB)
+int TLSFMemoryAllocator::GetMSB(ulong value){
+	if(value == 0) return -1;
+	value |= (value &gt;&gt; 1);
+	value |= (value &gt;&gt; 2);
+	value |= (value &gt;&gt; 4);
+	value |= (value &gt;&gt; 8);
+	value |= (value &gt;&gt; 16);
+	return GetBitCount(value)-1;
+}
+</pre>
+<br>
+<br>
+<h3>SLIの求め方</h3>
+SLIは第一カテゴリであるFLIの範囲をさらに分割した第二カテゴリをあらわすものでした。<br>
+ここでは4(=2^2)分割しているため、例えばFLI=4の範囲については下の表の通りになります。<br>
+<table border="1" cellspacing="1">
+<tr align="center">
+	<td>SLI</td>
+	<td>区間範囲</td>
+</tr>
+<tr align="center">
+<td>0</td>
+<td>16=[0001 <span class="red">00</span>00]～19=[0001 <span class="red">00</span>11]</td>
+</tr>
+<tr align="center">
+<td>1</td>
+<td>20=[0001 <span class="red">01</span>00]～23=[0001 <span class="red">01</span>11]</td>
+</tr>
+<tr align="center">
+<td>2</td>
+<td>24=[0001 <span class="red">10</span>00]～27=[0001 <span class="red">10</span>11]</td>
+</tr>
+<tr align="center">
+<td>3</td>
+<td>28=[0001 <span class="red">11</span>00]～31=[0001 <span class="red">11</span>11]</td>
+</tr>
+</table>
+<!--勘違いしないで欲しいのは実際に上の大きさの運用メモリを保持しているBoundaryTagBlock(=BBlock)が、<br>
+そのSLI,FLIに対応するフリーリストにぶら下がっているわけではないということ。<br>
+実際は一つ下のフリーリストにぶら下がっています。<br>
+例えば25byteの運用メモリを持つBBlockは上の表でいうSLI=1のところにあるということ。<br>
+SLI=2ではないことを理解してください。SLI=2にあると、25byteの保持メモリでは27byteの要求に応えられません。<br>
+自分が確実に保持できる大きさの区画にぶら下がっています。だからこそその要求メモリがメモリ帯にあれば無条件に任せられるのです。<br> -->
+<br>
+さて、肝心のSLIですが表中に赤く示してあるところが二進数でいうSLIに一致します。<br>
+同じメモリ帯なら共通かつ4区画でそれぞれ異なり連番である上にbit演算でとりだせそうです。<br>
+<br>
+ではまた24=[0001 <span class="red">10</span>00]を例にとって考えましょう。これのSLIとして"2"が出ればOKです。（実際にはval-1を渡すのでここでは要求byteは25）<br>
+まず、SLIを求めるためには赤いところ以上のbitが立っているとまずいです。<br>
+SLIは必ず分割数（ここでは4）より小さい必要があるため、値が大きくなってまずいですし、表中の赤字より上位のbit情報は意味を持ちません。<br>
+そこでまずbitマスクとしてmask = ~([1111 1111] &lt;&lt; FLI)を考えます。今24のFLIは4なのでmask = ~([1111 0000]) = [0000 1111]<br>
+これを論理積演算時にマスク掛けすればFLI以上のbitは無効化されます。(val1)<br>
+<br>
+次に分割数4について、4=2^2ですがこの指数べきをNとすると 4=2^N,N=2と表現されます。<br>
+マスク掛けした後のbit列にFLI-Nだけ右シフトをかけると赤字の部分が取り出せます。(val2)<br>
+<pre>
+mask = ~([1111 1111] &lt;&lt; FLI) = [0000 1111]
+val  = 24 = [0001 <span class="red">10</span>00]
+val1 = val &amp; mask = [0000 <span class="red">10</span>00]
+val2 = val1 &gt;&gt; (FLI-N) = [0000 00<span class="red">10</span>] = 2
+</pre>
+よってSLIを得るために必要な情報は、対象のサイズval,そのFLI,分割数を示すNの３つです。<br>
+Nは定数として、さらにFLIと同じ理由でval-1を用いて次のように求めることができます。(32bit)<br>
+<pre>
+//第二カテゴリーインデックス(SLI)を返す
+byte TLSFMemoryAllocator::GetSLI(uint size,byte fli){
+	// 最上位ビット未満のビット列だけを有効にするマスク
+	uint mask=~(0xffffffff&lt;&lt;fli);
+	// 右へのシフト数を算出
+	uint rs=fli-N;
+	// 引数sizeにマスクをかけて、右へシフトすればSLIに
+	byte sli=(size &amp; mask) &gt;&gt; rs;
+	return sli;
+}
+</pre>
+<br>
+<br>
+
+<h3>フリーリストとメモリ切りだし</h3>
+フリーリストとフリーリストビットの配列は全部で何個あるでしょうか。<br>
+答えは「初期に確保した一塊の全体メモリブロックのFLIとSLIに対して(FLI*2^N+SLI)個」です。<br>
+まずFLIで分類し、その後2^NにSLIでさらに分類しているのでこうなるのは理解できるかと思います。<br>
+indexとしては0ベースなのでFLI*2^N+SLI-1がfIndexになります。<br>
+結構頻繁に使うので関数化しておきましょう。FLIとSLIをうけとりindexの番号を生成する関数です。<br>
+<pre>
+//フリーリストインデックスを求める
+byte TLSFMemoryAllocator::GetFIndex(byte fli,byte sli){
+	return fli*pow(2,N)+sli-1;
+}
+</pre>
+フリーリストに関わる管理変数は種類が多く、その役目をしっかり把握しておくことが重要です。<br>
+ちょっと実際に運用する時のように初期状態として大きなメモリブロックを確保したとしましょう。<br>
+そうしてフリーリストに関わる全ての変数を初期化した段階の図が下のようになります。<br>
+（右は型の名前、bool[]型のtrue,falseは便宜上0,1で表現、左の図中の[　]はその固まりでひとつの要素ということ）
+<img src="MemoryAllocator/12.gif" width="888" height="488"><br>
+<i>byte</i>は8bitの<i>unsigned int</i>ですがその下位4bitしか使いません。<br>
+TLSFのメンバ変数として以下のものを定めます。<br>
+<ul>
+<li>フリーリストブロック配列先頭ポインタ <i>BBlock* </i>freeList;</li>
+<li>フリーリストビット <i>bool* </i>freeListBit;</li>
+<li>フリーリストビット(第一カテゴリ) <i>uint </i>freeListBitFLI</li>
+<li>フリーリストビット(第二カテゴリ) <i>byte* </i>freeListBitSLI</li>
+</ul>
+例えば1024byteのメモリを初期にnewしておくとすると、まずそのFLIとSLIを求めます。<br>
+1024のFLIは9,SLIは3なので一番初めにフリーリストに一つだけフリーブロックを入れておきます。<br>
+<br>
+index = FLI*2^N+SLI-1 より1024のFLI、SLIからindexを求めるとindex = 38 です。<br>
+よってindex = 38のところにあるフリーリストにひとつBBlockを(placement newで)生成して双方向リストを結びます。<br>
+<!-- このBBlockは1024byteの保持メモリを持ち（実際には管理タグ等で少し減ってますが無視してしください）<br>
+(FLI,SLI)=(9,3)のメモリ帯の要求に確実に答えられます。<br> -->
+<table border="1" cellspacing="1">
+<tr align="center">
+	<td colspan="2">FLI = 9</td>
+</tr>
+<tr align="center">
+	<td>SLI</td>
+	<td>区間範囲</td>
+</tr>
+<tr align="center">
+<td>0</td>
+<td>512～639</td>
+</tr>
+<tr align="center">
+<td>1</td>
+<td>640～767</td>
+</tr>
+<tr align="center">
+<td>2</td>
+<td>768～895</td>
+</tr>
+<tr align="center">
+<td><span class="red">3</span></td>
+<td><span class="red">896～1023</span></td>
+</tr>
+</table><br>
+しかしいきなり900byteもメモリ要求はこないでしょう。<br>
+大抵4byteや8byte等の小さい大きさのものが大量にくるはずです。<br>
+第二カテゴリの分割数によって最小のメモリブロックの大きさは決まりますが、<br>
+初期段階では4byteや8byteのFLI,SLIに対応するフリーリストビットはfalseです。（indexに対応するフリーリストにフリーブロックがない）<br>
+<br>
+また、例として24byte要求がきたときを考えます。<br>
+方針としてはBoundaryTagの特性を活かして初期状態の大きなメモリを24byte用に分割して切り出します。<br>
+初期段階では24byteのFLI,SLIに対応するフリーリストビットはfalseです。（indexに対応するフリーリストにフリーブロックがない）<br>
+この時点でフリーリストビットを上方へ辿ってフリーブロックが存在するフリーリストの要素を探しにいきます。<br>
+では、forでまわして探索しましょうか？いえいえここもbit演算で高速化できます。（そのためのフリーリストビットです）<br>
+<br>
+24は(FLI,SLI) = (4,1)です。<br>
+まず探索第一段階として同FLI内の上位SLIにbitが立ってないかを探します。<br>
+これは第二カテゴリフリーリストビットを用いて、さきほどのSLIを求める際にやったようにSLI以上を有効とするmaskを作り論理積をとります。<br>
+<pre>
+//同fli内の上位sliを返す(第二カテゴリ)
+byte TLSFMemoryAllocator::GetFreeListSLI(byte fli,byte sli){
+	//部分フリーリストバイト(fli内の4byte)
+	byte rb=freeListBitSLI[fli];
+
+	//sli以上が立っているマスク
+	byte sb=0xffffffff &lt;&lt; sli;
+
+	//部分フリーリストビットのsli以上に立っているビットがあるか
+	byte rsb= rb &amp; sb;
+	if(rsb==0){
+		return -1;//同fli内に上位sliは無い
+	}
+
+	//同fli内の上位sliを返す
+	return GetLSB(rsb);
+}
+</pre>
+<small>byte返り値に対して-1を返すのはちょっとあぶないけどbyteのMAXと一致するので判別はできるかと</small><br>
+GetLSBは最小bit(Least Significant Bit)を返すものでGetMSBの逆です。実装もほぼ逆です。<br>
+<pre>
+//2^x&gt;=valueとなるxを返す(LSI)
+int TLSFMemoryAllocator::GetLSB(ulong value){
+	if (value == 0) return false;
+	value |= (value &lt;&lt; 1);
+	value |= (value &lt;&lt; 2);
+	value |= (value &lt;&lt; 4);
+	value |= (value &lt;&lt; 8);
+	value |= (value &lt;&lt; 16);
+	return 32-GetBitCount(value);
+}
+</pre>
+上位SLIの中の最小を求めるためですね。これでforを使わずに探索できました。<br>
+<br>
+24の(FLI,SLI) = (4,1)に対して、(FLI,SLI) = (4,2),(4,3)にフリーブロックがあった場合にGetFreeListSLIは-1ではなく2,3の新しいSLIを返します。<br>
+初期段階ではこのふたつの場所にもフリーブロックは存在しないので、さらに上方に探索する必要があります。<br>
+<br>
+<br>
+次に探索第二段階として上位FLIにbitが立ってないかを探しにいきます。<br>
+これには第一カテゴリフリーリストビットを用います。第一カテゴリフリーリストビットはuint型のただの整数です。<br>
+これをbit列でみてSLIと同じように上位を探します。<br>
+<pre>
+//指定Fliより上位のFliを返す(第一カテゴリ)
+byte TLSFMemoryAllocator::GetFreeListFLI(byte fli){
+	//fli以上が立っているマスク
+	uint fb=0xffffffff &lt;&lt; fli;
+
+	//全体フリーリストビットFLIのfli以上に立っているビットがあるか
+	uint rfb= freeListBitFLI &amp; fb;
+	if(rfb==0){
+		return -1;//上位のFliが無い（エラー）
+	}
+
+	//上位fliを返す
+	return GetLSB(rfb);
+}
+</pre>
+もしこの関数が-1を返した場合、確保したメモリの空きはもうないのでエラーです。<br>
+今はfreeListBitFLI = [・・・000001]と（一番右を最上位と見て）最上位だけ立っていますので新しいFLIはFLI=9となります。<br>
+上位FLIを得たあとは、その新しいFLIとSLI=0とともにGetFreeListSLIへ放り込んで立っている最小のSLIを得ます。そうすると新しいSLIとしてSLI=3を得ます<br>
+<br>
+これでフリーリストビットが立っている（フリーブロックが存在する）indexが分かりました。<br>
+indexはindex=FLI*2^N+SLIです。今(FLI,SLI)=(9,3)よりindex=39です。ここにはフリーブロックがひとつ以上存在します。（初期フリーブロック）<br>
+<br>
+さて、24byte要求に対してこの1024byte（初期）フリーブロックは大きすぎます。<br>
+よって24byteと1000byteのブロックに分割（デバイド）します。<br>
+分割後の余り、1000byteのほうはまた同様にFLI,SLIを求めて適切なフリーリストに繋げておきます。ビットフラグ関係も更新します。<br>
+使われる24byteのほうはフラグをオンにして、運用メモリの初期化などをしたあとに外部にそのポインタを渡します。<br>
+<br>
+さらに<span class="red">アクティブリスト</span>に入れておきます。<br>
+アクティブリスト、およびアクティブリストビットはフリーリスト、フリーリストビットと対になるものです。<br>
+もし探索する必要なく要求サイズのFLIとSLIの場所にあった場合はそのままそのBBlockのフラグをonにして<span class="red">アクティブリスト</span>に入れます。<br>
+アクティブリスト、およびアクティブリストビットはフリーリスト、フリーリストビットと対になるものです。<br>
+<ul>
+<li>アクティブリストブロック配列先頭ポインタ <i>BBlock* </i>activeList;</li>
+<li>アクティブリストリストビット <i>bool* </i>activeListBit;</li>
+</ul>
+フリーリストと同様にFLI,SLIからindexを求めておきます 24byteは(FLI,SLI) = (4,1)ですので、<br>
+アクティブリストのindex=16のところにくっつけます。<br>
+<img src="MemoryAllocator/14.gif" width="888" height="363"><br>
+<br>
+<br>
+<h3>メモリ解放</h3>
+外部に渡したポインタが不要になった場合、その領域を管理していたBBlockをアクティブリストからフリーリストへ移動させる必要があります。<br>
+まずその管理BBlockを求めます。不要となったポインタpを受け取り、BoundaryTagの特性からそこからsizeof(BBlock)だけ前方へ戻ればBBlockポインタのthisが取得できます。これをb1とします。<br>
+<img src="MemoryAllocator/05.gif" width="543" height="283"><br>
+アクティブリストからフリーリストへ移動させる前に、前後とのマージを行います。<br>
+メモリブロック上ではリスト等は関係ありません。線形に隣接して存在しているはずです。<br>
+<br>
+まずb1から前方へ辿り自分に隣接しているBBlock b0と、後方へ辿り自分に隣接しているBBlock b2を取得します。それぞれ運用ポインタp,終端タグのポインタcを持ちます。<br>
+このふたつの隣接するBBlockのうち、フラグがfalseのものは使用中でないのでマージできます。<br>
+それぞれ判定してマージを行ってからサイズを更新し、そのサイズに応じたフリーリストへ再び登録します。<br>
+<br>
+今回は上記で確保した24byteをそのまま解放したとして、例にとってみましょう。<br>
+初期に確保する1024byteもBBlockのひとつとして登録されています。フラグは当然false（未使用）<br>
+さらに前後の判定用として運用サイズ0byteのダミーブロックでこのメモリブロックを挟んでおきます。これらのフラグはtrue（使用中）にしておきます<br>
+こうすると判定しやすくなります。<br>
+<br>
+さて、24byteの解放要求がくる前はこのようになっています。<br>
+<img src="MemoryAllocator/16.gif" width="362" height="189"><br>
+赤がフラグon、黒がフラグoffのBBlockです。<br>
+24byteを管理しているBBlockのフラグをそのままオフにすると黒の領域が隣同士並びます。よってこれを右マージして24 + 1000 = 1024 の大きなBBlockに統合します。<br>
+<img src="MemoryAllocator/17.gif" width="362" height="189"><br>
+前方は（ダミーが）フラグonなのでマージしません。<br>
+<br>
+リスト関連のフラグは初期状態と同じになります。<br>
+<br>
+<br>
+<br>
+以上で基本的なTLSFメモリアロケータの理論はおしまいです。<br>
+次のページの実装ともあわせてじっくり読み込んで分かった気になってください（＾＾；<br>
+<br>
+-&gt;<a href="./MemoryAllocator3.html">TLSFメモリアロケータ（実装編）</a>へ<br>
+<br>
+<hr>
+<script type="text/javascript">
+write_locate(18);
+topic("index","../index.html");
+topic("プログラムテクニック覚え書き","./program_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+</body></html>

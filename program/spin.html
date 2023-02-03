@@ -1,0 +1,137 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>7.座標回転</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<!--<base href="http://1st.geocities.jp/shift486909/">-->
+</head>
+<body>
+<p align="left"><br>
+<h1>座標回転</h1><br>
+<span class="red">2012/12/08　こっそり誤記修正(情報くれた方に感謝)<br></span>
+
+<hr>
+<br>
+<h2>・平面上の座標の回転</h2>
+今回は数学的な話が中心です。高校の三角関数程度の知識が必要です。<br>
+行列を使っているところもありますが、わからなくてもOKです。<font size="-2">(ていうか自分もあまりわかってない...)</font><br>
+<br>
+座標回転はシューティングやテトリスで使われます。<br>
+単純な円運動ならば、sin・cosの併用で実現できますが、<br>
+「この点を中心にこっからここまで何度(ラジアン)回転した後の座標」を求めるのは簡単にはいきません。<br>
+ここではそれを求めます。<br>
+<br>
+<h2>・問い</h2>
+2点 A(ax,ay) , B(bx,by) がxy平面上にある。<br>
+線分ABの端点Aを中心として点Bを&theta;(rad[ラジアン])回転させたところの点 C(cx,cy) を求めよ。<br>
+( 線分AB = AC = r とする )<br>
+<br>
+<img border="0" alt="" src="./spin/question.gif" width="446" height="352"><br><br>
+
+<h2>・解法</h2>
+まず、 A(0,0) の原点を中心とした点Bの回転を考える。<br><br>
+<img border="0" alt="" src="./spin/ans_way.gif" width="446" height="352"><br><br>
+AB = AC = r<br>
+B,Cからそれぞれ垂線を下ろし、x軸との交点をD,Eとする。<br>
+ABとx軸とがなす角をα、そこからβ回転するとする。<br>
+<br>
+△ADBにおいて<br>
+AD = r*cos α<br>
+BD = r*sin α<br>
+<br>
+求める C(cx,cy) は△AECのAEとCEにそれぞれ対応している。<br>
+△AECにおいて<br>
+AE = r*cos (α+β)<br>
+CE = r*sin (α+β)<br>
+<br>
+<a href="http://ja.wikipedia.org/wiki/%E4%B8%89%E8%A7%92%E9%96%A2%E6%95%B0#.E4.B8.89.E8.A7.92.E9.96.A2.E6.95.B0.E3.81.AE.E5.8A.A0.E6.B3.95.E5.AE.9A.E7.90.86">加法定理</a>よりsin (α+β)、cos (α+β)を展開すると<br>
+sin (α+β) = sin α*cos β+cos α*sin β<br>
+cos (α+β) = cos α*cos β-sin α*sin β<br><br>
+
+よって<br>
+<table border="0" cellspacing="0" cellpadding="0" width="60%">
+  <tr>
+    <td>AE = r*cos (α+β)</td>
+    <td>CE = r*sin (α+β)</td>
+  </tr>
+  <tr>
+    <td>AE = r*( cos α*cos β-sin α*sin β )</td>
+    <td>CE = r*( sin α*cos β+cos α*sin β )</td>
+  </tr>
+  <tr>
+    <td>AE = r*cos α*cos β-r*sin α*sin β</td>
+    <td>CE = r*sin α*cos β+r*cos α*sin β</td>
+  </tr>
+  <tr>
+    <td colspan="2">ここで、AD = r*cos α、BD = r*sin α より
+  </td>
+  </tr>
+  <tr>
+    <td>AE = AD*cos β-BD*sin β</td>
+    <td>CE = BD*cos β+AD*sin β</td>
+  </tr>
+  <tr>
+    <td>AE = AD*cos β-BD*sin β</td>
+    <td>CE = AD*sin β+BD*cos β</td>
+  </tr>
+</table><br>
+したがって<br>
+cx = AD*cos β-BD*sin β<br>
+cy = AD*sin β+BD*cos β<br>
+<br>
+AD = bx-ax<br>
+BD = by-ay<br>
+なので与えられた条件 A(ax,ay) , B(bx,by) 回転角度β から、<br>
+C(cx,cy) が求められた。<br>
+<br>
+<h2>・解</h2>
+問いではβ = &theta;、回転基準点 A(ax,ay) なので、<br>
+<img border="0" alt="" src="./spin/answer.gif" width="446" height="352"><br>
+解法より<br>
+AD = bx-ax<br>
+BD = by-ay<br>
+cx = AD*cos &theta;-BD*sin &theta;<span class="red">+ax</span><br>
+cy = AD*sin &theta;+BD*cos &theta;<span class="red">+ay</span><br>
+解法では原点基準で回転したので、回転基準点 A(ax,ay) 分だけずらします。<br>
+<br>
+これを行列で表すと<br>
+<img border="0" alt="" src="./spin/mat1.gif" width="488" height="77"><br>
+といわゆる<span class="red">回転行列</span>が出てきました。<br>
+<img border="0" alt="" src="./spin/mat2.gif" width="360" height="71"><br>
+回転基準点が A(ax,ay) なので、その分を加算します。<br>
+<br>
+<h2>・検証</h2>
+一般解法を導いたので、何か簡単な例で試してみてください。<br>
+ちゃんと点Cが求まればOKです。<br>
+行列に関してはあまり気にしないで、式の方を重視してください。<br>
+<br>
+シューティングでは1&deg;から360&deg;まで全て使うかもしれませんが、<br>
+テトリス等の回転は90&deg;刻みです。(そうではないテトリスを見たことがない)<br>
+その場合はもう少し式が簡単になります。<br>
+&theta; = 90&deg; なので sin90&deg; = 1、cos90&deg; = 0 より<br>
+cx = -BD+ax<br>
+cy =  AD+ay<br>
+<br>
+うまく回転を使いこなせるようになりましょう。<br>
+<br>
+<h2>・参考サイト様</h2>
+<a href="http://dixq.net/rp/34.html">龍神録プログラミングの館(34章　レーザーを作ってみよう)</a>の下の方<br>
+次の「長方形と円の当たり判定」にもからんできますが、わかりやすく解説されてます。<br><br>
+<a href="http://ja.wikipedia.org/wiki/%E4%B8%89%E8%A7%92%E9%96%A2%E6%95%B0">三角関数 - Wikipedia</a><br>
+三角関数について忘れた人はwiki参照。<br><br>
+<a href="http://www.crossroad.jp/mathnavi/math-c/gyouretu/kaitengyouretu.html">回転行列</a><br>
+回転行列についてシンプルに解説されてます。<br><br>
+単純に「行列」「回転行列」とかでググればいろいろ出てきます。<br>
+自分にあったわかりやすいとこで学んでください。<br><br>
+<hr>
+<script type="text/javascript">
+write_locate(11);
+topic("index","../index.html");
+topic("プログラムテクニック覚え書き","./program_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+</p>
+</body></html>

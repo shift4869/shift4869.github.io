@@ -1,0 +1,247 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>テトリミノの制御(1)</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<meta http-equiv="content-type" content="text/css; charset=shift_jis">
+<link rel="stylesheet" href="./styleTet.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<base href="http://1st.geocities.jp/shift486909/tetlec/">
+</head>
+<body>
+<p align="left"><br>
+<img src="chapter_g/09g.gif" width="402" height="60" alt="テトリミノの制御(1)"><br>
+<br>
+再掲テトリス全体の流れ<br>
+<img src="05/05_1.gif" alt=""><br>
+<br>
+今回はこの①の部分を創ります。<br>
+<br>
+<h2>テトリミノの生成</h2>
+テトリミノの生成はファクトリメソッドのようなものを創ります。<br>
+といっても、単なるTetriMinoクラスを正しく設定して返すっていうだけですけど・・<br>
+なかなか大きい関数になるので、これだけでソースファイル(*.cpp)を分割します。<br>
+ソリューションエクスプローラのsourceフォルダを右クリックして「追加-&gt;新しい項目」で、<br>
+<span class="red">CreateTetriMino.cpp</span>というファイルを創ってください。<br>
+<br>
+それに書いていきます。<br>
+<hr>
+<pre>
+//<span class="red">CreateTetriMino.cpp</span>
+#include "../include/main.h"
+
+//<span class="red">テトリミノ生成関数</span>
+TetriMino CreateTetriMino(const Point&amp; p,const BLK_COL&amp; k){
+	TetriMino t;
+
+	//tそのもののベース点
+	t.x=p.x;
+	t.y=p.y;
+
+	//(2,2),(2,3)は必ず存在する地点
+	t.field[2][2]=true;
+	t.field[2][3]=true;
+
+	//指定された種類(色)に応じて振り分け
+	switch(k){
+		case RED://赤
+			t.field[3][1]=true;
+			t.field[3][2]=true;
+			break;
+		case GREEN://緑
+			t.field[1][1]=true;
+			t.field[1][2]=true;
+			break;
+		case PURPLE://紫(T字)
+			t.field[1][2]=true;
+			t.field[3][2]=true;
+			break;
+		case BLUE://青(逆L字)
+			t.field[2][1]=true;
+			t.field[1][3]=true;
+			break;
+		case ORANGE://橙(L字)
+			t.field[2][1]=true;
+			t.field[3][3]=true;
+			break;
+		case YELLOW://黄(■)
+			t.field[1][2]=true;
+			t.field[1][3]=true;
+			break;
+		case SKY://空(｜)
+			t.field[2][0]=true;
+			t.field[2][1]=true;
+			break;
+		default://不明-&gt;エラー
+			throw "int CreateTetriMino()::k error";
+			break;
+	}
+
+	//FieldToBlk
+	//フィールド情報から各ブロックの座標を設定する
+	//tそのもののベース点はフィールドの(2,2)の座標とする
+	int i=0;
+	for(int x=0;x&lt;5;x++){
+		for(int y=0;y&lt;5;y++){
+			if(t.field[x][y]){
+				t.blk[i]=Block(Point(t.x+BS*(x-2),t.y+BS*(y-2)),k);
+				i++;
+			}
+		}
+	}
+
+	//設定したtを返す
+	return t;
+}
+</pre>
+<hr>
+fieldは5*5の座標平面のように考えてください。<br>
+<img src="09/09_1.gif" alt=""><br>
+<br>
+中心付近の(2,2),(2,3)はどのテトリミノでも使います。<br>
+それ以外の部分を各色によって振り分けています(図はRED)<br>
+<br>
+そうしてfieldを設定し終わったら、そのfieldを元に4つのblkの座標を設定します。<br>
+t自体の座標はfieldの(2,2)の位置にあるとして(緑○)そこを基準にします。<br>
+<br>
+それ以外はコンストラクタで0フィルしてるので大丈夫です。<br>
+<br>
+<br>
+//FieldToBlkとコメントしてあるのは何故かというと、<br>
+この「<span class="red">フィールドから各ブロックを設定する</span>」という処理は頻繁に行うので、<br>
+関数化しておきたいと思います。<br>
+<br>
+それに伴い、CreateTetriMino()関数を変更します。<br>
+<br>
+<span class="red">func.cpp</span>に<span class="red">FieldToBlk()</span>関数を追加。<br>
+<hr>
+<pre>
+//<span class="red">func.cpp</span>
+#include "../include/main.h"
+
+//フィールド情報から各ブロックの座標を設定する
+//tそのもののベース点はフィールドの(2,2)の座標とする
+bool FieldToBlk(TetriMino&amp; t){
+	int i=0;
+	for(int x=0;x&lt;5;x++){
+		for(int y=0;y&lt;5;y++){
+			if(t.field[x][y]){
+				t.blk[i].x=t.x+BS*(x-2);
+				t.blk[i].y=t.y+BS*(y-2);
+				i++;
+			}
+		}
+	}
+	return (i==4);
+}
+<hr>
+//<span class="red">CreateTetriMino.cpp</span>
+#include "../include/main.h"
+
+//テトリミノ生成関数
+TetriMino CreateTetriMino(const Point&amp; p,const BLK_COL&amp; k){
+	・
+	・
+	・
+
+	//blkのkndを設定する
+	for(int i=0;i&lt;4;i++)t.blk[i].knd=k;
+
+	//FieldToBlk
+	//フィールド情報から各ブロックの座標を設定する
+	//tそのもののベース点はフィールドの(2,2)の座標とする
+	FieldToBlk(t);
+
+	//設定したtを返す
+	return t;
+}
+</pre>
+<hr>
+FieldToBlk()関数を呼ぶ前に処理が増えてしまいましたが、<br>
+これはFieldToBlk()関数の引数を減らすためです。<br>
+<br>
+さて、これで準備が整いました。<br>
+ini.cpp内にて、curにTetriMinoを生成したいと思います。<br>
+と同時に、結果がわかるように描画関係の関数も書いてしまいます。<br>
+STRのlistのiteratorループに関してわからない人は<a href="http://marupeke296.com/TIPS_No12_ListElementErase.html">こちら</a>を参考してください。<br>
+<br>
+<hr>
+<pre>
+//<span class="red">func.h</span>
+	・
+	・
+	・
+//CreateTetriMino.cpp//
+TetriMino CreateTetriMino(const Point&amp; p,const BLK_COL&amp; k);
+
+//func.cpp//
+//フィールド情報から各ブロックの座標を設定する
+//tそのもののベース点はフィールドの(2,2)の座標とする
+bool FieldToBlk(TetriMino&amp; t);
+<hr>
+//<span class="red">ini.cpp</span>
+#include "../include/main.h"
+
+//画像イメージのネームスペースを使用する
+using namespace IMG;
+
+//初期化処理
+void ini(){
+	・
+	・
+	・
+	//初期テトリミノ生成(位置は適当・色はランダム)
+	cur=CreateTetriMino(Point(FX+BS*6,FY+BS*5),GetRand(BLK_KND_NUM-1));
+}
+<hr>
+//<span class="red">draw.cpp</span>
+	・
+	・
+	・
+//<span class="red">ブロック描画</span>
+void DrawBlock(){
+	//フィールド上にあるブロックの描画
+	for(list&lt;Block&gt;::iterator it=blkList.begin();
+		it!=blkList.end();++it){
+		DrawGraph(it-&gt;x,it-&gt;y,IMG::block[(int)it-&gt;knd],true);
+	}
+	
+	//現在テトリミノの描画
+	for(int i=0;i&lt;4;i++){
+		DrawGraph(cur.blk[i].x,cur.blk[i].y,IMG::block[(int)cur.blk[i].knd],true);
+	}
+}
+
+//描画メイン
+void DrawMain(){
+	
+	//背景描画
+	DrawBoard();
+
+	<span class="red">//ブロック描画
+	DrawBlock();</span>
+}
+</pre>
+<hr>
+これでフィールドの適当な位置にテトリミノが描画されたと思います。<br>
+「フィールド」という言葉を二つの意味で使っているので混乱しないように注意してください。<br>
+(じゃぁ表現変えろよ・・と思われるでしょうが・・・)<br>
+TetriMinoクラス内のblkの保持状態を示す「field」と、<br>
+画面全体を表す「フィールド」です。<br>
+<br>
+実行結果::<br>
+<img src="09/09_2.gif" width="512" height="384" alt=""><br>
+<br>
+次回は実際に操作していきたいと思います。<br>
+</p>
+<hr size="2">
+
+<script type="text/javascript">
+write_locate(10);
+topic("index","../index.html");
+topic("テトリス作成講座","./tetlec_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+
+</body></html>

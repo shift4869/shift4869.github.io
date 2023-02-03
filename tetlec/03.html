@@ -1,0 +1,135 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>fps表示</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<meta http-equiv="content-type" content="text/css; charset=shift_jis">
+<link rel="stylesheet" href="./styleTet.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<base href="http://1st.geocities.jp/shift486909/tetlec/">
+</head>
+<body>
+<p align="left"><br>
+<img src="chapter_g/03g.gif" width="402" height="60" alt=""><br>
+<br>
+今回も他力本願です。<br>
+というのは、この次の「キー入力」まではどのゲームでも大体同じなので、<br>
+既にあるコードを参考にした方がいいのです。<br>
+では、やっていきましょう。<br>
+<br>
+今回はこちらの<br>
+「<a href="http://dixq.net/g/52.html">s6. FPSを表示する。</a>」<br>
+を改変してfpsを表示をしていきたいと思います。<br>
+fpsとはフレームパーセコンド(frame/sec)で、<br>
+一秒間に何フレーム処理しているかを表す数値です。<br>
+普通のモニタなら60fpsが正常値です。<br>
+処理が重くなってくるとfpsが40や30などと下がっていきます。<br>
+<br>
+↑のコード+&alpha;として、<br>
+・正常時(60~50fps)には白<br>
+・少し重い時(50~30fps)には黄<br>
+・非常に重い時(30fps以下)には赤<br>
+で表示するようにします。<br>
+<br>
+詳しい説明は上記サイト参照<del>(丸投げ)</del>で、<br>
+fps.cppファイルに書きます。<br>
+</p>
+<hr>
+<pre>
+//fps.cpp
+#include "../include/main.h"
+
+//fps表示
+void fps(){
+	const int FRAME=60;
+	static int t,ave,cnt,f[FRAME];
+
+	f[cnt%FRAME]=GetNowCount()-t;
+	t=GetNowCount();
+
+	cnt++;
+
+	if(cnt%FRAME==FRAME-1){
+		ave=0;
+		for(int i=0;i&lt;FRAME;i++)ave+=f[i];
+		ave/=FRAME;
+		cnt=0;
+	}
+	if(ave!=0){
+<span class="red">		float s=1000/(float)ave;	//fps
+		int col=GetColor(255,255,255);	//白
+
+		if(50&gt;s &amp;&amp; s&gt;=30)	col=GetColor(255,255,0);//黄
+		else if(30&gt;s)		col=GetColor(255,0,0);	//赤
+
+		//fps表示
+		DrawFormatString(555,460,col,"[%.1f]fps",s);</span>
+	}
+
+	return;
+}
+</pre>
+<hr>
+<p align="left"><br>
+今はまだ何も描画してないので、普通で60フレーム前後になってるかと思います。<br>
+より正確なfpsを求めたいと言う人はこちらの<br>
+「<a href="http://dixq.net/rp/43.html">43章.きっちりFPSを制御してみよう</a>」<br>
+を参照してください。<br>
+<br>
+それで、この関数をmain.cppから呼び出すのですが、そのままではできません。<br>
+func.hにこの関数のプロトタイプ宣言を書いて、全てのソースファイルから呼び出せるようにする必要があります。<br>
+<hr>
+<pre>
+//<span class="red">func.h</span>
+
+//<span class="red">fps.cpp</span>//
+//fps表示
+void fps();
+</pre>
+<hr>
+<br>
+そしてmain.cppのwhileループ内で呼びます。<br>
+<br>
+<hr>
+<pre>
+//main.cpp
+
+・
+・
+・
+//メイン関数
+int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLine, int nCmdShow ){
+
+	ChangeWindowMode(TRUE);//ウィンドウモード
+	if(DxLib_Init()==-1 || SetDrawScreen( DX_SCREEN_BACK )!=0) return -1;//初期化と裏画面化
+
+	while(ProcessLoop()){
+
+		<span class="red">fps();</span>
+
+		ScreenFlip();
+	}
+
+	DxLib_End();
+	return 0;
+}
+</pre>
+<hr>
+<br>
+今回の実行結果は<br>
+<img src="03/03_1.gif" width="512" height="385" alt=""><br>
+<br>
+次回はキー入力を分離させて、ゲームパッドにも対応させましょう。<br>
+<br>
+</p>
+<hr size="2">
+
+<script type="text/javascript">
+write_locate(4);
+topic("index","../index.html");
+topic("テトリス作成講座","./tetlec_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+
+</body></html>

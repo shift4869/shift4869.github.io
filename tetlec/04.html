@@ -1,0 +1,263 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>キー入力</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<meta http-equiv="content-type" content="text/css; charset=shift_jis">
+<link rel="stylesheet" href="./styleTet.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<base href="http://1st.geocities.jp/shift486909/tetlec/">
+</head>
+<body>
+<p align="left"><br>
+<img src="chapter_g/04g.gif" width="402" height="60" alt=""><br>
+<br>
+今回はキー入力を分離して、パッドキーにも対応させます。<br>
+いろいろなファイルを操作するので、どのファイルを編集しているのかを見失わないようにしてください。<br>
+<br>
+まず、キーコンフィグを表すConfigクラスと、<br>
+パッドキーの入力を表すPadクラスを創ります。<br>
+<br>
+キーボードからのキー入力だけでなく、ゲームパッドの入力にも対応させます。<br>
+クラス定義のclass.hと定数も定義するのでdefine.h、<br>
+さらにConfigクラスのグローバル変数定義するためにGV.hを編集します。<br>
+<hr>
+<pre>
+//<span class="red">class.h</span>
+
+//パッドクラス
+class Pad{
+public:
+	int key[PAD_MAX];
+	Pad(){memset(key,0,sizeof(int)*PAD_MAX);}
+};
+
+//キーコンフィグクラス
+class Config{
+public:
+	int left,right,up,down;
+	int lspin,rspin,stock,start;
+	Config():left(1) ,right(2),up(3)   ,down(0),
+			 lspin(4),rspin(5),stock(9),start(8){}
+};
+<hr>
+//<span class="red">define.h</span>
+
+//パッドキーの最大数
+#define PAD_MAX 16
+
+//1byteの最大数
+#define BYTE_MAX 256
+<hr>
+//<span class="red">GV.h</span>
+#ifdef FIRST_LOADING
+#define E 
+#else
+#define E extern
+#endif
+
+//コンフィグクラス
+E Config config;
+</pre>
+<hr>
+<br>
+Configクラスのイニシャライズリスト内はパッドキーに対応する番号です。<br>
+自分の環境では↑のようになりましたが、機種によって違うと思うのでその辺は調整してください。<br>
+GV.h内の#ifdefは、多重定義を防ぐためのものです。main.cppでのみFIRST_LOADINGを定義します。<br>
+<br>
+そして、前回貼り付けたmain.cppの上部にあるキー入力関係の関数をkey.cppに移します。<br>
+このとき、変数int Key[256]がmain.cppで参照できなくなるので、<br>
+externしてもいいですが今回は結果を返す関数を創り、それをプロトタイプ宣言して使おうと思います。<br>
+int Key[256]をkey.cppのみで使うようにします。<br>
+それに伴い、GetHitKeyStateAll_2の引数が無くなります。<br>
+それと、マジックナンバーの256をBYTE_MAXに置き換えておきます。<br>
+<br>
+<hr>
+<pre>
+//<span class="red">key.cpp</span>
+#include "../include/main.h"
+
+//キー入力を保持する変数
+int Key[BYTE_MAX];
+
+//キー入力を取得する関数
+int GetHitKeyStateAll_2<span class="red">()</span>{
+	char GetHitKeyStateAll_Key[BYTE_MAX];
+	GetHitKeyStateAll( GetHitKeyStateAll_Key );
+	for(int i=0;i&lt;BYTE_MAX;i++){
+		if(GetHitKeyStateAll_Key[i]==1)	<span class="red">Key[i]++</span>;
+		else				<span class="red">Key[i]=0</span>;
+	}
+	return 0;
+}
+
+//<span class="red">結果を返す関数</span>
+int CheckStateKey(int KeyCode){
+	if(KeyCode&lt;0 || BYTE_MAX&lt;=KeyCode)return -1;
+	else return Key[KeyCode];
+}
+<hr>
+//<span class="red">func.h</span>
+
+//fps.cpp//
+//fps表示
+void fps();
+
+//<span class="red">key.cpp</span>//
+//キー入力を取得する関数
+int GetHitKeyStateAll_2();
+//結果を返す関数
+int CheckStateKey(int KeyCode);
+<hr>
+//main.cpp
+
+<span class="red">#define FIRST_LOADING</span>
+#include "../include/main.h"
+
+//ループ時の処理
+bool ProcessLoop(){
+	//メッセージ処理
+	if(ProcessMessage()!=0)			return false;
+	//画面をクリア
+	if(ClearDrawScreen()!=0)		return false;
+	//入力状態を保存
+	if(GetHitKeyStateAll_2<span class="red">()</span>!=0)		return false;
+	//ESCが押されていない
+	if(<span class="red">CheckStateKey(KEY_INPUT_ESCAPE)</span>!=0)	return false;
+	return true;
+}
+	・
+	・
+	・
+</pre>
+<hr><br>
+main.cpp内のProcessLoop()内の記述が変わりますが効力・結果は今までと同じです。<br>
+<br>
+ここからが本題です。<br>
+key.cppにパッドキーの入力を受け持つ関数を創ります。<br>
+ポイントは普通のキー入力とパッドキーの入力と、二つを比べて大きい方を入力とすることです。<br>
+言い忘れてましたが、DXライブラリの関数でわからないものはリファレンスを参照してください。<br>
+<hr>
+<pre>
+//key.cpp
+#include "../include/main.h"
+
+//キー入力を保持する変数
+int Key[BYTE_MAX];
+
+//キー入力を取得する関数
+int GetHitKeyStateAll_2(){
+	char GetHitKeyStateAll_Key[BYTE_MAX];
+	GetHitKeyStateAll( GetHitKeyStateAll_Key );
+	for(int i=0;i&lt;BYTE_MAX;i++){
+		if(GetHitKeyStateAll_Key[i]==1)	Key[i]++;
+		else				Key[i]=0;
+	}
+	return 0;
+}
+
+//渡されたキーコードの結果を返す関数
+int CheckStateKey(int KeyCode){
+	if(KeyCode&lt;0 || BYTE_MAX&lt;=KeyCode)return -1;
+	else return Key[KeyCode];
+}
+
+//<span class="red">パッド入力を保持する変数</span>
+Pad pad;
+
+//<span class="red">パッドキーとキーボードの両方の入力をチェックする関数</span>
+int GetHitPadStateAll(){
+	//パッドの状態を取得
+	int padInput=GetJoypadInputState(DX_INPUT_PAD1);
+
+	//どのキーが押されているか調べる
+	for(int i=0,mul=1;i&lt;PAD_MAX;i++,mul*=2){
+		if(padInput & mul)	pad.key[i]++;
+		else			pad.key[i]=0;
+	}
+
+	//パッドキーの種類総数
+	const int KEY_KND=8;
+	//パッドキー側
+	int cknd[KEY_KND]={config.left ,config.right,config.up   ,config.down,
+			   config.lspin,config.rspin,config.stock,config.start};
+	//キーボード側
+	int kknd[KEY_KND]={KEY_INPUT_LEFT,KEY_INPUT_RIGHT,KEY_INPUT_UP,KEY_INPUT_DOWN,
+			   KEY_INPUT_Z   ,KEY_INPUT_X    ,KEY_INPUT_S ,KEY_INPUT_ESCAPE};
+
+	//どちらが大きいか調べて設定
+	for(int i=0;i&lt;KEY_KND;i++){
+		pad.key[cknd[i]]=max(pad.key[cknd[i]],CheckStateKey(kknd[i]));
+	}
+
+	return 0;
+}
+
+//<span class="red">渡されたパッドキーの結果を返す関数</span>
+int CheckStatePad(int PadKeyCode){
+	if(PadKeyCode&lt;0 || PAD_MAX&lt;=PadKeyCode)return -1;
+	else return pad.key[PadKeyCode];
+}
+<hr>
+//func.h
+
+//fps.cpp//
+//fps表示
+void fps();
+
+//<span class="red">key.cpp</span>//
+//キー入力を取得する関数
+int GetHitKeyStateAll_2();
+//結果を返す関数
+int CheckStateKey(int KeyCode);
+//パッドキーとキーボードの両方の入力をチェックする関数
+int GetHitPadStateAll();
+//渡されたパッドキーの結果を返す関数
+int CheckStatePad(int PadKeyCode);
+<hr>
+//main.cpp
+#define FIRST_LOADING
+#include "../include/main.h"
+
+//ループ時の処理
+bool ProcessLoop(){
+	//メッセージ処理
+	if(ProcessMessage()!=0)			return false;
+	//画面をクリア
+	if(ClearDrawScreen()!=0)		return false;
+	//キー入力状態を保存
+	if(GetHitKeyStateAll_2()!=0)		return false;
+	<span class="red">//パッド入力状態を保存
+	if(GetHitPadStateAll()!=0)		return false;</span>
+	//ESCが押されていない
+	if(<span class="red">CheckStatePad(config.start)</span>!=0)	return false;
+	return true;
+}
+	・
+	・
+	・
+</pre>
+<hr>
+これで、パッド側でConfigクラス内でstartに設定しておいたキー番号のキーを押して終了すればOKです。<br>
+キーボードだけ使ってパッドは使わないというときににもCheckStateKey()までは創っておいてください。<br>
+<br>
+実行結果:キー入力成功？<br>
+<br>
+いかがだったでしょうか？難しかったですか？<br>
+そのときは、ひとつひとつ見ていってください。<br>
+ここまでは大概のゲームに共通していることです。<br>
+ここからがテトリス独自のものになってきます。<br>
+頑張っていきましょう(^^<br>
+<br>
+</p>
+<hr size="2">
+
+<script type="text/javascript">
+write_locate(5);
+topic("index","../index.html");
+topic("テトリス作成講座","./tetlec_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+
+</body></html>

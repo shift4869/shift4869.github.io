@@ -1,0 +1,680 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>16.逆ポーランド記法とテンパズル</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<base href="http://1st.geocities.jp/shift486909/program/">
+</head>
+<body>
+<p align="left"><br>
+<h1>逆ポーランド記法とテンパズル</h1><br>
+<hr>
+<br>
+<h2>・逆ポーランド記法</h2>
+四則演算を計算することを考えます。<br>
+通常私達が数式として認識しているものは例えば以下のものがあります。<br>
+<img src="ReversePolishNotation/shiki01.png" width="256" height="46"><br>
+答えが10なことはすぐ分かります。（簡単な算数でバカにしているつもりはありません）<br>
+意識していませんがこの私達が通常目にしている数式記法を<font class="red">中置記法</font>と呼びます。<br>
+四則演算の演算子[+,-,*,/]が演算対象(オペランド)の真ん中に配置されています。<br>
+今回はこの数式をプログラムで計算させることについて調べていきます。<br>
+<br>
+「計算させると言っても上の式をプログラム中に打てば計算してくれるじゃん」とお思いでしょうが、<br>
+例えば「任意の<font class="red">計算式</font>を受け取り、その結果を返す」といった電卓プログラムを作ることを考えてみてください。<br>
+C++では『<font class="red">計算式</font>』を表す型はありません。任意の計算式を受け取る場合もコマンドライン引数などで<font class="red">文字列</font>として受け取るでしょう。<br>
+この計算式を表す文字列を解析して適切な数値計算をして結果を返す。こうした流れになります。<br>
+ちょっとした字句解析というかコンパイラちっくなことをしようとしていることでその難しさが分かるでしょうか。<br>
+<br>
+さて、文字列として上の計算式str="(1+4)*(3+7)/5"を受け取ったとき、まず始めの文字から見ていくと、開きカッコ'('があります。<br>
+この開きカッコがどこで閉じられるか分からないのでとりあえずここに開きカッコがあったことだけ記憶しておきます。<br>
+次の文字を見ると数字の'1'です。これは数字ですので次に演算子が来れば計算できそうです。<br>
+而して次が'+','4'と続きますのでこれで1+4の計算ができると思いますが<font class="red">そうとは限りません</font>。<br>
+もし'4'のあとに乗算*,除算/が続いていたらそちらが優先されますし、最初の開きカッコはどこに行ったのでしょう。<br>
+<br>
+今のは一例で、通常記法のまま解析しようとすると問題点が多いです。<br>
+<ol>
+<li>演算子の優先順位については全体を眺めないと分からない（字句解析は逐次的にも関わらず）</li>
+<li>カッコの対応も同様</li>
+<li>正しい計算式が入力されるとは限らない</li>
+</ol>
+これらの問題点を解決するためにいろいろと制限を加える必要がありそうです。<br>
+<br>
+ここでやっと表題の<font class="red">逆ポーランド記法</font>が登場します。<small>長かった・・・</small><br>
+一番始めの計算式が表している内容を言葉で書くと<br>
+<BLOCKQUOTE>『（1と4を足したもの）と（3と7を足したもの）を乗算してその結果を5で割ったもの』</BLOCKQUOTE>
+と書けます。<BR>
+ここから数字と足す・乗算・割るなどのみに着目して左から順に拾っていくと、<br>
+<img src="ReversePolishNotation/shiki02.png" width="196" height="41"><br>
+という記号列ができます。これを<font class="red">逆ポーランド記法（Reverse Polish Notation：RPN）</font>と呼びます。<br>
+私達が通常目にしている中置記法に対してこちらは<font class="red">後置記法</font>とも呼ばれ、演算子がオペランドの後方に置かれています。<br>
+見慣れない記法ですが計算式を言葉に直し、そのまま表記すれば良いので<br>
+慣れれば思考をそのまま表記できる逆ポーランド記法の方が良い、とする愛好家達は多いです。<br>
+<br>
+さて、お気づきでしょうか。逆ポーランド記法に直したところ<font class="red">カッコが消えました</font>。<br>
+さらに演算子の優先順位も何も<font class="red">左から順に適用して</font>いけばよくなりました。<br>
+あら、問題点の３つのうち２つがもう解決しました。<br>
+<br>
+３番目の問題についてはもう仕様としたいところですがそれでもいくつか条件はあります。<br>
+まず、前提として使用する記号は数字={'0','1','2','3','4','5','6','7','8','9'}と演算子={'+','-','*','/'}のみとします。<br>
+四則演算以外、及び10以上の数値を表す数字は計算式中に現れないものとします。<br>
+以上を踏まえて逆ポーランド記法として正しい計算式を表す記号列の条件として、<br>
+<ol>
+<li>演算子が現れた時には少なくとも２つ以上の数字が既に現れている</li>
+<li>記号列のどの地点においても数字の方が演算子より多い</li>
+<li>最終的には　数字の個数=演算子の個数+1　が成り立つ</li>
+</ol>
+などが挙げられます。詳しくは後ろに載せるコードを実装する時にまた触れます。<br>
+<br>
+<br>
+<h2>・逆ポーランド記法を計算する</h2>
+仮定として正しい逆ポーランド記法で記述された文字列が渡されたとしましょう。<br>
+逆ポーランド記法は<font class="red">スタック構造</font>と相性が良く、数字か演算子かを判定しながらスタックに積んでいけば簡単に計算できます。<br>
+スタック構造についてはググっていただくとして、とりあえずLIFO(Last In,First Out)な構造だとだけ述べておきます。<br>
+<img src="ReversePolishNotation/fig01.png" width="477" height="354"><br>
+まず記号列を左から逐次的に読み込んでいき、数字ならばスタックにそのまま積みます。<br>
+例の式だと'1','4'は数字なのでそのままスタックに積まれます。（①）<br>
+演算子が来たとき、条件よりスタックには必ず２つ以上数字が積まれています。<br>
+よってスタックから２つ取り出して演算子に対応する演算を行い（②）、結果を再度スタックに積みます。（③）<br>
+<br>
+以上の操作を記号列の最後まで繰り返します。<br>
+②でスタックから２つ取り出せなかった場合はエラー（スタックアンダーフロー）、<br>
+また最後にスタックに計算結果の要素が１つ残らなければエラーです。<br>
+<br>
+<h3>・仮想分数</h3>
+計算結果ですがintとは限りません。<br>
+除算'/'を含むためこの系はintで閉じていません。<br>
+浮動小数点型を使ってもよいですがなるべく処理途中では小数のことは考えたくありません。<br>
+よって小数の代わりに分数で扱い、その分子と分母をそれぞれintとして実装します。<br>
+プログラムで分数を扱うための仮想分数クラスの例を以下に示します。<br>
+<pre>
+//CSudoDiv.h
+
+//仮想分数
+class SudoDiv{
+private:
+	int num;//分子
+	int den;//分母
+	
+public:
+	//コンストラクタ
+	SudoDiv(){
+		setMember(0,0);
+	}
+	SudoDiv(int numerator,int denominator){
+		setMember(numerator,denominator);
+	}
+	//デストラクタ
+	virtual ~SudoDiv(){}
+
+	//メンバ設定用関数
+	void setMember(int numerator,int denominator){
+		num=numerator;
+		den=denominator;
+	}
+	
+public:
+	//メンバ設定用「()」
+	void operator()(int numerator,int denominator){
+		setMember(numerator,denominator);
+	}
+
+	//四則演算
+	//「+」
+	SudoDiv operator+(const SudoDiv& sd){
+		SudoDiv t;
+		t.num=num*sd.den+sd.num*den;
+		t.den=den*sd.den;
+		return  t;
+	};
+	//「-」
+	SudoDiv operator-(const SudoDiv& sd){
+		SudoDiv t;
+		t.num=num*sd.den-sd.num*den;
+		t.den=den*sd.den;
+		return  t;
+	};
+	//「*」
+	SudoDiv operator*(const SudoDiv& sd){
+		SudoDiv t;
+		t.num=num*sd.num;
+		t.den=den*sd.den;
+		return  t;
+	};
+	//「/」
+	SudoDiv operator/(const SudoDiv& sd){
+		SudoDiv t;
+		t.num=num*sd.den;
+		t.den=den*sd.num;
+		return  t;
+	};
+
+	//値の取得
+	double getValue(){
+		return num/(double)den;
+	}
+};
+</pre>
+分数の四則演算を定義しておくと自然に計算できます。<br>
+続いてこの仮想分数クラスを使って逆ポーランド記法を計算するプログラムを示します。<br>
+<br>
+<table border="0">
+<tr>
+<td>
+<pre>
+//RPN.cpp
+//逆ポーランド記法を解く
+double RPN(String rpnStr){
+	//逆ポーランド用スタック
+	stack&lt;SudoDiv&gt; byteStack;
+	SudoDiv t;
+	byte b;
+
+	//全文字チェック
+	for(int i=0,s=rpnStr.size();i&lt;s;i++){
+		//解析対象の文字
+		b=rpnStr[i];
+
+		//数値ならスタックに積む
+		if(isdigit(b)){
+			uint n=b-'0';
+			t(n,1);
+			byteStack.push(t);
+			continue;
+		}
+		
+		//演算子なら
+		//スタックアンダーフローチェック
+		if(byteStack.size()&lt;2)throw "Stack underflow : error";
+		//スタックから２つ取り出す
+		SudoDiv t1,t2;
+		t1=byteStack.top();
+		byteStack.pop();
+		t2=byteStack.top();
+		byteStack.pop();
+
+		//演算して結果をスタックに積む
+		switch(b){
+			case '+':{
+				byteStack.push(t2+t1);
+				break;
+			}
+			case '-':{
+				byteStack.push(t2-t1);
+				break;
+			}
+			case '*':{
+				byteStack.push(t2*t1);
+				break;
+			}
+			case '/':{
+				byteStack.push(t2/t1);
+				break;
+			}
+			default:throw "Invalid operator : error";
+		}
+
+	}
+
+	//逆ポーランド記法チェック
+	if(byteStack.size()!=1)throw "Invalid syntax : error";
+
+	//結果取得
+	t=byteStack.top();
+	byteStack.pop();
+
+	//結果を返す
+	return t.getValue();
+}
+</pre>
+</td>
+<td valign="top">
+<b>フローチャート</b><br>
+<img src="ReversePolishNotation/flow1.png" width="542" height="1223"><br>
+</tr>
+</table><br>
+未定義の型がそこそこありますがそれっぽいもので読み替えてください。<br>
+フローチャートも載せました。<br>
+<br>
+このプログラムを使えば逆ポーランド記法を受け付ける電卓が作れます。<br>
+<br>
+<br>
+<h2>・テンパズルを解く</h2>
+テンパズルとは「４つの数字を使って四則演算を適用して10を作る」というやつです。<br>
+切符に書いてある数字や道行く車のナンバープレート、時計の時刻などででき、暇つぶしになります。<br>
+４つの数字から10が作れるかどうかはその組み合わせによります。<br>
+ここでは与えられた４つの数字から10が作れるかどうかを判定する関数を作りたいと思います。<br>
+<br>
+10が作れるかどうかは人間ならば少し試行錯誤すればなんとなくできるかどうかは判別できます。<br>
+それをプログラムで判定させる場合には実際にありうる計算全てを試行錯誤して10になるかどうかを試す必要があります。<br>
+そこで前述した逆ポーランド記法電卓を使います。<br>
+まず与えられる数字は４つなのでそれらを計算するための演算子は３つです。<br>
+これら７つの記号からなる記号列の組み合わせを全通り生成して、逆ポーランド記法電卓につっこみ、計算して10になるものが一つでも存在すれば『解あり』と判定できます。<br>
+ただし逆ポーランド記法にはいくつか条件がありますので、完全な全通り生成する必要はありません。<br>
+<br>
+<pre>
+//4つの数から全てのRPNを生成して解き、10かどうか判定する
+byte madeStr[7];//生成された逆ポーランド記法文字列
+bool SolveTen(const String&amp; fourNum,int num/*=0*/,int exp/*=0*/){
+	//使用しているかのフラグ
+	static bool flag[4]={false,false,false,false};
+
+	//再帰の始めなら初期化
+	if(num==0 &amp;&amp; exp==0){
+		memset(flag,false,sizeof(bool)*4);
+		memset(madeStr,0,sizeof(byte)*4);
+	}
+
+	//数値と演算子が決まった
+	const int L=7;
+	if(num+exp==L){
+		//doubleの比較用誤差
+		const double E=0.0000001;
+		//逆ポーランド記法を計算
+		double res;
+		try{
+			res=RPN(madeStr);
+		}
+		catch(const char* e){
+			cout&lt;&lt;e&lt;&lt;endl;
+			return false;
+		}
+		//res=10ならばtrue
+		return (abs(res-10)&lt;E);
+	}
+
+	//演算子を入れることができるならば
+	if(num-exp&gt;=2){
+		//全ての演算子を試す
+		bool f;
+		madeStr[num+exp]='+';
+		f=SolveTen(fourNum,num,exp+1);
+		if(f)return f;
+		madeStr[num+exp]='-';
+		f=SolveTen(fourNum,num,exp+1);
+		if(f)return f;
+		madeStr[num+exp]='*';
+		f=SolveTen(fourNum,num,exp+1);
+		if(f)return f;
+		madeStr[num+exp]='/';
+		f=SolveTen(fourNum,num,exp+1);
+		if(f)return f;
+	}
+
+	//数値は最大4つまで
+	if(num&lt;4){
+		for(int i=0;i&lt;4;i++){
+			if(!flag[i]){
+				flag[i]=true;
+				madeStr[num+exp]=fourNum[i];
+				bool f=SolveTen(fourNum,num+1,exp);
+				if(f)return f;
+				flag[i]=false;
+			}
+		}
+	}
+
+	return false;
+}
+</pre>
+この関数に例えばfourNum="1347"を渡すと、"13+4+7+"から始まり"7431///"までの実に7680通りの<br>
+文法的に正しい逆ポーランド記法の全てを生成します。（実際には"1347-*-"で初めて10になるので410回目の再帰で抜けます。）<br>
+生成手順により正しい逆ポーランド記法が生成されることは保証されていますが一応計算するときにtry~catchで例外を潰しておきます。<br>
+<br>
+この関数がtrueを返した時、引数で渡した４つの数字からは少なくとも1通り10が作れるパターンが存在し、<br>
+その時の逆ポーランド式はグローバルなmadeStrに保持されています。<br>
+この関数がfalseの時、引数で渡した４つの数字からは10は作れない、ということが判別できます。<br>
+<br>
+ここでは1通りでも10が作れるパターンが求まれば良い、としています。<br>
+もし複数通り回答パターンが存在していても１つだけしか求めません。<br>
+いろいろ数字をつっこんでみてください。意外な回答を出力するかもしれません。<br>
+<br>
+<br>
+<h2>・全てのテンパズルを解く</h2>
+前の節で作ったSolveTenを用いて0000～9999までの全ての組み合わせに対してテンパズルが解けるかどうかを列挙してみましょう。<br>
+単純にforの4重ループで数字列を作ると生成されるのは順列です。<br>
+しかしSolveTenは組み合わせで全通り生成するので順列を渡すと無駄が多いです。<br>
+（例："1347"と"3417"は組み合わせ的に等価なものが検討されるため、どちらか一方だけ調べれば良い）<br>
+そのためここでも再帰で数字を選定していきます。<br>
+<pre>
+//記録用ファイルバッファ
+CFile fout("./result.csv",ios::binary|ios::out);
+//SloveTenを用いて全ての数字の組み合わせに対して解く
+void SolveAll(int k/*=0*/,int num/*=0*/){
+	//現在の数値
+	static byte qStr[4+1]={'0','0','0','0','\0'};
+
+	//4桁数値を決めたら
+	if(k==4){
+		//Stringにして表示
+		String str(qStr);
+		cout&lt;&lt;str;
+
+		//4桁の数値で10が作れるならば
+		if(SolveTen(str,0,0)){
+			//逆ポーランド記法の結果を取得
+			extern byte madeStr[7];
+			String res(madeStr);
+
+			//出力
+			cout&lt;&lt;","&lt;&lt;res&lt;&lt;","&lt;&lt;endl;
+			fout&lt;&lt;(const char*)Format("%s,%s",(const char*)str,(const char*)res)&lt;&lt;endl;
+		}
+		else{
+			//この4桁では10は作れなかった
+			cout&lt;&lt;",×"&lt;&lt;endl;
+			fout&lt;&lt;(const char*)Format("%s,×",(const char*)str)&lt;&lt;endl;
+		}
+		return ;
+	}
+
+	//重複なく数値の組み合わせを決めていく(再帰)
+	for(int i=num;i&lt;=9;i++){
+		qStr[k]='0'+i;
+		SolveAll(k+1,i);
+	}
+
+}
+</pre>
+コンソールに出すと共にファイルにも記録していきます。<br>
+そうして記録したcsvファイルを元にテンパズルで解が存在する組み合わせをプロットすると以下のようになります。<br>
+<img src="ReversePolishNotation/graph1.png" width="961" height="226"><br>
+1で解が存在する、0で解が存在しない　です。空白は既に前の段階で検討した組み合わせなのでスキップしたところです。<br>
+よって切符の数字やナンバープレートの数字４つの組み合わせをこのグラフと照らし合わせれば10が作れるかどうかがすぐ分かります（＾＾<br>
+<br>
+<br>
+<h2>※通常記法と逆ポーランド記法の相互変換</h2>
+とりあえずテンパズルを解くという今回やりたいことは全部できました。<br>
+しかし結果で返ってくる逆ポーランド記法で記述された計算式はやはり人間の目には分かりにくい。<br>
+そこで両記法の相互変換プログラムを作ってみたいと思います。<br>
+<h3>・逆ポーランド記法から通常記法への変換</h3>
+逆ポーランド記法rpnStr="14+37+*5/"から通常記法"(1+4)*(3+7)/5"への変換を考えます。<br>
+そもそもこれらの記法、同じ式を表しているので同じ<span class="red">構文木</span>を持ちます。<br>
+<img src="ReversePolishNotation/fig02.png" width="371" height="331"><br>
+数字を葉として、演算子を節とする木構造が作れます。<br>
+この木について赤い番号順に拾えば逆ポーランド記法、青い番号順に拾えば通常記法の文が復元できます。<br>
+よって　逆ポーランド記法-&gt;構文木-&gt;通常記法　と変換していきます。<br>
+<br>
+構文木の作り方ですがこれまた再帰して作っていきます。<br>
+この構文木は２分木（演算子はオペランドを２つとる）ですので右と左のノードに対して再帰的に適用できます。<br>
+構文木を作りながら計算式を表す文字列もついでに設定していけば後から走査する必要がありません。<br>
+<br>
+根の部分（上図の(/)）から木を作っていくので逆ポーランド記法で渡された文字列は逆順で処理していきます。<br>
+逆順といってもあらかじめスタックにつっこんでおいて、それから取り出していけば自然と逆順になります。（LIFO）<br>
+<br>
+<table border="0">
+<tr>
+<td>
+<pre>
+//逆ポーランド記法を通常記法に戻す
+String RPNtoNormal(String rpnStr){
+	//結果用String
+	String res;
+
+	//構文木
+	class Tree{
+	public:
+		//数値ノードか(葉)
+		bool isNum;
+		//ノードの文字列
+		String str;
+		//2分木の左右
+		Tree *right,*left;
+		
+		//コンストラクタ
+		Tree():isNum(false),right(NULL),left(NULL){}
+		//デストラクタ
+		virtual ~Tree(){
+			if(right)delete right;
+			if(left)delete left;
+		}
+
+		//スタックから木を作る
+		static void Make(Tree* t,stack&lt;byte&gt;&amp; rev){
+			//スタックが空なら抜ける
+			if(rev.size()==0)return ;
+
+			//スタックトップを取り出す
+			byte c=rev.top();
+			rev.pop();
+
+			//数値なら
+			if(isdigit(c)){
+				//葉として設定
+				t-&gt;isNum=true;
+				t-&gt;str+=c;
+				t-&gt;right=t-&gt;left=NULL;
+			}
+			else{//演算子なら
+				t-&gt;isNum=false;
+
+				//右のノードを作成
+				t-&gt;right=new Tree;
+				Make(t-&gt;right,rev);
+
+				//左のノードを作成
+				t-&gt;left=new Tree;
+				Make(t-&gt;left,rev);
+
+				//文字列を生成&lt;="([左][演算子][右])"
+				t-&gt;str+="(";
+				t-&gt;str+=t-&gt;left-&gt;str;
+				t-&gt;str+=c;
+				t-&gt;str+=t-&gt;right-&gt;str;
+				t-&gt;str+=")";
+			}
+		}
+	};
+
+	//逆ポーランド記法をスタックに入れる
+	stack&lt;byte&gt; rev;
+	for(int i=0,s=rpnStr.size();i&lt;s;i++){
+		rev.push(rpnStr[i]);
+	}
+	
+	//構文木のルートを生成しツリーを解析しながら通常記法の文字列を取得していく
+	Tree* root=new Tree();
+	Tree::Make(root,rev);
+	res=root-&gt;str;
+	delete root;
+
+	//結果を返す
+	return res;
+}
+</pre>
+</td>
+<td valign="top">
+<b>フローチャート</b><br>
+<img src="ReversePolishNotation/flow2.png" width="495" height="1128"><br>
+</td>
+</tr>
+</table>
+再帰してるのでフローチャートはあくまでも参考として。<br>
+このプログラムにrpnStr="14+37+*5/"を渡すと"(((1+4)*(3+7))/5)"が返ってきます。<br>
+やたらカッコがついてますが通常記法に変換することができました。<br>
+<br>
+<br>
+<h3>・通常記法から逆ポーランド記法への変換</h3>
+前述した逆ポーランド記法で記述された計算式を解くプログラムRPNの引数は当然ながら逆ポーランド記法の文字列です。<br>
+通常の計算式を計算するためには通常記法から逆ポーランド記法への変換が必要です。<br>
+通常記法から構文木を復元するのは大変ですが幸いにも再帰を使わずに逐次的に変換できるアルゴリズムがあります。<br>
+感覚としては逆ポーランド記法を説明したときの「言葉で表した時の文章から記号列を拾い上げる」感じでしょうか。<br>
+カッコや演算子についてはその対応や優先度を調べるためスタックに積みます。<br>
+数字や優先度が確定した演算子などは結果の文字列に積んでいきます。<br>
+バッファが２つあるので注意してください。<br>
+<br>
+<table border="0">
+<tr>
+<td>
+<pre>
+//通常記法を逆ポーランド記法に戻す
+String NormaltoRPN(String normalStr){
+	//結果としての逆ポーランド記法文字列
+	String res;
+	byte c;
+	//使用可能演算子とその個数
+	const int ON=4;
+	const byte O[ON+1]={
+		'-','+','/','*', '\0',
+	};
+
+	//受け取った通常記法文字列の正当性チェック
+	String tmp;
+	//カッコの数（開きカッコなら+1,閉じカコなら-1）
+	int kn=0;
+	for(int i=0,s=normalStr.size();i&lt;s;i++){
+		c=normalStr[i];
+		//空白(\t, \n, \rも含む)なら読み飛ばす
+		if(isspace(c))continue;
+		//等号'='なら読み飛ばす
+		if(c=='=')continue;
+		//数字なら読み込む
+		if(isdigit(c)){tmp+=c;continue;}
+		//カッコだったら読み込む
+		if(c=='('){tmp+=c;kn++;continue;}
+		if(c==')'){
+			tmp+=c;
+			kn--;
+			//カッコの対応がおかしい
+			if(kn&lt;0)throw "Syntax error , Invalid \'(\' \')\': error";	
+			continue;
+		}
+		//使用可能演算子なら読み込む
+		bool f=false;
+		for(int j=0;j&lt;ON;j++){
+			if(c==O[j]){tmp+=c;f=true;break;}
+		}
+		if(f)continue;
+
+		//無効な文字だった
+		throw "Syntax error , Invalid character: error";
+	}
+	//カッコの総数がおかしい
+	if(kn!=0){
+		throw "Syntax error , Invalid \'(\' \')\': error";	
+	}
+	normalStr=tmp;
+
+	//スタック
+	stack&lt;byte&gt; stack;
+	//文字列解析
+	for(int i=0,s=normalStr.size();i&lt;s;i++){
+		//先頭のトークンを取得
+		c=normalStr[i];
+
+		//数字ならそのまま結果に積む
+		if(isdigit(c)){
+			res+=c;
+			continue;
+		}
+
+		//閉じカッコ')'なら開きカッコ'('までのスタックを結果に積む
+		if(c==')'){
+			while(!stack.empty()){
+				c=stack.top();
+				if(c=='('){
+					stack.pop();
+					break;
+				}
+				res+=c;
+				stack.pop();
+			}
+			continue;
+		}
+		
+		//開きカッコ'('ならとりあえずスタックに積む
+		//閉じカッコ')'が来たときのマーカー
+		if(c=='('){
+			stack.push(c);
+			continue;
+		}
+
+		//演算子なら
+		int ci=-1,bi=-1;
+		//スタック上部にある演算子bと現在の演算子cの優先順位を比較する
+		while(!stack.empty()){
+			byte b=stack.top();
+
+			//演算子の優先順位を取得(インデックスが大きい程優先)
+			for(int i=0;i&lt;ON;i++){
+				if(c==O[i])ci=i;
+				if(b==O[i])bi=i;
+				if(ci!=-1 &amp;&amp; bi!=-1)break;
+			}
+
+			//スタック上部にある演算子の方が優先されるべきなら結果に積む
+			if(ci&lt;bi){
+				stack.pop();
+				res+=b;
+			}
+			else{
+				break;
+			}
+		}
+
+		//それ以外なら(cは優先度が低い演算子だった)
+		stack.push(c);
+	}
+
+	//スタックに積んである演算子を結果に反映
+	while(!stack.empty()){
+		c=stack.top();
+		stack.pop();
+		res+=c;
+	}
+
+	//結果を返す
+	return res;
+}
+</pre>
+</td>
+<td valign="top">
+<b>フローチャート</b><br>
+<img src="ReversePolishNotation/flow3.png" width="798" height="1043"><br>
+</td>
+</tr>
+</table>
+このプログラムにnormalStr="(1+4)*(3+7)/5"を渡すと"14+37+*5/"が返ってきます。<br>
+'+'と'-','*'と'/'の優先度はそれぞれ等しいものですが上のO[　]のように優先度をつけておきます。<br>
+<br>
+正当性チェックがやたら長いですがおそらくこれでも穴はあるかと思われます。<br>
+ある程度は正しい通常記法の文字列が渡される、と仕様が欲しいですね。<br>
+<br>
+<br>
+<h2>・まとめ</h2>
+お疲れ様でした。だいぶ長くなりました。<br>
+逆ポーランド記法についていろいろやってみました。<br>
+<br>
+構文解析の基礎としてスタック構造を用いた手法はよく使われます。<br>
+今回は四則演算と一桁の数字だけを対象としましたが実際にもう少し使える計算機としてはまだまだ機能が足りません。<br>
+記号とその機能を定義してその通りに振る舞うように実装すれば改良できます。<br>
+興味を持った方はぜひ挑戦してみてください。<br>
+<br>
+<br>
+<h2>・参考サイト</h2>
+<a href="http://www.gg.e-mansion.com/~kkatoh/program/novel2/novel207.html">逆ポーランド記法への変換</a><br>
+通常記法から逆ポーランド記法への変換方法。<br>
+必ずしもこの方法しかないわけではありませんが参考にさせていただきました。<br>
+<br>
+書籍<br>
+<b>『アルゴリズムとデータ構造(プログラミングの宝箱)』</b><br>
+<i>紀平拓男　春日伸弥　著<br>
+ソフトバンククリエイティブ<br>
+ISBN978-4-7973-6328-9<br></i>
+今回の記事を書くに至ったきっかけです。<br>
+他にも様々なアルゴリズムの基礎が書かれています。<br>
+<br>
+<br>
+実験的にフローチャートも載せてみたけどどうでしょ？<br>
+<br>
+<hr>
+<script type="text/javascript">
+write_locate(25);
+topic("index","../index.html");
+topic("プログラムテクニック覚え書き","./program_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+</p>
+</body></html>

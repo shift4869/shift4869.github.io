@@ -1,0 +1,219 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>5.ファイルパッキング</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+
+<!--<base href="http://1st.geocities.jp/shift486909/">-->
+</head>
+<body>
+<p align="left"><br>
+<h1>ファイルパッキング</h1><br>
+<hr>
+<h2>・ファイルパッキング</h2>
+ファイルパッキングとは複数のファイルを一つのファイルにまとめることです。<br>
+アーカイブとも言われます。標準のzip圧縮はファイルを複数指定できますので、アーカイバであると言えます。<br>
+しかし、アーカイブには圧縮や暗号化などのニュアンスが含まれるような気がするので、<br>
+ここでは&quot;ファイルパッキング&quot;と呼称します。<br>
+ただファイルをまとめるだけなので、逆にヘッダー情報分だけ増えます。<br>
+<br>
+<h2>・フローチャート</h2>
+今回はフォルダ内のファイルをパッキングしたいと思います。<br>
+なので、フォルダ内のファイルをすべて検索していって読み込んでいきます。<br>
+フォルダ内にはまたフォルダ(サブフォルダ)がある可能性があるので、関数を再帰させます。<br>
+検索のメインはそこの再帰関数です。<br><br>
+
+今回も展開時のためにヘッダーを入れていきます。<br>
+ヘッダーといってもこんな感じに入れます。<br>
+<img border="0" alt="" src="packing/data.jpg" width="514" height="267"><br>
+(中央のカラー帯が完成データです)<br>
+展開時にはファイルヘッダーを順次取得して展開していきます。<br>
+ヘッダー情報には「ファイルサイズ・相対パス」を'\t'タブ区切りで入れます。<br>
+この後にファイルのデータを入れます。<br>
+<br>
+では流れです。<br>
+<ol>
+<li>ディレクトリのパスを受け取る</li>
+<li>検索関数を再帰させながらバッファにためていく<br>その時にヘッダー部も入れる</li>
+<li>バッファを一つのファイルに保存する</li>
+</ol>
+今回は2.さえしっかりできれば簡単です。<br>
+
+<h3>1.ディレクトリのパスを受け取る</h3>
+これはコマンドライン引数で受け取ります。<br>
+詳しくは<a href="lzss.html">前回</a>参照。<br>
+ディレクトリのパスも受け取れます。<br>
+stringで扱っていきます。<br>
+ああ、一応 ( フォルダ ＝ ディレクトリ ) っていう解釈でいきます。<br>
+<br>
+
+<h3>2.検索関数を再帰させながらバッファにためていく</h3>
+再帰させるために別関数にします。<br>
+バッファはvector&lt;BYTE&gtを使います。<br>
+引数のvectorは参照にしてどんどんデータをためていけるようにします。<br>
+フォルダ内の検索には<a href="http://msdn.microsoft.com/ja-jp/library/kda16keh.aspx">_find系関数</a>を使います。<br>
+_find系関数の返り値や扱いは特異なのでよく調べてみてください。<br>
+findハンドルはtypedefしてます。<br>
+<pre>
+//インクルードファイル
+#include &lt;iostream&gt;
+#include &lt;IO.h&gt;
+#include &lt;fstream&gt;
+#include &lt;sstream&gt;
+#include &lt;vector&gt;
+#include &lt;string&gt;
+#include &lt;algorithm&gt;
+#include &lt;direct.h&gt;
+
+using namespace std;
+
+//typedef宣言
+typedef unsigned char BYTE;
+typedef unsigned int UINT;
+typedef _finddata_t FIND;
+typedef intptr_t FIND_IT;
+
+//マクロ定義
+#define EXT ".pak"
+
+string root;
+
+//この関数より前に
+//rootに指定ディレクトリパスを代入しています
+//root=path
+
+void search(string path,vector&lt;BYTE&gt; &buf){
+
+    //検索ハンドル
+    FIND find;
+    FIND_IT find_it;
+
+    //パスの最後が'\'で終わってなかったら付け足す
+    if(*(path.end()-1)!='\\'){
+        path+='\\';
+    }
+
+    //検索準備
+    find_it=_findfirst((path+"*.*").c_str(),&find);
+    if(find_it==-1){
+        throw "パスが無効です";
+    }
+
+    //ゴミデータ読み飛ばし
+    _findnext(find_it,&find);
+
+    //検索開始
+    for(;_findnext(find_it,&find)==0;){
+        if(find.attrib & _A_SUBDIR){//サブディレクトリ
+            //ディレクトリヘッダーを入れる
+            string direct,h;
+            ostringstream trans;
+            
+            //directに相対パスを設定
+            direct=path;
+            direct=direct.replace(0,root.length(),"")+find.name;
+            
+            //サイズは0扱いで
+            trans&lt;&lt;"0\t"&lt;&lt;direct&lt;&lt;"\t";
+            h=trans.str();
+
+            //バッファにヘッダーを書き込む
+            copy(h.begin(),h.end(),back_inserter(buf));
+
+            search(path+find.name,buf);//再帰
+        }
+        else{//ファイル
+            //変数宣言
+            string file,h;
+            ostringstream tranc;
+            UINT size=0;
+
+            //ファイル名
+            file=path+string(find.name);
+            //ファイルオープン
+            ifstream fin(file.c_str(),ios::binary);
+
+            if(fin.fail()){//エラーチェック
+                throw "ファイル読み込みエラー";
+            }
+            
+            //ファイルのサイズを取得
+            size=fin.seekg(0,ios::end).tellg();
+            
+            //directに相対パスを設定
+            string direct=path;
+            direct=direct.replace(0,root.length(),"")+find.name;
+            
+            //UINT型をstringに変換するため
+            //ストリングストリームにヘッダーを詰め込む('\t'タブ区切り)
+            tranc&lt;&lt;size&lt;&lt;"\t"&lt;&lt;direct&lt;&lt;"\t";
+            
+            //ヘッダーをstringで取得
+            h=tranc.str();
+            
+            //バッファにヘッダーを書き込む
+            copy(h.begin(),h.end(),back_inserter(buf));
+
+            //バッファのメモリを確保
+            buf.resize(buf.size()+size);
+            
+            //ファイルデータをバッファに書き込む
+            fin.seekg(0,ios::beg).read((char*)&buf[buf.size()-size],size);
+        }
+    }
+
+    //検索終了
+    _findclose(find_it);
+
+}
+</pre>
+_findfirstで検索準備、_findnextで検索結果を取り出し、_findcloseで検索終了。<br>
+find.attribと_A_SUBDIRの論理積(&amp;)を取り、
+真ならサブフォルダなのでディレクトリを示すヘッダーを入れてサブフォルダ内を検索するために再帰します。<br>
+ファイルならファイルヘッダーを入れて、ファイルデータを読み込み入れます。<br>
+<br>
+展開時にどんな情報が必要かいうことを考えてヘッダーに入れる情報を決めます。<br>
+<br>
+<h3>3.バッファを一つのファイルに保存する</h3>
+これはostreamで2.のバッファに入れたデータを書き込めばokです。<br>
+<br><br>
+全体ソースはこちら。<br>
+今回の再帰関数はpack.cppにあります。<br>
+<a href="packing/main.cpp" target="_blank">main.cpp</a>　　
+<a href="packing/pack.cpp" target="_blank">pack.cpp</a>　　
+<a href="packing/dispack.cpp" target="_blank">dispack.cpp</a>　　
+<a href="packing/pack.txt" target="_blank">pack.h</a><br>
+（「ファイルパッキング」と「パッキングの展開」の両方のソースです）<br>
+<br>
+<h2>・感想</h2>
+ファイルパッキングについてはあまり参考資料がなく、<br>
+サンプルソースなどもあまり見つけられませんでした。<br>
+なので、自分なりに書くしかありませんでした。<br>
+STLとかstringとかを使いまくってるので、実行速度は遅くなります。<br>
+ですが、その分扱いは簡単になりますので、この手法を取りました。<br>
+イメージできて、慣れてくると、ポインタとかで動的にメモリを確保していったほうが速くなると思います。<br>
+ファイルパッキングは展開の方が難しいので、ヘッダーにうまく必要な情報を入れるのがコツです。<br>
+<br>
+<h2>・参考サイト様</h2>
+<a href="http://tamachan.club.kyutech.ac.jp/gamewiki/index.php?%A5%D5%A5%A1%A5%A4%A5%EB%A5%D1%A5%C3%A5%AD%A5%F3%A5%B0" target="_blank">ファイルパッキング - ゲームプログラミングWiki</a><br>
+解説してるのはここぐらいしか見つけられませんでした。<br>
+ヘッダー情報がここのとは違う手法ですが、サンプルソースもあります。<br>
+<br>
+<a href="http://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q1132007116">ファイルパッキングされたデータをメモリ内に読み込んだ後のファイルの扱い方につ... - Yahoo!知恵袋</a><br>
+パックされたデータの利用について。<br>
+質問と回答です。<br>
+<br>
+・・・結局「ファイルパッキング」と「アーカイブ」の違いってなんだろう・・・？<br>
+<br>
+<hr>
+<script type="text/javascript">
+write_locate(8);
+topic("index","../index.html");
+topic("プログラムテクニック覚え書き","./program_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+</p>
+</body></html>

@@ -1,0 +1,41 @@
+<html><head>
+<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Script-type" content="text/javascript; charset=shift_jis">
+<title>計算機</title>
+<script type="text/javascript" src="keisann_java.js"></script>
+
+</head>
+<body >
+<form name="form1">
+<input size="20" name="text1"><br>
+<input type="button" onclick="wtext('1')" value="1">
+<input type="button" onclick="wtext('2')" value="2">
+<input type="button" onclick="wtext('3')" value="3">
+<input type="button" onclick="cnum(2)" value="2進数">
+<input type="button" onclick="cnum(10)" value="10進数"><br>
+<input type="button" onclick="wtext('4')" value="4">
+<input type="button" onclick="wtext('5')" value="5">
+<input type="button" onclick="wtext('6')" value="6">
+<input type="button" onclick="cnum(8)" value="8進数">
+<input type="button" onclick="cnum(16)" value="16進数"><br>
+<input type="button" onclick="wtext('7')" value="7">
+<input type="button" onclick="wtext('8')" value="8">
+<input type="button" onclick="wtext('9')" value="9">
+<input type="button" onclick="ctext()" value="clear"><br>
+<input type="button" onclick="wtext('0')" value="0">
+<input type="button" onclick="wtext('+')" value="+">
+<input type="button" onclick="wtext('-')" value="-">
+<input type="button" onclick="wtext('*')" value="*">
+<input type="button" onclick="wtext('/')" value="/">
+<input type="button" onclick="calc(document.form1.text1.value)" value="＝">
+<p>背景色 
+<select onchange="back(document.test1.puru1.value)" name=puru1> 
+<option value="white"   selected>白</option>
+<option value="red">赤</option>
+<option value="yellow">黄</option> 
+<option value="blue">青</option>
+<option value="green">緑</option>
+</select>
+</p>
+</form> 
+</body></html>

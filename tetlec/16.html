@@ -1,0 +1,220 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>ストック機構</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<meta http-equiv="content-type" content="text/css; charset=shift_jis">
+<link rel="stylesheet" href="./styleTet.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<base href="http://1st.geocities.jp/shift486909/tetlec/">
+</head>
+<body>
+<p align="left"><br>
+<img src="chapter_g/16g.gif" width="402" height="60" alt=""><br>
+<br>
+今回はここです↓<br>
+<img src="16/16_1.gif" width="640" height="480" alt=""><br>
+<br>
+ポイントはストック入れ替え後のreturnです。<br>
+これをしないと(書く順番の影響もありますが)初期化されたばかりの現在テトリミノが<br>
+後の落下処理などを通ってしまい、うまく機能しません。<br>
+
+・GV.hにTetriMino stock<br>
+・control.cppにstatic bool stockFlag<br>
+を追加します。<br>
+stockFlagは連続ストックを防止するために<br>
+このターン中にストックをしたかどうかを記憶しておくためのものです。<br>
+<hr>
+<pre>
+//<span class="red">GV.h</span>
+#ifdef FIRST_LOADING
+#define E 
+#else
+#define E extern
+#endif
+
+//コンフィグクラス
+E Config config;
+
+//画像イメージ
+namespace IMG{
+	E int board[3];//背景画像
+	E int block[7];//ブロック画像
+	E int num[10]; //数字画像
+};
+
+//現在のテトリミノ
+E TetriMino cur;
+
+//フィールド上のブロック
+E list&lt;Block&gt; blkList;
+
+//ネクストブロックリスト
+E list&lt;TetriMino&gt; nextList;
+
+<span class="red">//ストック
+E TetriMino stock;</span>
+<hr>
+//<span class="red">control.cpp</span>
+#include "../include/main.h"
+
+<span class="red">//ストックフラグ
+static bool stockFlag=false;</span>
+
+//コントロール
+void Control(){
+	if(cur.flag){
+		//入力状況を取得
+		int input[]={
+			CheckStatePad(config.left),
+			CheckStatePad(config.right),
+			CheckStatePad(config.up),
+			CheckStatePad(config.down),
+			CheckStatePad(config.lspin),
+			CheckStatePad(config.rspin),
+			CheckStatePad(config.stock),
+		};
+
+		//自動落下の間隔
+		int interval=40;
+
+		//左
+		if(input[0]==1 || (input[0]&gt;12 &amp;&amp; input[0]%5==0)){
+			AddX(cur,-BS);
+			if(!IsValid(cur))AddX(cur,BS);
+		}//右
+		else if(input[1]==1 || (input[1]&gt;12 &amp;&amp; input[1]%5==0)){
+			AddX(cur,BS);
+			if(!IsValid(cur))AddX(cur,-BS);
+		}//上
+		else if(input[2]==1){
+			while(IsValid(cur)){
+				AddY(cur,BS);
+			}
+			AddY(cur,-BS);
+			cur.wait=60;
+		}//下
+		else if(input[3]){
+			interval=5;
+		}
+
+		//回転
+		if(input[4]==1){
+			Spin(cur,true);
+		}
+		else if(input[5]==1){
+			Spin(cur,false);
+		}
+
+		<span class="red">//ストック
+		if(input[6]==1){
+			if(!stockFlag){//連続ストックでなければ
+				//初期位置へ戻しておく
+				cur.x=FX+BS*6;
+				cur.y=FY-BS*2;
+				cur.cnt=0;
+				cur.wait=0;
+
+				//ストックと入れ替え
+				swap(cur,stock);
+
+				//ストックフラグon
+				stockFlag=true;
+
+				return ;
+			}
+		}</span>
+
+		if(cur.cnt%interval==0){
+			//自動落下
+			AddY(cur,BS);
+			if(!IsValid(cur)){
+				AddY(cur,-BS);
+				cur.wait++;
+			}
+		}
+		
+		//着地したら
+		if(cur.wait&gt;0){
+			cur.wait++;
+		}
+
+		//猶予時間経過したら
+		if(cur.wait&gt;60){
+			//着地完了
+			cur.flag=false;
+
+			//保持しているblkをフィールドへ追加
+			for(int i=0;i&lt;4;i++){
+				blkList.push_back(cur.blk[i]);
+			}
+
+			<span class="red">//ストックフラグをoffに
+			stockFlag=false;</span>
+		}
+
+		//カウントアップ
+		cur.cnt++;
+	}
+	else{
+		//先頭を取り出す
+		cur=nextList.front();
+		//先頭を消す
+		nextList.pop_front();
+		//末尾に追加
+		nextList.push_back(CreateTetriMino(Point(FX+BS*6,FY-BS*2),
+					(BLK_COL)GetRand(BLK_KND_NUM-1)));
+		//画面内有効フラグをtrueに
+		cur.flag=true;
+	}
+}
+</pre>
+<hr>
+で、左上に描画します。<br>
+前回の描画と同じ要領でokです。<br>
+<hr>
+<pre>
+//<span class="red">draw.cpp</span>
+#include "../include/main.h"
+
+//ブロック描画
+void DrawBlock(){
+	・
+	・
+	・
+	<span class="red">//ストックの描画
+	for(int x=0;x&lt;5;x++){
+		for(int y=0;y&lt;5;y++){
+			if(stock.field[x][y]){
+				DrawGraph(BS+BS*x,BS+BS*y,IMG::block[(int)stock.blk[0].knd],true);
+			}
+		}
+	}</span>
+}
+	・
+	・
+	・
+</pre>
+<hr>
+実行結果:<br>
+<img src="16/16_2.gif" width="640" height="480" alt=""><br>
+<br>
+うまく出し入れができたでしょうか？<br>
+始め、stockに何もないときはfieldが全てfalseなので、drawしても表示されません。<br>
+それに、初回ストック時は入れ替えるとcurのflagがfalse(stockのデフォルト)になり、<br>
+ネクストブロックリストから一つ取り出してくれるのでうまくいきます。<br>
+<br>
+次回はハードドロップ時に大変便利なドロップシャドウを設定します。<br>
+<br>
+</p>
+<hr size="2">
+
+<script type="text/javascript">
+write_locate(17);
+topic("index","../index.html");
+topic("テトリス作成講座","./tetlec_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+
+</body></html>

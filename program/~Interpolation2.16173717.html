@@ -1,0 +1,168 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>15-2.補間（曲線）</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<!--<base href="http://1st.geocities.jp/shift486909/program/">-->
+</head>
+<body>
+<p align="left"><br>
+<h1>補間（曲線）</h1><br>
+<hr>
+<br>
+<h2>・ベジェ曲線</h2>
+前の節ではあくまで一次元的な値の推移についての補間でした。<br>
+この節では二次元的な座標平面上に存在する2点間を補間することを目的とします。<br>
+（やってることはあまり変わりません）<br>
+<br>
+まず始点sから終点eまでを滑らかな曲線でつなぐ補間法に<font class="red">ベジェ曲線</font>があります。<br>
+ベジェ曲線補間を適用するためにはは始点と終点の他にいくつかの制御点が必要となります。<br>
+ここでは制御点を２つ渡す3次ベジェ曲線について考えます。<br>
+<br>
+内分点を求める操作を繰り返して現在のt(0&le;t&le;1)に対する現在点を求めるのですが詳しい実装は前に解説しましたのでそちらを参照してください。<br>
+<br>
+-&gt;<a href="./bezier.html">2.ベジェ曲線軌道</a>（サイト内リンク）<br>
+<br>
+始点s(0,0),終点e(1,1),制御点として矩形の端点c1(1,0),c2(0,1)を与えたときのベジェ曲線補間は以下のようになります。<br>
+<img src="Interpolation/fig07.png" width="318" height="236"><br>
+今度はxy平面なことに気をつけてください。<br>
+<br>
+ベジェ曲線は制御点の位置により回り込むようなダイナミックな曲線も描けることが特徴です。<br>
+求め方も内分点だけですので座標クラスを引数とする内分点を求める関数を予め作っておけば問題ありません。<br>
+<br>
+<br>
+<h2>・Bスプライン曲線</h2>
+ベジェ曲線で任意の曲線が描けることは分かりました。<br>
+しかし上の図を見て、もうすこし制御点の方へ寄って行って欲しいようには思えませんか？<br>
+ベジェ曲線だけで変形させるためには制御点をかなり遠くの方まで持ってかなければその寄与があまり現れません。<br>
+それはそれで特徴なので利用すればいいのですが適切な制御点というのはなかなか定めにくい。<br>
+シミュレータを作って実測してみるのもいいですが、もうすこし直感的に各点の寄与が分かりやすいような補間があればいいですね。<br>
+<br>
+<font class="red">Bスプライン曲線</font>補間を用いれば各点の寄与に着目して現在点を決めることができます。<br>
+補間の一般的な考え方として各点の寄与を考えるとその重み分だけ適当なウェイトをかけて足し合わせれば中間的な点が手に入ります。<br>
+<img src="Interpolation/shiki18.png" width="321" height="113"><br>
+m(t)が求めたい現在点です。<br>
+&Sigma;の範囲が見慣れませんがこれは始点をP0,終点をPnにするためです（後述）<br>
+同様にtの範囲も異なります上式においてtの範囲は<font class="red">-1&le;t&le;n+1</font>です。<br>
+Piは始点と終点を含んだ全制御点の配列で、nは始点と終点を含んだ全制御点の個数です（今回はn=4）<br>
+P[i]={s,c1,c2,e}ですが&Sigma;の範囲に合わせてP[i+2]={s,s,s,c1,c2,e,e,e}としておきます。<br>
+<br>
+tの時点での重みw(t)を各点にかけることによりその寄与を得ます。<br>
+重みw(t)は3次Bスプライン曲線として定義されていて、<br>
+<img src="Interpolation/shiki19.png" width="550" height="166"><br>
+で表されます。<br>
+tの定義域は今までのものと異なり-2&le;t&le;2まで（-&infin;&le;t&le;&infin;だけど0なので）となります。<br>
+<br>
+w(t)は以下のような形をしています。<br>
+縦軸w(t),横軸tとします。<br>
+<img src="Interpolation/graph04.png" width="376" height="226"><br>
+t=1では重みw(t)のどちらの場合分けでも同じ値(1/6)をとり、かつ、傾きも等しいので滑らかに繋がります(微分してみてください)<br>
+最大値をとるのはt=0で、その値は2/3です。<br>
+実はこの重み、t全域で積分すると１になるようにできています。（実際にやってみてください）<br>
+確率分布的な性質と同じ、と考えれば分かりやすいでしょうか。<br>
+<br>
+さて、このw(t)をPiにかけて行くのですがm(t)の式を見るとwの引数はt-iです。<br>
+これは平行移動を表し、徐々にどのPiの寄与を強めていくか（あるいは弱めていくか）を表します。<br>
+w(0)のときのiに対応するPiの寄与が一番強くなることはmax{w(t)}=w(0)なことからも明らかです。<br>
+<br>
+補間の始まり、つまりt=-1の時を考えます（m(t)におけるtの定義域参照）<br>
+この時w(t)はw(-1-i)です。iは-2からn+2まで動くので、<br>
+重みは<font class="red">w(1),w(0),w(-1)</font>,w(-2)　...　w(-n-3)です。<br>
+w(t)の式よりtの絶対値が2以上の時、寄与が0なので全て消えて、残るのは始めの3項だけです。<br>
+始めの3項は全てs（P[-2]=P[-1]=P[0]=s）なのでm(t=-1)はsとなります。<br>
+<br>
+補間の終わり、t=n+1の時も同様で、<br>
+この時w(t)はw(n+1-i)です。iは-2からn+2まで動くので、<br>
+重みはw(n+3)　...　w(2),<font class="red">w(1),w(0),w(-1)</font>です。<br>
+w(t)の式よりtの絶対値が2以上の時、寄与が0なので全て消えて、残るのは最後の3項だけです。<br>
+最後の3項は全てeなのでm(t=n+1)はeとなります。<br>
+<br>
+中間地点では、t-i=0に最も近いi番目の制御点の寄与が一番強くなり、その制御点の方へ寄っていきます。<br>
+<br>
+以上のw(t)の様子を図に示します。<br>
+<img src="Interpolation/fig10.png" width="477" height="209"><br>
+<br>
+あと、実装上の注意としてはベジェ曲線の引数のフォーマットと揃えたいので始点startP,終点endP,制御点c1,c2,現在カウントnowCnt,補間完了までの時間tsを引数として取ります。<br>
+時間について、前回の補間ではt=nowCnt/tsとして0～1のtで補間していましたが今回はtは-1～n+1です。<br>
+めんどくさいと思うかもしれませんが前回の線形補間テンプレートを使えば簡単です。<br>
+nowCntとtsを引数に-1～n+1まで線形補間で連続なtを得ます。こういったパラメータの設定に線形補間はぴったりです。<br>
+<br>
+それでは以下に3次Bスプライン曲線補間の実装コードを載せます。<br>
+<pre>
+//3次Bスプライン
+template&lt;class T&gt;
+T BSplineInterpolate(const T&amp; startP,const T&amp; c1,const T&amp; c2,const T&amp; endP,int nowCnt,int ts){
+	//始点と終点を含めた制御点の総数
+	const int N=4;
+	//制御点の配列
+	T p[N]={startP,c1,c2,endP};
+	//現在時刻t（-2&le;t&le;n+1）
+	float t=LinearInterpolate(-1.0f,(float)N,nowCnt,ts);
+	//重みr,ti=t-i
+	float r,ti;
+	//現在どの点の寄与か表すインデックス
+	int k;
+	//現在点
+	T m=T();
+
+	//Σi=-2～N+2
+	for(int i=-2;i&lt;N+2;i++){
+		//インデックス設定
+		k=i;
+		if(i&lt;0)k=0;	//i=-2,-1ならばi=0番目の点の寄与
+		if(i&gt;N-1)k=N-1;	//i=N,N+1ならばi=N番目の点の寄与
+
+		//重みを求める
+		ti=t-i;
+		r=0;
+		if(-2&lt;=ti &amp;&amp; ti&lt;=2){
+			float d=abs(ti)-2;
+			r=-d*d*d/6;
+		}
+		if(-1&lt;=ti &amp;&amp; ti&lt;=1){
+			float d=abs(ti);
+			r=(3*d*d*d-6*d*d+4)/6;
+		}
+
+		//重みをかけて各点の寄与を足し込む
+		m+=(p[k]*r);
+	}
+
+	return m;
+}
+</pre>
+C++の配列は0ベースなのでインデックス関係で少々&plusmn;1してます。<br>
+今までの説明と食い違っているところもあるかと思いますが大丈夫です。<br>
+重みを求める関数は分離してもいいですがこのくらいなら組み込みでもいいかと。<br>
+テンプレートのTは四則演算が定義された座標クラスを想定しています。<br>
+<br>
+四角形の4点をそれぞれ引数に与えてBスプライン補間は以下のようになります。<br>
+<img src="Interpolation/fig08.png" width="318" height="236"><br>
+同じパラメータのベジェ曲線と比べても、制御点の寄与が大きいことが分かります。<br>
+<img src="Interpolation/fig09.png" width="318" height="236"><br>
+<small>ぐいっと</small><br>
+<br>
+Bスプライン曲線もよく使われる補間です。<br>
+普通Bスプラインと言うと始点と終点を<span class="red">通らない</span>ものなんですが前後に仮の制御点として連続させると通るようになります。<br>
+原理が分からなくても実装さえできればこちらのものです（←<br>
+<br>
+<br>
+<h2>・速度一定なベジェ曲線</h2>
+普通のベジェ曲線はこうでした。（ts=50）<br>
+<img src="Interpolation/fig11.png" width="318" height="236"><br>
+ちょっと分かりにくいですが始点と終点付近の点は離れていて、中間付近の点より移動量が大きいことが分かります。<br>
+ベジェ曲線は制御点によって一般に速度は一定ではありません。<br>
+これもベジェ曲線の特徴として利用できますが速度
+
+<hr>
+<script type="text/javascript">
+write_locate(22);
+topic("index","../index.html");
+topic("プログラムテクニック覚え書き","./program_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+</p>
+</body></html>

@@ -1,0 +1,117 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>2.ベジェ曲線軌道</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<!--<base href="http://1st.geocities.jp/shift486909/">-->
+</head>
+<body>
+<p align="left"><br>
+<h1>ベジェ曲線軌道</h1><br>
+<hr size="2">
+<h2>・ベジェ曲線軌道</h2>
+前回のエルミート曲線軌道はこのようなものでした。<br>
+<img border="0" alt="" src="./bezier/graph1.gif" width="286" height="200"><br>
+しかし、実はこのエルミート曲線には問題があります。<br>
+エルミート曲線は大体最短距離を描きます(p1→p2)<br>
+なので、大きく回り込むこんな曲線軌道は描けません。<br>
+<img border="0" alt="" src="bezier/graph2.gif" width="286" height="200"><br><br>
+そこで使うのが<span class="red">ベジェ曲線</span>です。<br>
+ベジェ曲線は始点・終点のほかに制御点を複数持ちます。<br>
+下の図では緑のc1,c2点が制御点です。<br>
+<img border="0" alt="" src="bezier/graph3.gif" width="398" height="276"><br>
+制御点はいくつあってもかまいませんが、その分演算回数が増えます。<br>
+なので、普通は<span class="red">制御点2個の3次ベジェ曲線</span>を使います。<br>
+より複雑な曲線は3次ベジェ曲線を複数組み合わせて実現します。<br>
+p1→p2へ　p2→p3へ<br>
+<img border="0" alt="" src="bezier/graph4.gif" width="478" height="429"><br>
+<small>(制御点の位置が結構適当なのは御了承ください)</small><br>
+余談ですが、(c2,p2,c3)を一直線上に配置するとつなぎ目がきれいに描けます。<br>
+このように、ベジェ曲線は非常に自由度が高く、ペイント系ソフトやフォントの描画にも使われているようです。<br>
+<br>
+
+<h2>・算出方法</h2>
+ベジェ曲線は<span class="red">内分点計算</span>を繰り返して求めます。<br>
+点　A(x1,y1)　,　B(x2,y2)　として、<br>
+線分ABを m : n に内分する内分点をpとすると<br>
+<img border="0" alt="" src="bezier/bez1.gif" width="242" height="47"><br>
+と書けます。<br>
+前回と同じように、0で始点・1で終点をとるように0~1まで動く変数を用意します。<br>
+そして、各フーレムごとに内分する比率を変えながら点を求めていきます。<br>
+t が0~1まで動くとすると、tフレーム後の点 p は次の図の位置にあります。<br>
+<img border="0" alt="" src="bezier/graph5.gif" width="398" height="276"><br>
+具体的な演算方法としては、<br>
+<ol>
+<li>(p1→c1) , (c1→c2) , (c2→p2) を t : (1-t) に内分する点(緑線上の紫点)を求める。<br></li>
+<li>上で求めた点を結ぶ線分をさらに t : (1-t) に内分する点(紫線上の紫点)を求める。<br></li>
+<li>その2点を結ぶ線分をさらに t : (1-t) に内分する点(黄点)が p となる。<br></li>
+</ol>
+と内分点だらけです（＾＾<br>
+コーディング的には前回よりも簡単になります。<br><br>
+
+<h2>・プログラムでの記述</h2>
+コードを示します。<br>
+引数は( Point p1 , Point p2 , Point c1 , Point c2 ,int time)です。<br>
+<pre>
+	//内分点を返す関数
+	Point inner_point(Point p1,Point p2,float m,float n){
+		return Point((n*p1.x+m*p2.x)/(m+n),(n*p1.y+m*p2.y)/(m+n));
+	}
+    
+	Point p[4]={p1,c1,c2,p2};
+    
+	float k=(float)cnt/time;
+	float m=k,n=1.0-k;
+	Point s1[3]={0,};
+	Point s2[2]={0,};
+	Point mp;
+
+	//1回目の内分点取得
+	for(int i=0;i&lt;3;i++){
+		s1[i]="inner_point(p[i],p[i+1],m,n);
+	}
+	//2回目の内分点取得
+	for(int" i=0;i&lt;2;i++){
+		s2[i]="inner_point(s1[i],s1[i+1],m,n);
+	}
+
+	//3回目の内分点(現在点)取得
+	mp=inner_point(s2[0],s2[1],m,n);
+
+	//現在の座標設定
+	x=mp.x;y=mp.y;
+
+	if(cnt"&gt;time)flag=false;
+	cnt++;
+</pre>
+cntは毎フレーム増えるカウンタです。<br>
+内分点を返す関数をinner_pointとして実装しました。<br>
+この関数は線分p1→p2を m : n に内分する点を返します。<br>
+引数をpの配列でまとめて処理します。<br>
+s1に上の図でいう(緑線上の紫点)を取得します。<br>
+s2に上の図でいう(紫線上の紫点)を取得します。<br>
+mpが現在点です。これはs2を内分すればわかります(黄点)<br><br>
+
+<h2>・参考サイト様</h2>
+外部リンクです<br>
+<a href="http://ja.wikipedia.org/wiki/%E3%83%99%E3%82%B8%E3%82%A7%E6%9B%B2%E7%B7%9A">ベジェ曲線 - Wikipedia</a><br>
+Wikipediaのベジェ曲線のページです。<br>
+ちょっと詳しすぎてわかりづらいかも。<br>
+<a href="http://musashi.or.tv/fontguide_doc3.htm">ベジェ曲線</a><br>
+内分の際の図がわかりやすいです。<br><br>
+
+図で十分なのか動画やアプレットなどの動きがあるものが見つかりませんでしたorz<br>
+あとはググってください。<br>
+<br>
+<hr size="2">
+<script type="text/javascript">
+write_locate(2);
+topic("index","../index.html");
+topic("プログラムテクニック覚え書き","./program_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+</p>
+</body></html>

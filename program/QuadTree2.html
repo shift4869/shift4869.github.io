@@ -1,0 +1,599 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>14-2.四分木探索（実装編）</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<base href="http://1st.geocities.jp/shift486909/program/">
+</head>
+<body>
+<p align="left"><br>
+<h1>四分木探索（実装編）</h1><br>
+<hr>
+<br>
+<h2>・四分木探索（実装編）</h2>
+それでは実際に実装に入っていきましょう。<br>
+まずはクラスの構成です。以下のようなクラスを創ります。<br>
+<img src="QuadTree/fig15.png" width="371" height="374"><br>
+クラス図の見方ですが、白のひし形は「包含」、白の三角は「継承」を表しています。<br>
+赤枠の部分は検証用ですのであまり気にしなくてもいいです。<br>
+重要なのは空間を表すCellクラスと動物体を表すMoverクラスが相互包含になっているところです。<br>
+包含といっても要はそのクラスのポインタを保持するというもので、<br>
+空間はどの物体と関連づけられているか、物体はどの空間に所属しているか、を相互に知るためにこうしました。<br>
+おそらく相互包含は複雑になりすぎて危険です。ポインタの先に実体があるかどうか保証できません。<br>
+<br>
+CellListは全ての空間の相互リストの起点（ダミー）をもち、線形な空間の配列をもちます。<br>
+空間に割り振ったモートン符号の数だけ双方向リストを保持し、各物体をそれぞれ所属空間のリストに登録して運用します。<br>
+<img src="QuadTree/fig16.png" width="768" height="280"><br>
+物体そのものを登録するのではなく、物体に関連づけられた空間を繋いで運用します（図だと片方向に見えますが双方向です）<br>
+<br>
+物体の座標と半径からどのダミーに繋げればよいかは&omicron;(1)で分かります。（理論編より）<br>
+双方向リストへの登録操作自体も&omicron;(1)で終わります。<br>
+双方向リストから抜ける操作も&omicron;(1)で終わります。<br>
+よって更新も&omicron;(1)でできます。<br>
+<br>
+動物体Moverのポインタで運用するので、Moverから継承した全てのクラスは四分木の恩恵に与れます。<br>
+継承とはis-aであり、弾Bulletは動く物体Moverであり、画面端で跳ね返る弾ReflecBulletも動く物体Moverです。<br>
+座標と大きさを持つので四分木探索が行え、問題なく衝突判定を行うことができます。<br>
+<br>
+空間系の前に先に動物体系の実装を示しておきます。<br>
+MoverにCellのポインタが含まれていること以外はそこそこなじみあるクラスだと思います。<br>
+<br>
+コードをとばして解説の続きを見たい方はこちらから（同ページスクロール）
+<a href="QuadTree2#explain">■</a><br>
+<hr>
+<pre>
+//CMover.h
+
+//前方宣言
+class Cell;
+
+//動物体
+class Mover : public Point{
+public:
+	//生存フラグ
+	bool alive;
+	//半径
+	float r;
+	//所属空間
+	Cell* cp;
+
+	//コンストラクタ
+	Mover();
+	Mover(const Point&amp; p,float _r);
+	Mover(float _x,float _y,float _r);
+
+	//デストラクタ
+	virtual ~Mover();
+
+protected:
+	//メンバ設定用関数
+	virtual void setMember(float x,float y,float r);
+
+public:
+	//衝突判定(Mover同士の「円と円の当たり判定」)
+	virtual Mover* IsCollision(/*const */Mover* m);
+
+	//衝突判定(四分木探索)
+	virtual Mover* IsCollision();
+
+	//自身を覆う矩形
+	virtual Rect GetRect() const;
+
+	//更新
+	virtual void Move();
+	//描画
+	virtual void Draw();
+};
+</pre>
+<hr>
+<pre>
+//CBullet.h
+//弾
+class Bullet : public Mover{
+public:
+	float ang,spd;
+	int col;
+	//int knd;
+
+	//コンストラクタ
+	Bullet();
+	Bullet(Point p,float range,float angle,float speed,int color);
+
+	//デストラクタ
+	virtual ~Bullet();
+
+protected:
+	//メンバ設定用関数
+	virtual void setMember(float x,float y,float r,float angle,float speed,int color);
+
+public:
+	//更新
+	virtual void Move();
+	//描画
+	virtual void Draw();
+};
+
+//反射弾
+class ReflecBullet : public Bullet{
+public:
+	static Rect base;
+
+	//コンストラクタ
+	ReflecBullet();
+	ReflecBullet(Point p,float range,float angle,float speed,int color);
+
+	//デストラクタ
+	virtual ~ReflecBullet();
+
+	//更新
+	virtual void Move();
+};
+</pre>
+<hr>
+型Rectは矩形を表すクラスで、左上の基準座標(x,y),横の長さw,縦の長さhで構成されます。<br>
+普通、反射弾は上下左右どの壁に対して反射が有効かを設定しますが、ここでは検証用ですので全方向で反射します。つまり画面外に出ません。<br>
+<br>
+重要そうなところのみ実装を示します。<br>
+(残りの実装は長くなるので詳しくは別ファイルを見てください)<br>
+<hr>
+<pre>
+//CMover.cpp
+
+//デストラクタ
+Mover::~Mover(){
+	if(cp!=NULL){
+		cp->Remove();
+		delete cp;
+		cp=NULL;
+	}
+}
+
+//メンバ設定用関数
+void Mover::setMember(float x,float y,float r){
+	this-&gt;x=x;
+	this-&gt;y=y;
+	this-&gt;r=r;
+	this-&gt;alive=true;
+	if(this-&gt;cp==NULL){
+		this-&gt;cp=new Cell(this);
+	}
+}
+
+//衝突判定(Mover同士の「円と円の当たり判定」)
+Mover* Mover::IsCollision(/*const */Mover* m){
+	float dx=m-&gt;x-x;
+	float dy=m-&gt;y-y;
+	float dr=m-&gt;r+r;
+	return (((dx*dx)+(dy*dy)&lt;(dr*dr))?m:NULL);
+}
+
+//衝突判定(四分木探索)
+Mover* Mover::IsCollision(){
+	//四分木探索
+	Mover* cm=cp-&gt;IsCollision();
+	return cm;
+}
+
+//更新
+void Mover::Move(){
+	if(x&lt;FX-FY || FMX+FY&lt;x || y&lt;FY-FY || FMY+FY&lt;y){
+		alive=false;
+		return ;
+	}
+
+	if(cp!=NULL){
+		cp-&gt;Update();
+	}
+}
+</pre>
+<hr>
+メンバ設定用関数setMemberはコンストラクタ内で呼ばれます。<br>
+このとき初期座標と半径から所属する空間を割り当てるためにCell* cpにnewしています。<br>
+実際にモートン符号を求めるのはCell内です。<br>
+あとは物体が更新される度に空間のUpdateを呼んでモートン符号を割り当て直します。<br>
+<br>
+検証ではReflecBulletを用いますがMoverそのものには画面外判定を入れておきます。<br>
+矩形(FX,FY)-(FMX,FMY)からFY分だけ上下左右に広げた矩形を一番外側の範囲としておきます。<br>
+これはモートン符号を適用する範囲の矩形でもあります。<br>
+ReflecBulletは矩形(FX,FY)-(FMX,FMY)内だけで反射します。（常にモートンの範囲に存在するようにする）<br>
+<br>
+<br>
+次に空間クラスCellです。<br>
+<hr>
+<pre>
+//CCell.h
+
+//前方宣言
+class Mover;
+
+//空間クラス
+class Cell{
+public:
+	//ルート空間
+	static Rect base;
+	//空間レベル,各レベルでのインデックス,線形四分木におけるインデックス
+	int L,I,M;
+	//対象物体
+	Mover* mp;
+	//双方向リスト
+	Cell *prev,*next;
+
+	//コンストラクタ
+	Cell();
+	Cell(Mover* m);
+	//デストラクタ
+	virtual ~Cell();
+
+private:
+	//上位探索
+	Mover* UpperSearch();
+	//下位探索
+	Mover* LowerSearch(int nr);
+	//ビットを１つずつズラす
+	static byte BitSlide(byte b);
+	//大きさを持たない点からモートン符号を求める
+	static int PointtoMorton(Point p);
+	//大きさを持つ物体からモートン符号を求め、L,I-&gt;Mを設定する
+	static void MovertoMorton(const Mover&amp; m,int&amp; L,int&amp; I,int&amp; r);
+
+public:
+	//衝突判定
+	Mover* IsCollision();
+	//双方向リストから抜ける
+	void Remove();
+	//L,IからMを求める
+	static int GetIndex(int L,int I);
+
+	//mpに合わせてモートン符号を更新する
+	void Update();
+};
+</pre>
+<hr>
+何やらいろいろありますが説明していないのは上位探索と下位探索ですね。<br>
+それも含めて実装を示します。<br>
+<hr>
+<pre>
+//ルート空間
+Rect Cell::base = Rect(FX-FY,FY-FY,FLX+FY*2,FLY+FY*2);
+
+//コンストラクタ
+Cell::Cell():
+L(-1),I(-1),M(-1),mp(NULL){
+	next=prev=this;
+}
+Cell::Cell(Mover* m):
+L(-1),I(-1),M(-1),mp(m){
+	next=prev=this;
+	MovertoMorton(*mp,L,I,M);
+}
+//デストラクタ
+Cell::~Cell(){}
+
+//上位探索
+Mover* Cell::UpperSearch(){
+	int m=M;
+	Mover* mr=NULL;
+
+	//ルート空間まで
+	for(int i=L-1;i&gt;=0;i--){
+		//インデックス取得
+		m=(m-1)/4;
+
+		//mの空間に対して衝突判定
+		mr=cellList.IsCollision(m,this-&gt;mp);
+		if(mr!=NULL){
+			return mr;
+		}
+	}
+
+	return NULL;
+}
+
+//下位探索
+Mover* Cell::LowerSearch(int nr){
+	Mover* mr=NULL;
+	
+	//指定されたインデックスnrの空間に対して衝突判定
+	mr=cellList.IsCollision(nr,this-&gt;mp);
+	if(mr!=NULL){
+		return mr;
+	}
+
+	//下位の左上(0番)のインデックス
+	nr=nr*4+1;
+
+	//下位空間４つ全て
+	for(int i=0,n=GetIndex(N+1,0);i&lt;4;i++){
+		//最大数を超えてなければ再起して最大分割レベルまで判定
+		if(nr+i &lt; n){
+			mr=LowerSearch(nr+i);
+			if(mr!=NULL)return mr;
+		}else break;
+	}
+
+	return NULL;
+}
+
+//ビットを１つずつズラす
+byte Cell::BitSlide(byte b){
+	b=(b|b&lt;&lt;2)&amp;0x33;
+	b=(b|b&lt;&lt;1)&amp;0x55;
+	return b;
+}
+
+//大きさを持たない点からモートン符号を求める
+int Cell::PointtoMorton(Point p){
+	//格子の一辺の数
+	const int CN=pow(2,N);
+	Point a=base.GetLeftHigh();
+	Point b=base.GetRightLow();
+	//x,y方向の一辺の長さ
+	CPoint&lt;int&gt; CS((b.x-a.x)/CN,(b.y-a.y)/CN);
+	//格子座標
+	CPoint&lt;int&gt; m((p.x-a.x)/CS.x,(p.y-a.y)/CS.y);
+
+	//ビット演算
+	byte kx,ky;
+	kx=BitSlide(m.x);
+	ky=BitSlide(m.y);
+
+	//モートン符号を求める
+	return kx|(ky&lt;&lt;1);
+}
+
+//大きさを持つ物体からモートン符号を求め、L,I-&gt;Mを設定する
+void Cell::MovertoMorton(const Mover&amp; m,int&amp; L,int&amp; I,int&amp; M){
+	//左上、右下座標(m.GetRect)
+	Point a=Point(m.x-m.r/2,m.y-m.r/2);
+	Point b=Point(m.x+m.r/2,m.y+m.r/2);
+
+	//左上、右下のそれぞれのモートン
+	int ma=PointtoMorton(a);
+	int mb=PointtoMorton(b);
+
+	//2bitの区切り
+	int k=0;
+	for(int m=ma^mb;m!=0;m&gt;&gt;=2,k++);
+
+	//L,i-&gt;M
+	L=N-k;
+	I=mb&gt;&gt;(2*k);
+	M=GetIndex(L,I);
+}
+
+//衝突判定
+Mover* Cell::IsCollision(){
+	Mover* mr=NULL;
+	
+	//同レベル探索
+	mr=cellList.IsCollision(this-&gt;M,this-&gt;mp);
+	if(mr!=NULL)return mr;
+
+	//上方探索
+	mr=UpperSearch();
+	if(mr!=NULL)return mr;
+
+	//下方探索
+	mr=LowerSearch(M);
+
+	return mr;
+}
+
+//双方向リストから抜ける
+void Cell::Remove(){
+	this-&gt;next-&gt;prev=this-&gt;prev;
+	this-&gt;prev-&gt;next=this-&gt;next;
+}
+
+//L,IからMを求める
+int Cell::GetIndex(int L,int I){
+	return (pow(4,L)-1)/(4-1)+I;
+}
+
+//mpに合わせてモートン符号を更新する
+void Cell::Update(){
+	Remove();
+
+	MovertoMorton(*mp,L,I,M);
+
+	cellList.Push(this);
+}
+</pre>
+<hr>
+探索の詳しい解説を載せるより先にCellListの実装を載せておきます。<br>
+CellListは単なるCellの配列を持つだけなので簡単です。<br>
+<hr>
+<pre id="CellList">
+//CCellList.h
+
+//前方宣言
+class Mover;
+class Cell;
+
+//空間リストクラス
+class CellList{
+public:
+	//線形空間リスト
+	Cell* cpList;
+
+	//コンストラクタ
+	CellList();
+	//デストラクタ
+	virtual ~CellList();
+
+	//リストに追加
+	void Push(Cell* cp);
+	//衝突判定
+	Mover* IsCollision(int index,Mover* m);
+};
+</pre>
+<hr>
+<pre>
+//CellList.cpp
+
+//コンストラクタ
+CellList::CellList(){
+	cpList=new Cell[Cell::GetIndex(N+1,0)];
+}
+
+//デストラクタ
+CellList::~CellList(){
+	delete[] cpList;
+}
+
+//リストに追加
+void CellList::Push(Cell* cp){
+	int m=cp-&gt;M;
+	int iMax=Cell::GetIndex(N+1,0);
+
+	assert(0&lt;=m &amp;&amp; m&lt;iMax);
+
+	cp-&gt;next=cpList[m].next;
+	cp-&gt;prev=&amp;cpList[m];
+	cp-&gt;next-&gt;prev=cp-&gt;prev-&gt;next=cp;
+}
+
+//衝突判定(指定されたインデックスの空間内にある物体と判定)
+Mover* CellList::IsCollision(int index,Mover* m){
+	Mover* mp=NULL;
+	for(Cell *cp=cpList[index].next,*np=NULL;
+		cp!=&amp;cpList[index];){
+		np=cp-&gt;next;
+
+		mp=m-&gt;IsCollision(cp-&gt;mp);
+		if(mp!=NULL &amp;&amp; m!=mp){
+			return mp;
+		}
+
+		cp=np;
+	}
+
+	return NULL;
+}
+</pre>
+<hr>
+<h3 id="explain">・上位探索</h3>
+例えば今線形の空間インデックス19番の空間に所属している物体があるとしましょう。<br>
+このとき当たり判定をとるべき上位の空間は、（同じ19番に加えて）4番、0番（ルート）の空間です。<br>
+<img src="QuadTree/fig17.png" width="768" height="280"><br>
+<small>図の緑枠の空間と当たり判定をとる。それ以外の空間は考えなくて良い。</small><br>
+コードを見ると、ルート空間にたどり着くまでm=(m-1)/4としていることが分かります。<br>
+これは以下のような計算式によって導かれます。（とりあえず現在のMから1引いて4で割れば上位のMとなる、とだけ理解すればいいです）<br>
+<img src="QuadTree/shiki02.png" width="205" height="80"><br>
+<img src="QuadTree/shiki05.png" width="137" height="37"><br>
+より<br>
+<img src="QuadTree/shiki08.png" width="379" height="402"><br>
+<br>
+4で割ることにより4つの値に対して同じ値をとります。(例えば現在のM=17,18,19,20は全てM=4に行く(小数切り捨て))<br>
+<br>
+<h3>・下位探索</h3>
+下位は逆です。現在のMに対して下位空間は4つありますが、その最初(左上:0)のインデックスを求めてforで再帰します。<br>
+今度は空間インデックス2番の空間に所属している物体があるとします。<br>
+このとき当たり判定をとるべき下位の空間は、（同じ2番に加えて）9～12番の空間です。<br>
+<img src="QuadTree/fig18.png" width="768" height="280"><br>
+コードを見ると、nr=nr*4+1としています。nrはMと同じです。<br>
+これも以下のような計算式によって導かれます。（やはり現在のMを4倍して1足せば下位のMの最小となる、とだけ理解すればいいです）<br>
+<img src="QuadTree/shiki02.png" width="205" height="80"><br>
+<img src="QuadTree/shiki05.png" width="137" height="37"><br>
+より<br>
+<img src="QuadTree/shiki09.png" width="377" height="338"><br>
+<br>
+上位と違って今度はカッコがありませんのでご注意を。<br>
+このM_lowerから4回forを回して再起していきます。<br>
+元の物体が0番（ルート）にあると、全範囲が探索範囲となり、実質全探索と変わりません。<br>
+しかし0番（ルート）に物体があることはあまりない（少なくとも常駐でない）ので全探索よりは少ない空間の探索で済みます。<br>
+<br>
+<h3>・ビットを１つずつズラす</h3>
+PointtoMortonとMovertoMortonは理論編でやった通りです。<br>
+PointtoMorton内のBitSlideはビットを１つずつズラす関数で、例えばb=3=[11]について<br>
+<img src="QuadTree/shiki10.png" width="206" height="154">
+<img src="QuadTree/shiki11.png" width="209" height="154"><br>
+bは0～3までしかこないので、1行目は正直無駄です。<br>
+逆にビット数が増えてくると行程を増やす必要があります。<br>
+<br>
+<br>
+<br>
+これで重要なところは大体説明しましたかね。<br>
+全体の流れや双方向リストの挙動などについては全体のソースを後ろの方で載せますので、<br>
+ダウンロードして試してみてください。<br>
+<br>
+<br>
+<br>
+<h2>・速度計測</h2>
+さて、ここまで四分木探索について延々と述べてきました。<br>
+いざ実装したところかなり複雑で分かりにくい。<br>
+そこで「ほんとにこんなんで全探索より速くなんの？」とお思いの方もいると思います。<br>
+<br>
+というわけで全探索と四分木探索について処理時間を計測してみました。<br>
+その計測結果がこちら（環境によって変わりますのであくまで参考です）<br>
+<img src="QuadTree/time3.png" width="481" height="289"><br>
+allが完全に全探索(1対n)<br>
+all(Cut)が基本全探索だが一つでも見つかったら探索をやめる(1対n)<br>
+quadが四分木探索です。<br>
+横軸が画面上に存在するオブジェクト(ReflecBullet)の個数。<br>
+縦軸がマイクロ秒(10^(-6)[sec])です。<br>
+<br>
+60[hz]のモニタでは1秒間に60回更新、つまり1回の更新あたり16.6ミリ秒(10^(-3)[sec])以内に抑えないとチラつきます。<br>
+当たり判定だけに処理時間を使えるわけではないので（多くは描画に使われる）<br>
+そのうち１％だけ当たり判定をとることに使えるとすると、0.16ミリ秒=160マイクロ秒使えます。<br>
+<br>
+上の図を見ると完全な全探索ではオブジェクトの数に対して線形に増加していき、200個あたりで160マイクロ秒を超えます。<br>
+しかし一つでも見つかったら探索をやめるようにすると、ランダムになりますが格段に速く処理が終わります。(all(Cut))<br>
+四分木探索はそれよりも速く、さらにオブジェクト数にかかわらず常にほぼ一定の速度を保っています。<br>
+<br>
+確かに四分木探索は高速ですが、多くの場合all(Cut)で十分かと思われます。<br>
+え？判定の個数が300では足りない？・・・よろしいならば1000個だ。<br>
+<img src="QuadTree/time4.png" width="481" height="289"><br>
+<small>傾向としては変わりません・・・</small><br>
+<br>
+労力と対価が釣り合わないように思えますが衝突判定について速さを追求したいなら一考、といったところでしょうか。<br>
+<br>
+<h2>・まとめ  感想</h2>
+この四分木探索もSTG（シューティングゲーム）を創っているときに「当たり判定速くしたいなー」と思って調べたものです。<br>
+そもそも処理時間を速くしたいならここよりも描画関係のところを軽くすることを考えた方がよほど有益だと思いますが・・・<br>
+まあ学習ということで（＾＾<br>
+<br>
+四分木探索はモートン符号のつけかたが美しいですよねー<br>
+ビット演算と組み合わせて美しい性質です。<br>
+それを理解して活用できたかは疑問ですがとりあえず動くコードは書けました。<br>
+参考サイト様に感謝です。いつもお世話になっております。<br>
+<br>
+今回の内容を元にしたソースファイルをあげておきます。<br>
+以下からダウンロードしてください（zip形式）<br>
+<br>
+<a href="./QuadTree/QuadTreeSearch.zip">QuadTreeSearch</a><br>
+<br>
+こちらの開発環境はVisual C++ 2010 Express版ですので、実行するにはそのランタイムも必要です。<br>
+もし、ランタイムの影響などで実行ができなくても、ソースコードは見ることができると思います。<br>
+ソースコードは./dat/source/以下、<br>
+ヘッダファイルは./dat/include/以下にあります。<br>
+<br>
+・・・いやー大変でしたねー。<br>
+単純に全探索では間に合わない場合には四分木探索を活用することも一考です。<br>
+改良すれば多対多の判定も比較的簡単に実装できるかと思います。<br>
+<br>
+<font class="red">2014/02/06　追記</font><br>
+-&gt;<a href="QuadTree3.html">四分木探索（拡張編）</a>できました。<br>
+追記ここまで<br>
+<br>
+ここまで読み進めてくださった方、お疲れ様でした。<br>
+<br>
+<br>
+<h2>・参考サイト様</h2>
+マルペケつくろーどっとコム　―　ゲームつくろー！　衝突判定編　<br>
+<a href="http://marupeke296.com/COL_2D_No8_QuadTree.html">その８ 4分木空間分割を最適化する！（理屈編）</a><br>
+いつものようにほとんどこちらの内容です。安定のリスペクト元サイト様です。いつもありがとうございます。<br>
+<br>
+
+<hr>
+<script type="text/javascript">
+write_locate(21);
+topic("index","../index.html");
+topic("プログラムテクニック覚え書き","./program_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+</p>
+</body></html>

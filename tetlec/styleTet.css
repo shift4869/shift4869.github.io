@@ -1,0 +1,28 @@
+@charset "Shift_JIS";
+*{line-height:150%;}
+h1{color:red;}
+body{
+background-image:url(./back.png);
+background-color:#128312;
+}
+.red{color:maroon;}
+.blue{color:blue;}
+.green{color:green;}
+p.left{text-align:left;}
+p.center{text-align:center;}
+p.right{text-align:right;}
+
+.numbering {
+    counter-reset: num;
+}
+
+.numbering td {
+}
+ 
+.numbering td.number {
+    counter-increment: num;
+}
+ 
+.numbering td.number:before {
+    content: " " counter(num) ".";
+}

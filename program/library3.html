@@ -1,0 +1,121 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>.GreatNumberクラスの実装</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+
+<!--<base href="http://1st.geocities.jp/shift486909/">-->
+</head>
+<body>
+<p align="left"><br>
+<h1>GreatNumberクラスの実装</h1><br>
+<hr size="2">
+<h2>・GreatNumberクラス</h2>
+<span class="red">（正直今回はちょっと血迷いました）</span><br>
+突然ですが、C++でよく使われる整数型intはどのくらい大きな数値まで格納できるか知ってますか？<br>
+ヘルプのデータ型定数を見ると、INT_MAXとして定義されているintの最高値は2147483647だそうです。<br>
+これ以上の値はintに入りません。(size_tでも4294967295です)<br>
+そこで、これ以上の値を扱うGreatNumberクラスを創りたいと思います。<br><br>
+<span class="red">多倍長配列</span>の方式使います。<br>
+全体の数値を各桁の数値にばらして管理します。<br>
+つまり"12345"を "1" "2" "3" "4" "5" と扱います。<br>
+10進数なら0~10を表現するデータ型があれば十分です(今回はchar)<br>
+//図<br><br>
+仕様としてはint型等と同じ使用感を目指したので演算子のオーバーロードが多いです。<br>
+プラスの数だけを扱うとします。<br>
+両端に追加削除するのでSTLのdequeを使いました。<br>
+実行速度的には遅いと思います。<br><br>
+
+<h2>・実装</h2>
+とりあえずヘッダーだけ示します。<br>
+演算子のオーバーロードが多いですが、結構使い回してます。<br>
+効率は悪いですね・・・・<br>
+<pre>
+#include &lt;deque>
+using namespace std;
+
+class GreatNumber{
+private:
+	deque<char> p;
+public:
+	//コンストラクタ--------------
+	GreatNumber();
+	GreatNumber(int k);
+	GreatNumber(const GreatNumber &g);
+	//----------------------------
+
+	//デストラクタ
+	virtual ~GreatNumber();
+
+	//キャスト演算子--------------
+	operator int();
+	operator unsigned int();
+	//----------------------------
+
+	//演算子のオーバーロード-------------------
+	GreatNumber& operator =(const GreatNumber &g);
+	GreatNumber& operator =(const int &k);
+
+	GreatNumber operator +(const GreatNumber &g)const;
+	GreatNumber operator +(const int &k)const;
+	friend GreatNumber operator +(const int &k,const GreatNumber &g);
+	GreatNumber& operator +=(const GreatNumber &g);
+	GreatNumber& operator +=(const int &k);
+	GreatNumber operator ++();
+	GreatNumber operator ++(int d);
+
+	GreatNumber operator -(const GreatNumber &g)const;
+	GreatNumber operator -(const int &k)const;
+	friend GreatNumber operator -(const int &k,const GreatNumber &g);
+	GreatNumber& operator -=(const GreatNumber &g);
+	GreatNumber& operator -=(const int &k);
+	GreatNumber operator --();
+	GreatNumber operator --(int d);
+
+	bool operator ==(const GreatNumber &g)const;
+	bool operator ==(const int &k)const;
+	friend bool operator ==(const int &k,const GreatNumber &g);
+	bool operator !=(const GreatNumber &g)const;
+	bool operator !=(const int &k)const;
+	friend bool operator !=(const int &k,const GreatNumber &g);
+	bool operator < (const GreatNumber &g)const;
+	bool operator < (const int &k)const;
+	friend bool operator <(const int &k,const GreatNumber &g);
+	bool operator > (const GreatNumber &g)const;
+	bool operator > (const int &k)const;
+	friend bool operator >(const int &k,const GreatNumber &g);
+	bool operator <="(const" GreatNumber &g)const;
+	bool operator <="(const" int &k)const;
+	friend bool operator <="(const" int &k,const GreatNumber &g);
+	bool operator >=(const GreatNumber &g)const;
+	bool operator >=(const int &k)const;
+	friend bool operator >=(const int &k,const GreatNumber &g);
+
+	friend ostream& operator <<(ostream &os,GreatNumber &g);
+	//-----------------------------------------
+};</pre><br>
+・実装<br>
+<a href="./library3_code1.html">コンストラクタ・デストラクタ・キャスト・加算系</a><br>
+<a href="./library3_code2.html">減算系</a><br>
+<a href="./library3_code3.html">比較系</a><br>
+<a href="./library3_code4.html">出力系</a><br><br>
+
+・感想<br>
+演算子のオーバーロードが使えるということを示したかった。<br>
+実用にはほど遠い。エラーチェックとかも無いし、そもそもlong long型で十分じゃないか！？<br>
+興味がある人は実用クラスにまでもっていってください。<br>
+<br>
+
+<hr size="2">
+<script type="text/javascript">
+write_locate(5);
+topic("index","../index.html");
+topic("プログラムテクニック覚え書き","./program_menu.html");
+topic("ライブラリ制作の薦め","./library.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+</p>
+</body></html>

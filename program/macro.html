@@ -1,0 +1,187 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>11.マクロ</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<!--<base href="http://1st.geocities.jp/shift486909/">-->
+</head>
+<body>
+<p align="left"><br>
+<h1>マクロ</h1><br>
+<hr>
+<br>
+<h2>・普通のマクロ</h2>
+突然ですがC++でマクロ機能を使っていますか？<br>
+マクロとは<span class="red">定数</span>を定める機能です。<br>
+構文としては<span class="blue">#define 置き換える前 置き換えた後</span>を取ります。<br>
+#(シャープ)付き構文なので、プリプロセッサオーダーで、<br>
+普通のプログラムソースが解釈される前に実行されます。<br>
+<br>
+使用目的は多くの解説書・入門書にあるように、<span class="red">マジックナンバー</span>を無くすことにあります。<br>
+単なる数値に意味を持たせて、可読性を高めることにその目的があります。<br>
+<pre>
+#include&lt;iostream&gt;
+using namespace std;
+#define INPUT_NUM 5
+
+int main(){
+    int buf[INPUT_NUM];
+    
+    for(int i=0;i&lt;INPUT_NUM;i++){
+        cin&gt;&gt;buf[i];
+    }
+
+    for(int i=0;i&lt;INPUT_NUM;i++){
+        cout&lt;&lt;buf[i]&lt;&lt;endl;
+    }
+
+    return 0;
+}
+</pre>
+単なる置き換えですので、過信は禁物です。<br>
+それは次の関数マクロで解説します。<br>
+<br>
+<h2>・関数マクロ</h2>
+マクロ関数とも言われますが、ここでは関数マクロと呼称します。<br>
+マクロは単なる置き換えの幅を超えて引数をとり、あたかも関数のように機能させることができます。<br>
+例えば、引数として渡された数値の2乗を返すマクロは次のように定義できます。<br>
+<pre>
+#define SQUARE(X) ((X)*(X))
+
+SQUARE(2)=4;
+SQUARE(3)=9;
+</pre>
+()の中のものが引数となります。<br>
+マクロ置き換え後の式にやたら()がついてますが、これは必要なものです。<br>
+もしつかなかった場合、演算順が狂うことがあります。<br>
+<pre>
+//失敗例
+#define SQUARE(X) X*X
+
+SQUARE(2)=4;
+SQUARE(3)=9;
+SQUARE(1+3)=7;//1+3*1+3 と展開されて[3*1]から処理される
+</pre>
+最後はSQUARE(1+3)=SQUARE(4)=16を期待したマクロでしたが、<br>
+計算順が狂い、乗算が優先されてしまいました。<br>
+()をつけていればこのような問題は起こりません。<br>
+<br>
+この辺までは入門書レベルで知っている人も多いかと思います。<br>
+次からは意外と知られていないことを解説します。<br>
+<br>
+<h2>・組み込みマクロ</h2>
+マクロを使う際は#defineで定義しますが、<br>
+何もしなくとも、実行環境で<span class="green" title="あらかじめ">予め</span>定義されているものがあります。<br>
+それらを<span class="red">組み込みマクロ</span>といいます。<br>
+具体的に何を表すのかというと、実行しているファイル名・ソース内での行番号・実行中の関数名などです。<br>
+<br>
+環境により定義されているものは異なると思いますが、大体同じものが使えます。<br>
+以下に代表的なものを揚げます。<br>
+<pre>
+__FILE__      //実行しているソースファイル名
+__LINE__      //実行しているソースファイルの行番号
+__FUNCTION__  //現在の関数名
+</pre>
+アンダーバー(_)は2個です。<br>
+__LINE__以外は文字列で返ります。<br>
+__LINE__はint型の数値です。<br>
+<br>
+これらの組み込みマクロはデバッグするときに有効です。<br>
+<br>
+<h2>・デバッグ補助マクロをつくる</h2>
+現在地(ソースレベルでの実行場所)を表示するマクロを創りましょう。<br>
+最初に完成系を示します。<br>
+<pre>
+#define DEBUG_PRINT printf(Format("%s(%d) in %s", \
+                           __FILE__,__LINE__,__FUNCTION__).c_str());
+
+//書式指定のStringのフォーマット
+string Format(const char *format,...){
+    string res;   //リターン
+    va_list v;    //可変長引数
+    int len;      //文字列長さ
+    char *buf;    //バッファ文字列ポインタ
+
+    va_start(v,format);        //可変長引数展開
+
+    len=_vscprintf(format,v)+1;//確保バッファ数取得
+
+    buf=new char[len];         //バッファ確保
+
+    vsprintf_s(buf,len,format,v);//バッファに展開
+
+    res=buf;     //String型に変換
+
+    delete[] buf;//バッファクリア
+
+    va_end(v);   //可変長終了
+
+    return res;  //リターン
+}
+</pre>
+マクロが複数行にわたる場合には\(円マーク)で繋ぎます。<br>
+マクロ動作には影響を与えません。<br>
+<a href="./VariableArg.html">前回</a>創ったフォーマット関数を使います。<br>
+組み込みマクロから必要な情報をまとめて標準出力に表示します。<br>
+もっというと__FILE__はソースファイルのフルパスなので、<br>
+ファイル名だけを切り出す関数を挟んだ方が見やすいです。<br>
+<br>
+これで、適当なところでDEBUG_PRINTとコーディングすれば、現在値がわかります。<br>
+<br>
+<br>
+これを応用して例外(エラー)が起こった時に、<br>
+どこで起こったかを表示するマクロを創ります。<br>
+<br>
+<pre>
+#define throw(STR) throw Format("%s(%d) in %s()\n%s", \
+                                __FILE__,__LINE__,__FUNCTION__,STR)
+                                
+//サンプル
+int n;
+
+cin&gt;&gt;n;
+
+if(n==0){
+    throw("0除算エラー発生");
+}
+
+printf("%d",100/n);
+</pre>
+普通のthrowと同じ感じで使えます。<br>
+catchするときにはstring型でcatchしてください。<br>
+<br>
+<h2>・感想</h2>
+始めに述べたようにマクロはプリプロセッセオーダーなので、<br>
+ソースファイルを解釈する前に、置き換えられます。<br>
+デバッガにはこの情報が伝わらないので、<br>
+マクロ絡みのデバッグは困難に近いです。(デバッグそのものには有用だけれど・・・)<br>
+そういう意味でマクロは強力ですが、欠点もあります。<br>
+定数を定めるには const int INPUT_NUM=5; とかもできますので、<br>
+それぞれのメリット・デメリットをよく考えて使いましょう。<br>
+
+<h2>・参考サイト様</h2>
+<a href="http://d.hatena.ne.jp/mindcat/20090523/1243045233">printfデバッグに便利なファイル行数表示マクロ - 風と宇宙とプログラム</a><br>
+こちらのHEREマクロを参考に創りました。<br>
+__LINE__を文字列として展開する__SLINE__マクロがためになりました。<br>
+<br>
+<a href="http://www7b.biglobe.ne.jp/~robe/cpphtml/html03/cpp03044.html">ロベールのＣ＋＋教室 - 第４４章 デバッグ文 -</a><br>
+Debugで使えるassertマクロ(?)について。<br>
+Release時には消えます。<br>
+<br>
+バグ発見に少しでも役立てれば幸いです。<br>
+<br>
+
+<hr>
+<script type="text/javascript">
+write_locate(15);
+topic("index","../index.html");
+topic("プログラムテクニック覚え書き","./program_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+</p>
+</body></html>
+
+

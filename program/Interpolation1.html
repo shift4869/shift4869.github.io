@@ -1,0 +1,214 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>15-1.補間（パラメータ）</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<base href="http://1st.geocities.jp/shift486909/program/">
+</head>
+<body>
+<p align="left"><br>
+<h1>補間（パラメータ）</h1><br>
+<hr>
+<br>
+<h2>・補間の目的</h2>
+ある値からある値まで、&quot;良い感じ&quot;に遷移して欲しい。<br>
+そんな時に使うのが<font class="red">補間(-多項式)</font>です。<br>
+キャラクタの移動はもちろんのこと、フェードアウトのパラメータの遷移など使い所はたくさんあります。<br>
+今回はそんなよく使われる補間についてのお話です。<br>
+<br>
+<br>
+<h2>・1次補間</h2>
+まず単純に一定速度で初期値 <i>s</i> から目的値 <i>e</i> へ遷移することが考えられます。<br>
+<img src="Interpolation/fig01.png" width="318" height="236"><br>
+この場合、図のように時間tに比例して値xは線形に変化します。<br>
+図では二次元的に見えますが、目に見える変化はxだけですので実際には同一線上の遷移です。<br>
+<br>
+補間は時間tを0から1までのパラメータとして、それに対応したxを取得します。<br>
+t=0でx=s , t=1でx=eです。<br>
+このことをふまえると1次補間の式は以下のようになります。<br>
+<img src="Interpolation/shiki01.png" width="271" height="42"><br>
+時間tは0から1ですが、例えば指定時間ts=30で遷移して欲しい場合には、毎フレーム増加するカウンタcntを用意して、<br>
+t=cnt/tsとすればcntが30になるにつれてt=1になり目的値へ到達します。<br>
+図では補間多項式に従って点を10個打つ度に赤点を打っています（全部で100点打っています）<br>
+<br>
+1次補間はパラメータの変化などに用いると、最小値と最大値を設定しておくだけで中間値を勝手に補間してくれます。<br>
+<br>
+<br>
+<h2>・2次補間（物理補間）</h2>
+1次補間では端点、特に終端で急に止まる感じが違和感になります。<br>
+（ｽｯｰっと行ってﾋﾟﾀｯと止まる感じというか・・・）<br>
+ここを自然な感じにしたい、『自然な』というと物理です。<br>
+具体的には速度 <i>v</i> 、初速度 <i>v0</i> 、加速度 <i>a</i> などを加味します。<br>
+高校で習う物理の基本式から考えていきましょう。<br>
+<img src="Interpolation/shiki02.png" width="344" height="168"><br>
+<i>xd</i>は変位です。<br>
+また、③式は①,②式をtについて解いたものですが今回はtを使うのでこの③式は使えません。<br>
+<br>
+このままでは条件が足りないので次の条件を加えます。<br>
+<font class="red">『t=1で速度v=0,変位xd=xmax=e-s』</font><br>
+終端で遷移が止まるのでv=0,また、最終的に移動した距離はe-s、どちらも自然な考えだと思います。<br>
+この条件によりt=1,v=0より①式は<br>
+<img src="Interpolation/shiki03.png" width="364" height="45"><br>
+t=1,xd=xmaxより②式は<br>
+<img src="Interpolation/shiki04.png" width="364" height="61"><br>
+④,⑤式より<br>
+<img src="Interpolation/shiki05.png" width="524" height="61"><br>
+これらを一般のtについて②式に代入して<br>
+<img src="Interpolation/shiki06.png" width="362" height="53"><br>
+<img src="Interpolation/shiki07.png" width="196" height="53">と変位xdの性質より実際の値x(t)は
+<img src="Interpolation/shiki08.png" width="196" height="53">なので⑦式より<br>
+<img src="Interpolation/shiki09.png" width="487" height="54"><br>
+この⑧式が2次補間の計算式です。物理補間とも言います。<br>
+<img src="Interpolation/fig02.png" width="318" height="236"><br>
+図を見ると分かるように放物線です。<br>
+始めは大きく遷移し、最後はあまり動かずじりじりと近づいていきます。<br>
+これを<font class="red">ease-out</font>な補間と言います。<br>
+『ease』は&quot;緩やかな&quot;という意味の単語ですので、最後が(out)緩やか(ease)ということですね。<br>
+<br>
+ところで⑧式を放物線の標準形に直すと<br>
+<img src="Interpolation/shiki10.png" width="487" height="54"><br>
+<img src="Interpolation/graph01.png" width="291" height="253"><br>
+よって頂点(t,x)=(1,e),上に凸の放物線ということが分かります。<br>
+実はこのまま下に凸の放物線の式に変形しても補間多項式になります。<br>
+そちらは<font class="red">ease-in</font>な補間になることが分かると思います。<br>
+<br>
+2次補間はキャラクターの動きなど目に見えるものに対する補間として優秀です。見た目がかなり自然になります。<br>
+逆に直接目に見えないパラメータの遷移にはあまり向きません。最終付近はあまり変わりませんので。<br>
+それでもかなり使いどころはあると思うので、1次補間では不自然な時には使ってみると良いと思います。<br>
+<br>
+<br>
+<h2>・3次補間</h2>
+さて、順調に次数が上がってきました。次は3次式で補間してみましょう。<br>
+3次関数の一般形は以下の通りです。<br>
+<img src="Interpolation/shiki11.png" width="425" height="54"><br>
+ここでの条件は<br>
+<font class="red">『t=0の時v=0,t=1の時v=0』</font><br>
+です。<br>
+t=0の時x=s,t=1の時x=eと合わせて条件４つ、①式中の未知数a,b,c,dで４つ。これで解けます。<br>
+<img src="Interpolation/shiki12.png" width="424" height="186"><br>
+②,④式を③,⑤式に代入して、③,⑤式を連立してa,bについて解きます。<br>
+詳しい計算は省略しますが結果として<br>
+<img src="Interpolation/shiki13.png" width="200" height="48"><br>
+<img src="Interpolation/shiki14.png" width="200" height="48"><br>
+これで未知数が全て求まったので、これらと②,④式を①式へ代入すると<br>
+<img src="Interpolation/shiki15.png" width="522" height="47"><br>
+この⑥式が3次補間の計算式です。<br>
+<img src="Interpolation/fig03.png" width="318" height="236"><br>
+ゆっくり立ち上がり、中間点で一番速くなり、ゆっくり止まる。<br>
+<font class="red">ease-in,ease-out</font>な補間です。<br>
+<br>
+自分はあまり使ったことがありませんが「最もよく使われる補間」だそうです。<br>
+やはり両端のeaseが良いんでしょうか。<br>
+<br>
+こちらも参考にしてみてください　<a href="./hermite.html">1.エルミート曲線軌道</a><br>
+<br>
+<br>
+<h2>・三角補間</h2>
+さて、いろいろ式から補間多項式を求めてきました。<br>
+どうやら関数の形状をうまく使うと補間になるようです。<br>
+では滑らかな曲線を得るために三角関数を使ってみたらどうでしょう。<br>
+三角関数では厳密には多項式は得られないので（テイラー展開とかしない限り）今までとは異なるアプローチをします。<br><br>
+三角関数はsin,cos,tanの３つです。このうちtanは無限点を持ち、発散するので適しません。<br>
+sinとcosですがこの２つは位相が異なるだけで関数の形状としては同じものとみなせるので今回はcosを使います。<br>
+cos関数は以下のような形をしています。<br>
+<img src="Interpolation/graph02.png" width="421" height="252"><br>
+横が位相&theta;[rad],縦が値です。<br>
+この&theta;=3.14～6.28[rad]の部分の滑らかな曲線での増加、使えそうですねー。<br>
+値は-1～1なのでこれをs～eになるように調整していけば良さそうです。<br>
+<img src="Interpolation/shiki16.png" width="490" height="340"><br>
+使うのは半波長分だけで十分です。<br>
+3行目が赤線、4,5行目が緑線です。<br>
+<img src="Interpolation/graph03.png" width="421" height="251"><br>
+よって三角補間式は以下のようになります。<br>
+<img src="Interpolation/shiki17.png" width="361" height="70"><br>
+<img src="Interpolation/fig04.png" width="318" height="236"><br>
+<br>
+・・・あれ、この形、さっきやった3次補間に似てますね。<br>
+重ねてみましょう。<br>
+<img src="Interpolation/fig05.png" width="318" height="236"><br>
+ほとんど一致しています。厳密には3次関数の方が若干easeなんですが・・<br>
+きれいな曲線の遷移といっても微小区間では多項式近似できます。<br>
+ならば計算時間がかかるcosよりも3次関数の方が優秀ですかね。<br>
+<br>
+<br>
+<h2>・まとめとコード</h2>
+今までの補間をまとめてみました。<br>
+<img src="Interpolation/fig06.png" width="318" height="236"><br>
+<br>
+実際にコーディングするときはs,e,カウンタcnt,それと到達フレーム数tsを引数にして各種補間式に当てはめて計算します。<br>
+実装方法はいろいろありますが以下のようにテンプレートで作っておくと四則演算が定義されたクラスに対して使い回せます。<br>
+<pre>
+//線形補間
+template&lt;class T&gt;
+inline T LinearInterpolate(const T&amp; startV,const T&amp; endV,int nowCnt,int maxFlame){
+	float t=nowCnt/(float)maxFlame;
+	return startV*(1-t)+endV*t;
+}
+
+//物理補間(ease-out:2次補間)
+template&lt;class T&gt;
+inline T PhyInterpolate(const T&amp; startV,const T&amp; endV,int nowCnt,int ts){
+	float t=nowCnt/(float)ts;
+	T d=endV-startV;
+	return startV+2*d*t-d*t*t;
+}
+
+//3次補間(ease-in,out)
+template&lt;class T&gt;
+inline T CubicInterpolate(const T&amp; startV,const T&amp; endV,int nowCnt,int ts){
+	float t=nowCnt/(float)ts;
+	T d=endV-startV;
+	return startV-2*d*t*t*t+3*d*t*t;
+}
+
+//三角補間(ease-in,out)
+template&lt;class T&gt;
+inline T CosInterpolate(const T&amp; startV,const T&amp; endV,int nowCnt,int ts){
+	float t=nowCnt/(float)ts;
+	T d=endV-startV;
+	return startV+d*(1-cosd(180*t))/2;	//cosdは「度」用のコサイン
+}
+
+/*
+//使用例
+//アルファブレンドのアルファ値を0から255まで200フレームかけて線形遷移(フェードイン)
+int alpha=LinearInterpolate(0,255,cnt,200);
+*/
+</pre><br>
+補間式以外はtを求めること、引数の数と型が一致しているので補間用のクラスライブラリを作ってみるのもいいかもしれません。<br>
+実際にActionScript用のライブラリとして<a href="http://creator.cotapon.org/articles/flash/actionscript%E3%81%AE%E3%83%88%E3%82%A5%E3%82%A4%E3%83%BC%E3%83%B3%E5%88%B6%E5%BE%A1%E3%83%A9%E3%82%A4%E3%83%96%E3%83%A9%E3%83%AAtweener%E3%81%AE%E4%BD%BF%E3%81%84%E6%96%B9">Tweener</a>があります。（リンク先、Tweenerの外部解説サイトです）<br>
+<br>
+<br>
+<h2>・まとめ</h2>
+というわけで基本的な補間についてまとめてみました。<br>
+パラメータを設定してるときに、変化量とか最小値、最大値の制御のためにいちいちその都度コードを書いていると煩雑です。<br>
+上のテンプレート関数を作ってからは設定が格段に楽になりました。<br>
+<br>
+二次元的な動きが欲しい場合は今回の一次元補間移動をx,yそれぞれに対して行えば良いです。<br>
+次回は二次元座標間の補間について特化して解説してみたいと思います。<br>
+<br>
+<br>
+-&gt;<a href="Interpolation2.html">補間（曲線）</a><br>
+<br>
+<br>
+<h2>・参考サイト様</h2>
+マルペケつくろーどっとコム　―　ゲームつくろー！<br>
+<a href="http://marupeke296.com/TIPS_No19_interpolation.html">その19 補間関数あれこれ</a><br>
+・・・違うんです！ほとんど構成が被ったのは故意じゃないんです！<br>
+<br>
+ActionScript用のライブラリ<br>
+<a href="http://creator.cotapon.org/articles/flash/actionscript%E3%81%AE%E3%83%88%E3%82%A5%E3%82%A4%E3%83%BC%E3%83%B3%E5%88%B6%E5%BE%A1%E3%83%A9%E3%82%A4%E3%83%96%E3%83%A9%E3%83%AAtweener%E3%81%AE%E4%BD%BF%E3%81%84%E6%96%B9">Tweener</a><br>
+ActionScriptは使ったことが無いのですがC++でも使えるのでしょうか。<br>
+<br>
+<hr>
+<script type="text/javascript">
+write_locate(23);
+topic("index","../index.html");
+topic("プログラムテクニック覚え書き","./program_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+</p>
+</body></html>

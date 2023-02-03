@@ -1,0 +1,145 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>何もしない画面の作成</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<meta http-equiv="content-type" content="text/css; charset=shift_jis">
+<link rel="stylesheet" href="./styleTet.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<base href="http://1st.geocities.jp/shift486909/tetlec/">
+</head>
+<body>
+<p align="left"><br>
+<img src="./chapter_g/02g.gif" width="402" height="60" alt="何もしない画面の作成"><br>
+<br>
+まずは真っ暗な何もしない画面を表示するプログラムを創りましょう。<br>
+なお、ここからは他力本願でいきます。<br>
+<br>
+画面はDXライブラリで創ります。<br>
+DXライブラリについては、<br>
+「<a href="http://homepage2.nifty.com/natupaji/DxLib/index.html" target="blank">ＤＸライブラリ置き場</a>」<br>
+を参照に設定してください。<br>
+<br>
+DXライブラリを使用するときに、忘れがちなのはプロジェクトの設定です。<br>
+プロジェクト側にもDXライブラリに合わせた設定が必要です。<br>
+<br>
+ソリューションのプロパティを開きます。<br>
+<img src="./02/02_1.gif" width="284" height="515"><br>
+そして変更箇所は4カ所です。<br>
+Debug:全般-&gt;文字セットを「マルチバイト文字」に<br>
+Debug:C/C++-&gt;コード生成-&gt;ランタイムライブラリを「マルチスレッドデバッグ」に<br>
+Resource:全般-&gt;文字セットを「マルチバイト文字」に<br>
+Resource:C/C++-&gt;コード生成-&gt;ランタイムライブラリを「マルチスレッド」に<br>
+<img src="./02/02_2.gif" width="521" height="338"><br>
+<img src="./02/02_3.gif" width="521" height="338"><br>
+※画像はDebugモード時の設定。<br>
+<br>
+さて、ではコードを打ち込んでいきましょう。<br>
+「<a href="http://dixq.net/g/43.html">41. 毎回書くプログラムの骨格(キー入力監視付)</a>」<br>
+こちらのコードをコピペして少し改変します。<br>
+まぁこの辺は流儀の問題なので、自分がわかるようにしてくれればどうでもいいです。<br></p>
+<hr>
+<pre>
+//main.cpp
+
+#include "../include/main.h"
+
+//キー入力を保持する変数
+int Key[256];
+
+//キー入力を取得する関数
+int GetHitKeyStateAll_2(int GetHitKeyStateAll_InputKey[]){
+	char GetHitKeyStateAll_Key[256];
+	GetHitKeyStateAll( GetHitKeyStateAll_Key );
+	for(int i=0;i&lt;256;i++){
+		if(GetHitKeyStateAll_Key[i]==1)	GetHitKeyStateAll_InputKey[i]++;
+		else				GetHitKeyStateAll_InputKey[i]=0;
+	}
+	return 0;
+}
+
+//ループ時の処理
+bool ProcessLoop(){
+	//メッセージ処理
+	if(ProcessMessage()!=0)		return false;
+	//画面をクリア
+	if(ClearDrawScreen()!=0)	return false;
+	//入力状態を保存
+	if(GetHitKeyStateAll_2(Key)!=0)	return false;
+	//ESCが押されていない
+	if(Key[KEY_INPUT_ESCAPE]!=0)	return false;
+	return true;
+}
+
+//メイン関数
+int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLine, int nCmdShow ){
+
+	ChangeWindowMode(TRUE);//ウィンドウモード
+	if(DxLib_Init()==-1 || SetDrawScreen( DX_SCREEN_BACK )!=0) return -1;//初期化と裏画面化
+
+	while(ProcessLoop()){
+
+		ScreenFlip();
+	}
+
+	DxLib_End();
+	return 0;
+}
+</pre>
+<hr>
+<p align="left">
+ループの条件式を一つの関数にまとめただけです。<br>
+後でこのProcessLoop関数に、毎フレーム実行する関数を追加していきます。<br>
+また、main.hでDxLib.hをインクルードします。<br>
+ついでに他のヘッダーもインクルードしておきます。<br>
+</p>
+<hr>
+<pre>
+//main.h
+
+//DXライブラリ
+#include "DxLib.h"
+
+//define定義
+#include "define.h"
+
+//クラス定義
+#include "class.h"
+
+//グローバル変数
+#include "GV.h"
+
+//typedef宣言
+#include "typedef.h"
+
+//関数プロトタイプ宣言
+#include "func.h"
+
+</pre>
+<hr>
+<p align="left">
+ソースファイル(*.cpp)側ではこのmain.hをインクルードしておくようにしてましたので、<br>
+全てのヘッダーがインクルードされることになります。(構造的にどうかと思うけど・・・)<br>
+これでビルドして実行できればOKです。<br>
+<br>
+実行結果::真っ暗なので略<br>
+<br>
+Escキーを押すと終了するようになっていますね。<br>
+とりあえず今回はここまでですが、<br>
+後々キー入力処理を分離して書きます。<br>
+<br>
+テトリスはそんなに動きが激しいゲームではないですが、<br>
+次はスムーズに処理が進行しているかを知るためのfpsを表示します。<br>
+<br>
+</p>
+<hr size="2">
+
+<script type="text/javascript">
+write_locate(3);
+topic("index","../index.html");
+topic("テトリス作成講座","./tetlec_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+
+</body></html>

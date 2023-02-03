@@ -1,0 +1,95 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<link rel="stylesheet" type="text/css" href="bg.css">
+<base href="http://1st.geocities.jp/shift486909/BASIC/">
+<title>数当てゲーム</title>
+</head>
+<body>
+<p align="left">・<strong>数当てゲームを作る<br></strong>正解には<font 
+color="#ff0000">乱数</font>、入力には<font color="#ff0000">INPUT</font>、大きいか小さいか正解かを<font 
+color="#ff0000">IF</font>で判断して、<br><font color="#ff0000">PRINT</font>で表示、正解するまで<font 
+color="#ff0000">繰り返す</font>。<br>という今まで覚えたものをすべて使います。<br><br><br></p>
+<div align="left">
+<table style="LINE-HEIGHT: 150%" cellspacing="0" width="391" align="left" border="1">
+  <tbody>
+  <tr>
+    <td width="385">
+      <p style="MARGIN-TOP: 0px; MARGIN-BOTTOM: 0px; LINE-HEIGHT: 100%" 
+      align="left">REM * 数当てゲーム<br>RANDOMIZE<br>LET 
+      ANS=INT(RND*100+1)<br><br>DO<br>&nbsp;&nbsp;&nbsp; INPUT 
+      PROMPT"予想される数字を入力(1～100)":X<br>&nbsp;&nbsp;&nbsp; IF X=ANS THEN EXIT 
+      DO<br>&nbsp;&nbsp;&nbsp; IF X&gt;ANS THEN 
+      <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PRINT 
+      "もっと小さい"<br>&nbsp;&nbsp;&nbsp; 
+      ELSE&nbsp;<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PRINT 
+      "もっと大きい"<br>&nbsp;&nbsp;&nbsp; END IF<br>LOOP<br><br>PRINT 
+    "正解"<br>END</p></td></tr></tbody></table><br>乱数の初期化をする。<br>ANSという変数に1～100までの乱数を入れる。<br><font 
+color="#ff0000"><br>INPUT PROMPT</font><font 
+color="#000000">はPRINT文+INPUT文のような文で表示しながら入力を求めれます。<br>表示する文字と入力する変数は:（コロン）で区切ります。<br>XがANSと同じならばループからぬけ、正解と表示して終わります。<br><br>XがANSより大きければ「もっと小さい」と表示し、逆なら逆のことを表示します。<br><br><br>そしてもう一度入力してもらいます。<br><br><br><br>これでまず完成です。<br><br>・<strong>改良<br></strong>改良してみましょう。<br></font><font 
+color="navy">1　回数制限をつける</font><font 
+color="#000000"><br>DOループではなくFORループを使い、入力回数の制限をつける。<br><br></font><font 
+color="navy">2　終わった後にもう一度遊ぶか聞く</font><font 
+color="#000000"><br>ENDの前にINPUTとIFで遊ぶか聞く。<br><br><br></div></font>
+<div align="left">
+<table style="LINE-HEIGHT: 150%" cellspacing="0" width="770" align="left" border="1">
+  <tbody>
+  <tr>
+    <td width="380">
+      <p style="MARGIN-TOP: 0px; MARGIN-BOTTOM: 0px; LINE-HEIGHT: 100%" 
+      align="center"><font color="navy">1の改良</font></p></td>
+    <td width="380">
+      <p style="MARGIN-TOP: 0px; MARGIN-BOTTOM: 0px; LINE-HEIGHT: 100%" 
+      align="center"><font color="navy">2の改良</font></p></td></tr>
+  <tr>
+    <td width="380">
+      <p style="MARGIN-TOP: 0px; MARGIN-BOTTOM: 0px; LINE-HEIGHT: 100%" 
+      align="left"><font color="#000000">REM * 数当てゲーム 1の改良<br>RANDOMIZE</font></p>
+      <p style="MARGIN-TOP: 0px; MARGIN-BOTTOM: 0px; LINE-HEIGHT: 100%" 
+      align="left"><font color="#000000"><br>LET ANS=INT(RND*100+1)</font></p>
+      <p style="MARGIN-TOP: 0px; MARGIN-BOTTOM: 0px; LINE-HEIGHT: 100%" 
+      align="left"><font color="#000000"><br>FOR I=1 TO 10<br>&nbsp;&nbsp;&nbsp; 
+      PRINT I;"回目"<br>&nbsp;&nbsp;&nbsp; INPUT 
+      PROMPT"予想される数字を入力(1～100)":X<br>&nbsp;&nbsp;&nbsp; IF X=ANS THEN&nbsp;GOTO 
+      1<br>&nbsp;&nbsp;&nbsp; IF X&gt;ANS THEN 
+      <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PRINT 
+      "もっと小さい"<br>&nbsp;&nbsp;&nbsp; 
+      ELSE&nbsp;<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PRINT 
+      "もっと大きい"<br>&nbsp;&nbsp;&nbsp; END IF<br>NEXT I</font></p>
+      <p style="MARGIN-TOP: 0px; MARGIN-BOTTOM: 0px; LINE-HEIGHT: 100%" 
+      align="left"><font color="#000000"><br>PRINT "残念"<br>STOP</font></p>
+      <p style="MARGIN-TOP: 0px; MARGIN-BOTTOM: 0px; LINE-HEIGHT: 100%" 
+      align="left"><font color="#000000"><br>1&nbsp;&nbsp;PRINT 
+      "正解"<br>END</font></p></td>
+    <td width="380">
+      <p style="MARGIN-TOP: 0px; MARGIN-BOTTOM: 0px; LINE-HEIGHT: 100%" 
+      align="left"><font color="#000000">REM * 数当てゲーム 2の改良<br>1&nbsp;&nbsp; 
+      RANDOMIZE</font></p>
+      <p style="MARGIN-TOP: 0px; MARGIN-BOTTOM: 0px; LINE-HEIGHT: 100%" 
+      align="left"><font color="#000000"><br>LET ANS=INT(RND*100+1)</font></p>
+      <p style="MARGIN-TOP: 0px; MARGIN-BOTTOM: 0px; LINE-HEIGHT: 100%" 
+      align="left"><font color="#000000"><br>DO<br>&nbsp;&nbsp;&nbsp; INPUT 
+      PROMPT"予想される数字を入力(1～100)":X<br>&nbsp;&nbsp;&nbsp; IF X=ANS THEN EXIT 
+      DO<br>&nbsp;&nbsp;&nbsp; IF X&gt;ANS THEN 
+      <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PRINT 
+      "もっと小さい"<br>&nbsp;&nbsp;&nbsp; 
+      ELSE&nbsp;<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PRINT 
+      "もっと大きい"<br>&nbsp;&nbsp;&nbsp; END IF<br>LOOP</font></p>
+      <p style="MARGIN-TOP: 0px; MARGIN-BOTTOM: 0px; LINE-HEIGHT: 100%" 
+      align="left"><font color="#000000"><br>PRINT "正解"</font></p>
+      <p style="MARGIN-TOP: 0px; MARGIN-BOTTOM: 0px; LINE-HEIGHT: 100%" 
+      align="left"><font color="#000000"><br>INPUT&nbsp;PROMPT "もう一度？(はい→1&nbsp; 
+      いいえ→2)":X<br>IF X=1 THEN GOTO 
+1<br>END</font></p></td></tr></tbody></table></div><font color="#000000">
+<p align="left"><br><br><font 
+color="#ff0000"><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>GOTO<font 
+color="#000000">文は指定した数字のところにジャンプします。<br>しかし、これを使いすぎると処理の順序がわかりづらくなるので<br>多用してはいけません。</font><br>STOＰ</font>文はそこで処理をやめます。<br>終了させるときに使います。<br><br>もっと改良できるかもしれません。<br>自分でいろいろやってみてください。<br><br><br><br></p>
+<script type="text/javascript" src="./bhn_basic.js"></script>
+<form name="F1">
+<input onclick="back()" onmouseover="window.status='前に戻ります';" type="button" value="//back" name="B1">&nbsp; 
+<input onclick="location.href='../basic.html'" onmouseover="window.status='メニューに戻ります';" type="button" value="//home// " name="B2">&nbsp; 
+<input onclick="next()" onmouseover="window.status='次に進みます';" type="button" value="next//" name="B3"> 
+</form>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<link rel="stylesheet" type="text/css" href="bg.css">
+<title>基本的な文</title>
+<base href="http://1st.geocities.jp/shift486909/BASIC/"></head>
+<body>
+<p align="left">前回のプログラム<br><br></p>
+<p align="left">
+<table style="WIDTH: 164px; HEIGHT: 40px" cellspacing="0" cellpadding="0" width="164" 
+border="1">
+  <tbody>
+  <tr>
+    <td>
+      <p align="left">PRINT "ハローBASIC"<br>END</p></td></tr></tbody></table></p>
+<p align="left">の<font 
+color="#ff0000">PRINT"文字"は画面上に文字を表示する</font>文です。<br>プログラムは上から1行ずつ処理し、ENDに達したら終了します。<br><br><br></p>
+<p 
+align="left"><br>・変数<br>変数とはプログラムを書く上でなくてはならないものです。<br>変数はそれぞれ名前（識別子）がついた箱のようなものと考えるといいです。</p>
+<p align="left">次のプログラムをみてください<br></p>
+<p align="left">
+<table style="WIDTH: 154px; HEIGHT: 76px" cellspacing="0" cellpadding="0" width="154" 
+border="1">
+  <tbody>
+  <tr>
+    <td>LET A=2<br>LET B=3<br>LET C=A+B<br>END</td></tr></tbody></table></p>
+<p align="left">これは2+3＝？の足し算を想定したプログラムです。<br>A,B,Cという３つの変数を宣言しています。<br>変数の宣言は<font 
+color="#ff0000">LET（識別子） ＝　(数値)</font>　とします。</p>
+<p align="left">しかし、これを実行しても画面にはなにもでてきません。<br>画面に表示するPRINT文を書いていないからです。</p>
+<p 
+align="left">「計算したんだからそれを見せるのが当然」と思うかもしてませんが<br>プログラムは命令されたことしか動きません、<br>逆に命令がしっかりしていれば忠実にやってくれます。<br>そういう意味でとても厳密です。</p>
+<p align="left">↑の計算結果をいれているCの値を表示するには、<br>LET C=A+Bの次の行に<br>PRINT 
+C<br>と書けばいいですね。</p>
+<p align="left">変数はその名のとうり途中で値を変えることができます。</p>
+<p align="left">次のプログラムをみてください</p>
+<p align="left">
+<table style="WIDTH: 164px; HEIGHT: 168px" cellspacing="0" cellpadding="0" width="164" 
+border="1">
+  <tbody>
+  <tr>
+    <td>
+      <p align="left">LET A=2<br>LET A=3<br>PRINT A</p>
+      <p align="left">LET B=2<br>LET B=B+3<br>PRINT B</p>
+      <p align="left">END</p></td></tr></tbody></table></p>
+<p 
+align="left">さて、このプログラムでA,Bそれぞれの値はいくらになるでしょうか？<br>Aは始め2が入っていますが、次の文で3になりました。<br>なのでAは3です。2+3で5ではありません。</p>
+<p 
+align="left">5という結果にしたいのならば、Bのように始め2が入っていて<br>次の文で（新しいB）＝（いままでのB）+3という文を実行します。<br>するとB＝2+3になるので5が表示されます。<br><br><br><br></p>
+<p 
+align="left">・キーボードからの入力<br>前回の足し算をするプログラムではA＝2,B＝3としていました。<br>しかし、これでは違う足し算をしたい時にいちいちAとBの値を<br>書き換えなければいけません。<br>プログラムの実行時に指示できれば便利です。</p>
+<p align="left">そこで<font 
+color="#ff0000">キーボードから入力する文INPUT</font>を使います。<br>前のを改良してみましょう。<br></p>
+<p align="left">
+<table style="WIDTH: 166px; HEIGHT: 94px" cellspacing="0" cellpadding="0" width="166" 
+border="1">
+  <tbody>
+  <tr>
+    <td>INPUT A<br>INPUT B<br>LET C=A+B<br>PRINT 
+C<br>END</td></tr></tbody></table></p>
+<p 
+align="left">これを実行すると入力を促すように？と聞いてくるウィンドウがでてきます<br>そこにAの数値を入れエンターキーを押すと今度はBを聞いてきますので、同様に<br>してやると入力した2つの数値の和を表示してくれます。<br><br>四則演算の記号は+(プラス),-(マイナス)は同じですが<br>×(かける)÷(わる)はそれぞれ*(アスタリスク),/(スラッシュ)を使います。<br>Excelと同じですね。<br><br>どうだったでしょうか？もし実行できても結果がおかしいというようなことが<br>あったら<font 
+color="#ff0000">ステップ実行</font>(実行ボタンの右隣かF10ボタン)で<br>１行ずつ変数の値を確認しながら実行し、直してください。<br>うまく動かないことを<font 
+color="#ff0000">バグ</font>があるといい、<br>修正することを<font 
+color="#ff0000">デバック</font>といいます。<br>ステップ実行はデバックにとても有効です。</p>
+<p align="left">最後に今まで覚えた<font 
+color="#0000ff">LET,PRINT,INPUT</font>は基本的な文です。<br>それゆえ、どんなプログラムでもこれらを使う機会が多くあるのしっかり覚えてください。<br><br><br></p>
+<p align="left">次はIF～THEN～ という条件判断の文を説明します。</p>
+<p align="left">&nbsp;</p>
+<script src="./bhn_basic.js" type="text/javascript"></script>
+<form name="F1">
+<input onclick="back()" onmouseover="window.status='前に戻ります';" type="button" value="//back" name="B1">&nbsp; 
+<input onclick="location.href='../basic.html'" onmouseover="window.status='メニューに戻ります';" type="button" value="//home// " name="B2">&nbsp; 
+<input onclick="next()" onmouseover="window.status='次に進みます';" type="button" value="next//" name="B3"> 
+</form>
+</body>
+</html>

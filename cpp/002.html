@@ -1,0 +1,46 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Script-Type" content="text/javascript; charset=shift_jis">
+<link rel="stylesheet" href="cpp.css" type="text/css">
+<script type="text/javascript" src="./cpp.js"></script>
+<!--<span title="&#13;=enter">-->
+<title>002</title>
+</head>
+<body>
+<p>
+<h1>1.新規プロジェクトの作成</h1><br><span title="一つのプログラムを作るための作業場のような物。">プロジェクト</span> 
+の作成方法は他のMicrosoft製品と同じく、<i>ファイル→新規作成→プロジェクト</i>をクリックします。<br>そうすると作成ウィザードが出てきます。<br><img height="572" alt="002_1" src="./002_1.gif" width="865" border="0"><br>1 win32→win32コンソールアプリケーションを選択します。<br>2 
+プロジェクト名を決めます。今回は「hello」にします。<br>3 
+「ソリューションのディレクトリを作成」はチェックを外した方がいいでしょう。<br><br>全て設定したら、OKを押しましょう。<br>そうすると、win32コンソールアプリケーション作成ウィザードが出てきます。<br><img height="580" alt="002_2" src="./002_2.gif" width="955" border="0"><br>1 「次へ」を押します。<br>2 
+「コンソールアプリケーション」と「空のプロジェクト」にチェックを入れます。<br><br>で完了します。<br>そうすると、左側にソリューションエクスプローラが表示されます。<br><img height="591" alt="002_3" src="./002_3.gif" width="475" border="0"><br>1 「プロジェクト名（hello）」をクリックして、右クリックメニューを表示します。<br>2 
+追加→新しい項目を選択します。<br><br>そうすると、追加ウィザードが出てきます。<br><img height="593" alt="002_4" src="./002_4.gif" width="951" border="0"><br>C++ファイルを選び、ファイル名はなんでもいいですが、ここでは「hello」にしておきます。<br><br>ソリューションにcppファイル（拡張子|*.cpp）であるhello.cppが追加されました。<br>これにコードを書いていきます。<br><br>
+要はウィザードに従って設定すればいいのです。<br>
+では、次のコードを書いてみましょう。<br><span class="blue">「画面に"hello_cpp"と表示させる」</span><br>
+コードを書いたら<i>デバック→デバック無しで開始「Ctrl+F5」</i>で開始します。<br>
+<hr>
+<pre>
+#include &lt;iostream&gt
+using namespace std;
+
+void main(){
+	cout&lt;&lt;&quot;hello_cpp&quot;&lt;&lt;endl;
+}
+</pre>
+<hr>
+結果::<br>
+<img height="89" alt="" src="./002_5.gif" width="372" border="0"><br>
+<hr>
+まだ意味は覚えなくていいです。<br>
+画面に「hello_cpp」と<span title="余計なものが表示されてても&#13;とにかく「hello_cpp」と表示されていればokです。">表示</span>
+されましたか？<br>
+次回からはコードの意味を解説していきます。<br>
+<hr>
+<script type="text/javascript">
+<!--
+write();
+-->
+</script>
+</p>
+</body>
+</html>

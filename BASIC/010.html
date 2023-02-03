@@ -1,0 +1,179 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=SHIFT_JIS">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>暗号化</title>
+<link rel="stylesheet" type="text/css" href="bg.css">
+<base href="http://1st.geocities.jp/shift486909/BASIC/">
+</head>
+<body>
+<p><strong>・暗号<br></strong>暗号を作ってみましょう。<br>暗号化の方法としてシーザー暗号がありますが、<br>これはもとの文字を何文字かずらしただけなので、<br>すぐに解かれてしまいます。<br>後でいい暗号化の方法を述べますので、<br>まず文字の扱いに慣れてください。<br><br><strong>・文字<br></strong>BASICでaやAといった文字（ここではアルファベットのみを指す）<br>を扱うには数字と同じように変数を使いますが、<br>普通の変数ではなく、変数名の最後に$(ドルマーク)をつけた文字変数を使います。<br><br>表示はPRINTで行い、<br>代入は入れたい文字を"abc"のように(ダブルクォーテーション)でくくって入れます。<br>入力は文字ように<font 
+color="#ff0000">CHARACTER INPUT</font> と <font color="#ff0000">LINE 
+INPUT</font>があります。<br>CHARACTER INPUTは単文字入力で１文字だけ入力できます。<br>LINE 
+INPUTは行入力で複数の文字を入力できます。<br><br>文字の扱いについて例を示します。<br></p>
+<p>
+<table cellspacing="0" cellpadding="0" width="75%" border="1">
+  <tbody>
+  <tr>
+    <td>LET A$="ABC"<br>PRINT A$&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+      !ABCと表示される<br>END</td>
+    <td>CHARACTER INPUT A$&nbsp;&nbsp; !1文字入力<br>PRINT A$<br>END</td>
+    <td>LINE INPUT A$&nbsp;&nbsp; !1行入力<br>PRINT 
+A$<br>END　</td></tr></tbody></table></p>
+<p><br><br><strong>・文字コード<br></strong>BASICにはどの文字は何番というふうに数値によって文字を呼び出すことができます。<br>そのコード（数値）によって文字を表すには<font 
+color="#ff0000">CHR$(数値)</font>という組み込み関数を使います。　例）CHR$(65) = 
+A<br>逆に文字からコード（数値）を表すには<font 
+color="#ff0000">ORD(文字)</font>というのを使います。　&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+例）ORD(A) = 65<br>この二つの関数で<font 
+color="#ff0000">文字⇔数値</font>の変換ができます。<br>どの文字がどのコードによって呼び出せるかは<br></p>
+<p>
+<table style="WIDTH: 192px; HEIGHT: 76px" cellspacing="0" cellpadding="0" width="192" 
+align="left" border="1">
+  <tbody>
+  <tr>
+    <td>FOR I=1 TO 128<br>&nbsp;&nbsp;&nbsp; PRINT I ; CHR$(I)<br>NEXT 
+    I<br>END</td></tr></tbody></table></p>
+<p><br>1から128までのコードで呼び出せるものを表示<br><br><br><br>・・・とすればわかります。Aは65、aは96です。<br><br><strong>・流れ<br></strong>まずは一文字の暗号化の方法です。<br>CHARACTER 
+INPUT 
+で文字を受け取りその文字をORD()で数値に直し、暗号化の処理をして、<br>CHR$()で文字に戻し、表示するというようにします。<br>暗号化の方法は<font 
+color="#ff0000">『A～Zを1～26としてその数を5倍したもの27で割ったあまり』</font>というものを使います。<br>文字コードでAは65なので64を引けばA～Zが1～26に対応します。<br>戻す際に64を足して文字コードに対応させる必要があります。<br><br></p>
+<p>
+<table style="WIDTH: 232px; HEIGHT: 166px" cellspacing="0" cellpadding="0" width="232" 
+align="left" border="1">
+  <tbody>
+  <tr>
+    <td>CHARACTER INPUT A$<br><br>PRINT<br><br>LET J=ORD(A$)<br>LET 
+      J=J-64<br>LET J=J*5<br>LET J=MOD( J , 27 )<br>LET J=J+64<br>LET 
+      A$=CHR$(J)<br><br>PRINT A$<br><br>END</td></tr></tbody></table></p>
+<p>単文字入力<br><br><br><br>文字→数値<br>対応させるために64を引く<br>5をかける<br>それを27で割ったあまり<br>文字コードに対応させるために64を足す<br>数値→文字<br><br>表示<br><br><br><br>どうでしょうか？<br>「入力した文字、暗号化された文字」<br>と表示されましたか？<br>例えばAを入力すればEになります。<br><br>これで一文字の暗号化ができるようになりました。<br>小文字にも対応させましょう。<br>小文字は文字コード97～122なので、96を引けば1～26になります。<br></p>
+<p>
+<table style="WIDTH: 273px; HEIGHT: 400px" cellspacing="0" cellpadding="0" width="273" 
+align="left" border="1">
+  <tbody>
+  <tr>
+    <td>CHARACTER INPUT A$<br><br>PRINT<br><br>LET J=ORD(A$)<br><br>IF J&gt;64 
+      AND J&lt;91 THEN<br>&nbsp;&nbsp;&nbsp; LET J=J-64<br>&nbsp;&nbsp;&nbsp; 
+      LET J=J*5<br>&nbsp;&nbsp;&nbsp; LET J=MOD( J , 27 )<br>&nbsp;&nbsp;&nbsp; 
+      LET J=J+64<br>ELSEIF J&gt;96 AND J&lt;123 THEN<br>&nbsp;&nbsp;&nbsp; LET 
+      J=J-96<br>&nbsp;&nbsp;&nbsp; LET J=J*5<br>&nbsp;&nbsp;&nbsp; LET J=MOD( J 
+      , 27)<br>&nbsp;&nbsp;&nbsp; LET J=J+96<br>END IF&nbsp;<br><br>LET 
+      A$=CHR$(J)<br>PRINT A$<br><br>END</td></tr></tbody></table></p>
+<p><br><br><br><br><br><br>Jが65から91ならば、つまり大文字ならば<br><br><br><br><br>Ｊが97から123ならば、つまり小文字ならば<br>)<br>)やってることは同じ<br>)<br>)<br><br><br><br><br><br><br><br>IF文の中のANDは論理式といって詳しい条件をつけるためにつかいます。<br>論理式<br></p>
+<p>
+<table style="WIDTH: 292px; HEIGHT: 80px" cellspacing="0" cellpadding="0" width="292" 
+border="1">
+  <tbody>
+  <tr>
+    <td>AND</td>
+    <td>アンド　</td>
+    <td>～かつ～</td></tr>
+  <tr>
+    <td>OR</td>
+    <td>オア</td>
+    <td>～または～</td></tr>
+  <tr>
+    <td>NOT</td>
+    <td>ナット　</td>
+    <td>～でなければ（否定）</td></tr></tbody></table></p>
+<p><br>上の場合Jが64以上かつ91以下ならば・・・ということです。<br><br><br><strong>・文の暗号化<br></strong>一文字ではなく一文を入力するのにはLINE 
+INPUTを使います。<br>LINE 
+INPUTを使うと文字変数（A$）に文字列が入ります。文字列は文字の集合体なのでその文字数だけ繰り返す必要があります。<br></p>
+<p>
+<table style="WIDTH: 309px; HEIGHT: 580px" cellspacing="0" cellpadding="0" width="309" 
+align="left" border="1">
+  <tbody>
+  <tr>
+    <td>
+      <p align="left">LINE&nbsp;INPUT A$<br><br>PRINT<br><br>FOR I=1 TO 
+      LEN(A$)<br>&nbsp;&nbsp;&nbsp; LET J=ORD(A$ ( I&nbsp;: I ) 
+      )<br><br>&nbsp;&nbsp;&nbsp; IF J&gt;64 AND J&lt;91 
+      THEN<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LET 
+      J=J-64<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LET 
+      J=J*5<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LET J=MOD( J , 27 
+      )<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LET 
+      J=J+64<br>&nbsp;&nbsp;&nbsp; ELSEIF J&gt;96 AND J&lt;123 
+      THEN<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LET 
+      J=J-96<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;LET 
+      J=J*5<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LET J=MOD( J , 
+      27)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LET 
+      J=J+96<br>&nbsp;&nbsp;&nbsp; END IF&nbsp;<br><br>&nbsp;&nbsp;&nbsp; PRINT 
+      CHR$(J);<br><br>NEXT I<br><br>END</p></td></tr></tbody></table></p>
+<p><br><br><br><br>文字数分繰り返す<br>各文字をそれぞれ<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>LEN(A$)はA$の文字数（長さ）を表します。<br>A$( 
+I : I 
+)は各文字をIによって順番に示していきます。<br><br><br><br><strong>・データ<br></strong>１文ずつではなくあらかじめ用意しておいた文を暗号化したいと思います。<br><font 
+color="#ff0000">READ～DATA</font>という一対のコマンドを使います。<br>文章をDATAとして書いておき、READで文字変数に読み込んで扱います。<br>
+<table style="WIDTH: 240px; HEIGHT: 412px" cellspacing="0" cellpadding="0" width="240" 
+align="left" border="1">
+  <tbody>
+  <tr>
+    <td>LET A$=""<br>FOR L=1 TO 2<br>&nbsp;&nbsp;&nbsp; READ 
+      A$<br>&nbsp;&nbsp;&nbsp; FOR I=1 TO 
+      LEN(A$)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LET J=ORD(A$ ( I : I 
+      ) )<br>・<br>・<br>・<br>・<br>・<br>&nbsp;&nbsp;&nbsp; NEXT&nbsp; I<br>NEXT 
+      L<br><br>DATA"My name is BASIC"<br>DATA"Do you enjoy 
+  me?"<br><br>END</td></tr></tbody></table><br>文の数だけ繰り返す<br>読み込む<br><br><br><br><br><br><br><br><br><br><br>データを用意<br>今回は2文<br><br><br><br><br>始めのFOR文は文の数文繰り返します。<br><br><br><strong>・ファイル操作<br></strong>前のプログラムで十分多い文字を暗号化できますが、長い文をDATA部分に書くのは大変です。<br>テキストファイル（*.txt）にあらかじめ文を書いておき読み込んで暗号化したのをまたテキストファイルに書き出して見ることができます。<br>まず次のファイルを作業ディレクトリ（BASICのソースを保存している場所　*.BASのファイルがある場所）に作ってください。<br>名前&nbsp;&nbsp; 
+input.txt&nbsp;&nbsp; 
+output.txt<br>input.txtはテキストエディタ（メモ帳）で開いて次のように書いてください。<br><br>input.txt<br>
+<table style="WIDTH: 281px; HEIGHT: 76px" bordercolor="#0000ff" cellspacing="0" 
+cellPadding="0" width="281" border="1">
+  <tbody>
+  <tr>
+    <td>"ABCDEFGHIJKLMNOPQRSTUVWXYZ"<br>"abcdefghijklmnopqrstuvwxyz"<br>"?!'."</td></tr></tbody></table>三行目は記号ならなんでもいいです。<br>""でくくってください。<br><br><img style="WIDTH: 555px; HEIGHT: 362px" height="314" alt="directory" src="./directory.gif" width="512" border="0"><br>このファイルから文字を読み込み暗号化して空のoutput.txtに書き込みたいと思います。<br><br>ファイルを扱うための手順は大きく分けて3つあります。<br>ファイルを開く（オープン）→読み書き→ファイルを閉じる（クローズ）<br><br>・OPEN文<br>まずファイルを開くには経路に関連づけて経路番号をつけます。<br>経路番号は#1のように#（シャープ）をつけます。何番でもいいですが1からつけるのが習慣です。<br><font 
+color="#ff0000">OPEN #1: NAME 
+"input.txt"</font><br>のようにして開きます。<br>#1が経路番号、""の中がファイルの名前です。<br>開いた後はこの経路番号で扱っていきます。<br><br>・読み書き<br><font 
+color="#ff0000">INPUT #1 : 
+文字変数<br></font>でファイルから文字変数に入力できます。<br>普通のINPUTはキーボードからの読み込み（入力）でしたが、ファイルから読み込みます。<br><font 
+color="#ff0000">PRINT #1 : 
+"文字"</font><br>で文字をファイルに書き込みます。<br>普通のPRINTは画面への書き込み（表示）でしたが、ファイルへ書き込みます。<br><br>・CLOSE文<br>開けたら閉めます　<br><font 
+color="#ff0000">CLOSE #1</font> 
+で終わり。<br>安全のために必ず閉じてください。<br><br>OPENからCLOSEまでの開いている間にしか操作できません。<br><br><br><strong>・ファイルを使っての暗号化<br></strong>#1にinput.txtを割り当て読み込みに使います。<br>INPUT文の派生であるLINE 
+INPUT にさらに付加した <br><font color="#ff0000">LINE INPUT #1 ,IF MISSING THEN EXIT DO: 
+A$<br></font>を使います。<br>何行書いてあってもいいようにDO～LOOPで囲むので、読み込みに失敗したら（IF MISSING 
+THEN）DO～LOOPから抜ける（EXIT 
+DO）<br>つまり、最後まで読み込みます。英語の意味のままですね。<br><br>#2にoutput.txtを割り当て暗号化した結果を書き込みます。<br>これはPRINT 
+#2 : CHR$(J)で書けばいいです。<br>でもその前に<font color="#ff0000">ERASE 
+#2</font>でファイルを白紙にしておきます。<br><br>
+<table style="WIDTH: 443px; HEIGHT: 837px" cellspacing="0" cellpadding="0" width="443" 
+border="1">
+  <tbody>
+  <tr>
+    <td>
+      <p>LET A$=""</p>
+      <p>OPEN #1 : NAME "input.txt"<br>OPEN #2 : NAME "output.txt"<br>ERASE 
+      #2</p>
+      <p>DO</p>
+      <p>&nbsp;&nbsp;&nbsp; LINE INPUT #1 ,IF MISSING THEN EXIT DO: A$</p>
+      <p>&nbsp;&nbsp;&nbsp; FOR I=1 TO 
+      LEN(A$)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LET 
+      J=ORD(A$(I:I))</p>
+      <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; IF J&gt;64 AND J&lt;91 
+      THEN<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+      &nbsp;LET 
+      J=J-64<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+      &nbsp;LET 
+      J=MOD(J*5,27)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+      &nbsp;LET J=J+64<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELSEIF 
+      J&gt;96 AND J&lt;123 
+      THEN<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+      &nbsp;LET 
+      J=J-96<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+      &nbsp;LET 
+      J=MOD(J*5,27)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+      &nbsp;LET J=J+96<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;END 
+      IF</p>
+      <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PRINT 
+      CHR$(J);<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PRINT #2 : 
+      CHR$(J);</p>
+      <p>&nbsp;&nbsp;&nbsp; NEXT I</p>
+      <p>&nbsp;&nbsp;&nbsp; PRINT<br>&nbsp;&nbsp;&nbsp; PRINT #2&nbsp; </p>
+      <p>LOOP</p>
+      <p>CLOSE #1<br>CLOSE #2</p>
+      <p>END</p></td></tr></tbody></table><br>うまくいかない場合は次のことを・・・<br>・ファイルを開けない<br>　1まず上部のフロッピーのボタンをおしていったん保存してください。<br>　2保存した場所と同じところで右クリック→新規作成→新規テキストドキュメントとたどって名前をinput.txtにして作成。<br>　3同じ方法でoutput.txtを作成。<br>　4構文のミスはないかチェックする。<br>・ファイルに書き込めない<br>　1output.txtはありますか？<br>　2構文は間違っていませんか？<br>　3　：　（コロン）　と　；　（セミコロン）は大丈夫ですか？<br><br><br><br><br><br>どうでしょうか？ファイルを扱えるようになると大量のデータも扱えるようになります。<br>次はグラフィックスについて書きます。<br><br><br><br><br><br></p>
+<script type="text/javascript" src="./bhn_basic.js"></script>
+<form name="F1">
+<input onclick="back()" onmouseover="window.status='前に戻ります';" type="button" value="//back" name="B1">&nbsp; 
+<input onclick="location.href='../basic.html'" onmouseover="window.status='メニューに戻ります';" type="button" value="//home// " name="B2">&nbsp; 
+<input onclick="next()" onmouseover="window.status='次に進みます';" type="button" value="next//" name="B3"> 
+</form>
+</body>
+</html>

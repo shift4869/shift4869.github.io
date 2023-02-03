@@ -1,0 +1,107 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<link rel="stylesheet" type="text/css" href="bg.css">
+<title>条件判断</title>
+<base href="http://1st.geocities.jp/shift486909/BASIC/"></head>
+<body>
+<p 
+align="left">・<strong>条件判断<br></strong>・IF文<br>BASICには「もし～ならば～をする」という条件判断ができます。</p>
+<p align="left">この「もし～ならば～をする」というのを「<font color="#ff0000">IF～THEN～&nbsp;&nbsp; END 
+IF</font>」と書きます<br></p>
+<p align="left">
+<table style="WIDTH: 258px; HEIGHT: 94px" cellspacing="0" cellpadding="0" width="251" 
+align="left" border="1">
+  <tbody>
+  <tr>
+    <td width="247">
+      <p align="left">IF 条件式 THEN<br><br>&nbsp; 条件式が正しければ実行される文<br><br>END 
+    IF</p></td></tr></tbody></table></p>
+<p align="left"><br><br><br><br><br><br>IF文は条件式が正しければ実行される文が<br>1行のみならば、END 
+IFは省略できます。 </p>
+<p 
+align="left">プログラムでどのように使えるかというと、<br>変数Aがあるとし、「もしAが10以上ならば"10以上"と表示する」と考えてみましょう。<br></p>
+<p align="left">
+<table style="WIDTH: 253px; HEIGHT: 94px" cellspacing="0" cellpadding="0" width="253" 
+align="left" border="1">
+  <tbody>
+  <tr>
+    <td>
+      <p align="left">LET A=10<br>IF A&gt;=10 THEN <br>&nbsp;&nbsp;&nbsp; PRINT 
+      "10以上"<br>END IF<br>END</p></td></tr></tbody></table></p>
+<p 
+align="left"><br><br><br><br><br><br>&gt;=は数学の≧と同じです。条件式にはこういった不等号や等号を使います。<br>下記のとおりです。<br></p>
+<p align="left">
+<table cellspacing="0" cellpadding="0" width="431" align="left" border="1">
+  <tbody>
+  <tr>
+    <td width="96">
+      <p align="center">数学</p></td>
+    <td width="28">
+      <p align="center">＝</p></td>
+    <td width="28">
+      <p align="center">＞</p></td>
+    <td width="28">
+      <p align="center">＜</p></td>
+    <td width="55">
+      <p align="center">≧</p></td>
+    <td width="55">
+      <p align="center">≦</p></td>
+    <td width="125">
+      <p align="center">≠</p></td></tr>
+  <tr>
+    <td width="96">
+      <p align="center">BASIC</p></td>
+    <td width="28">
+      <p align="center">＝</p></td>
+    <td width="28">
+      <p align="center">＞</p></td>
+    <td width="28">
+      <p align="center">＜</p></td>
+    <td width="55">
+      <p align="center">＞＝</p></td>
+    <td width="55">
+      <p align="center">＜＝</p></td>
+    <td width="125">
+      <p align="center">＜＞または＞＜</p></td></tr></tbody></table></p>
+<p align="left"><br><br><br><br>上のプログラムの場合、Aは10で「Aが10以上」という条件に当てはまるので<br>THEN 
+の後のPRINT"10以上"が実行されます。<br>もしAが10以下ならば「Aが10以上」という条件に当てはまらないので<br>THEN 
+の後のPRINT"10以上"が実行されません。</p>
+<p align="left">LET A をINPUT 
+Aにして自分で数値をいれてみてください。<br>10以下の場合何も表示されないはずです。<br><br><br></p>
+<p align="left">「もし～ならば～をする。でなければ～をする」という文もあります。<br></p>
+<p align="left">
+<table style="WIDTH: 235px; HEIGHT: 94px" cellspacing="0" cellpadding="0" width="224" 
+align="left" border="1">
+  <tbody>
+  <tr>
+    <td width="220">
+      <p align="left">IF～THEN<br>&nbsp;&nbsp;&nbsp; 
+      条件式が正しい場合の文<br>ELSE<br>&nbsp;&nbsp;&nbsp; 条件式が正しくない場合の文<br>END 
+  IF</p></td></tr></tbody></table></p>
+<p align="left"><br><br><br><br><br><br>この文です </p>
+<p align="left">さきほどのプログラムに「10以下ならば"10以下"と表示する」ように改良してみましょう。<br>IF A&gt;=10 THEN 
+PRINT "10以上"の次の行にIF A&lt;10 THEN PRINT "10以下"と書いてもいいですが<br><font 
+color="#ff0000">IF～THEN<br>ELSE<br>END IF<br></font>文を使ってみましょう。<br></p>
+<p align="left">
+<table style="WIDTH: 223px; HEIGHT: 130px" cellspacing="0" cellpadding="0" width="164" 
+align="left" border="1">
+  <tbody>
+  <tr>
+    <td width="160">
+      <p align="left">INPUT A<br>IF A&gt;=10 THEN&nbsp;<br>&nbsp;&nbsp; 
+      &nbsp;PRINT "10以上"<br>ELSE <br>&nbsp;&nbsp;&nbsp; PRINT "10以下"<br>END 
+      IF<br>END</p></td></tr></tbody></table></p>
+<p 
+align="left"><br><br><br><br><br><br><br><br>10以上でなければ10以下なのは当然です。<br>自分でいろいろ入力してみてください。</p>
+<p align="left"><br>このIF文は今後もよく頻繁に使われます。<br><br><br></p>
+<p align="left">次回は何回も繰り返すFOR～TO～STEP&nbsp;&nbsp; NEXTを説明します。<br><br><br><br></p>
+<script type="text/javascript" src="./bhn_basic.js"></script>
+<form name="F1">
+<input onclick="back()" onmouseover="window.status='前に戻ります';" type="button" value="//back" name="B1">&nbsp; 
+<input onclick="location.href='../basic.html'" onmouseover="window.status='メニューに戻ります';" type="button" value="//home// " name="B2">&nbsp; 
+<input onclick="next()" onmouseover="window.status='次に進みます';" type="button" value="next//" name="B3"> 
+</form>
+</body>
+</html>

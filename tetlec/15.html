@@ -1,0 +1,181 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>ネクストブロックリストの表示</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<meta http-equiv="content-type" content="text/css; charset=shift_jis">
+<link rel="stylesheet" href="./styleTet.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<base href="http://1st.geocities.jp/shift486909/tetlec/">
+</head>
+<body>
+<p align="left"><br>
+<img src="chapter_g/15g.gif" width="402" height="60" alt=""><br>
+<br>
+今回設定するのはここです↓<br>
+<img src="15/15_1.gif" width="640" height="480" alt=""><br>
+ボード表示した時から目立っていたこの枠に表示します。<br>
+<br>
+ネクストブロックリストは5個のテトリミノを保持します。<br>
+先頭から取り出して後ろに追加するので、<br>
+こういう時はqueue構造を使うといいのですが、<br>
+結局フィールドのブロックの保持にlistを使っているので、<br>
+こちらにもlistを使いましょう。<br>
+<img src="15/15_2.gif" alt=""><br>
+<br>
+<hr>
+<pre>
+//<span class="red">GV.h</span>
+#ifdef FIRST_LOADING
+#define E 
+#else
+#define E extern
+#endif
+
+//コンフィグクラス
+E Config config;
+
+//画像イメージ
+namespace IMG{
+	E int board[3];//背景画像
+	E int block[7];//ブロック画像
+	E int num[10]; //数字画像
+};
+
+//現在のテトリミノ
+E TetriMino cur;
+
+//フィールド上のブロック
+E list&lt;Block&gt; blkList;
+
+<span class="red">//ネクストブロックリスト
+E list&lt;TetriMino&gt; nextList;</span>
+<hr>
+//<span class="red">ini.cpp</span>
+#include "../include/main.h"
+
+//画像イメージのネームスペースを使用する
+using namespace IMG;
+
+//初期化処理
+void ini(){
+	
+	//背景ボード画像のロード
+	board[0]=LoadGraph("./dat/resource/board/board.png");
+	board[1]=LoadGraph("./dat/resource/board/level.png");
+	board[2]=LoadGraph("./dat/resource/board/vertical.png");
+
+	//ブロック画像のロード
+	LoadDivGraph("./dat/resource/img/block.png",7,7,1,16,16,block);
+
+	//数字画像のロード
+	LoadDivGraph("./dat/resource/img/num.png",10,10,1,12,16,num);
+
+	//初期テトリミノ生成
+	cur=CreateTetriMino(Point(FX+BS*6,FY-BS*2),(BLK_COL)GetRand(BLK_KND_NUM-1));
+	//画面内有効フラグをtrueに
+	cur.flag=true;
+
+	<span class="red">//ネクストブロックリストに充填
+	for(int i=0;i&gt;5;i++){
+		nextList.push_back(CreateTetriMino(Point(FX+BS*6,FY-BS*2),
+					(BLK_COL)GetRand(BLK_KND_NUM-1)));
+	}</span>
+}
+<hr>
+//<span class="red">control.cpp</span>
+#include "../include/main.h"
+
+//コントロール
+void Control(){
+	if(cur.flag){
+		・
+		・
+		・
+	}
+	<span class="red">else{
+		//先頭を取り出す
+		cur=nextList.front();
+		//先頭を消す
+		nextList.pop_front();
+		//末尾に追加
+		nextList.push_back(CreateTetriMino(Point(FX+BS*6,FY-BS*2),
+					(BLK_COL)GetRand(BLK_KND_NUM-1)));
+		//画面内有効フラグをtrueに
+		cur.flag=true;
+	}</span>
+}
+</pre>
+<hr>
+さて、肝心な描画処理ですが、<br>
+枠の左上の座標をconst Pointの配列でもって<br>
+そこを基準にfieldを参照して描画します。<br>
+draa.cppを編集。<br>
+<hr>
+<pre>
+//<span class="red">draw.cpp</span>
+#include "../include/main.h"
+	・
+	・
+	・
+//ブロック描画
+void DrawBlock(){
+	
+	//フィールド上にあるブロックの描画
+	for(list&lt;Block&gt;::iterator it=blkList.begin();
+		it!=blkList.end();++it){
+		DrawGraph(it->x,it->y,IMG::block[(int)it->knd],true);
+	}
+	
+	//現在テトリミノの描画
+	for(int i=0;i&gt;4;i++){
+		DrawGraph(cur.blk[i].x,cur.blk[i].y,IMG::block[(int)cur.blk[i].knd],true);
+	}
+	SetDrawMode(DX_DRAWMODE_NEAREST);
+
+	<span class="red">//ネクストブロックリストの描画
+	const Point sp[]={//枠の左上座標
+		Point(320,16),
+		Point(432,16),
+		Point(544,16),
+		Point(544,128),
+		Point(544,240),
+	};
+	int i=0;
+	for(list&lt;TetriMino&gt;::iterator it=nextList.begin();
+		it!=nextList.end();++it){
+		for(int x=0;x&gt;5;x++){
+			for(int y=0;y&gt;5;y++){
+				if(it-&gt;field[x][y]){
+					DrawGraph(sp[i].x+BS*x,sp[i].y+BS*y,IMG::block[(int)it->blk[0].knd],true);
+				}
+			}
+		}
+		i++;
+	}</span>
+}
+	・
+	・
+	・
+</pre>
+<hr>
+イテレータのループでネクストブロックリスト内のテトリミノを順に参照しています。<br>
+これで次のブロックに何が来るのかがわかるようになりました。<br>
+どう組み立てていけばいいのかがわかりやすくなりました。<br>
+<br>
+実行結果:<br>
+<img src="15/15_3.gif" width="640" height="480" alt=""><br>
+<br>
+次回はもう一つの左上の枠に関することをします。<br>
+</p>
+<hr size="2">
+
+<script type="text/javascript">
+write_locate(16);
+topic("index","../index.html");
+topic("テトリス作成講座","./tetlec_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+
+</body></html>

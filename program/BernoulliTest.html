@@ -1,0 +1,241 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>9.より精度の高いサイコロを目指して</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+<!--<base href="http://1st.geocities.jp/shift486909/">-->
+</head>
+<body>
+<p align="left"><br>
+<h1>より精度の高いサイコロを目指して</h1><br>
+<hr>
+<br>
+<h2>・乱数</h2>
+今回のテーマは乱数です。<br>
+決められたことを忠実に実行するプログラムにおいて、<br>
+不確定要素を入れるために乱数を使うかと思います。<br>
+<br>
+しかし、やはりPCは決められた計算しかできないので、<br>
+乱数はどうしても<span class="red">疑似乱数</span>でしかありません。<br>
+なるべくばらばらな数が選ばれるような乱数生成法を紹介します。<br>
+(なお、乱数を扱う以上、誤差が出るのは仕方ないので、結論がきっぱりでません。)<br>
+<br>
+<h2>・乱数生成法</h2>
+C言語では乱数を取得する関数は<span class="red">rand()</span>関数があります。<br>
+内部でどんな処理をして乱数を返しているのかはわかりませんが、<br>
+何もしなければいつも同じ数値を返してきます。<br>
+なので<span class="red">srand(unsigned int)</span>関数で、初期値を設定します。<br>
+普通は常に変わる数である&quot;時間&quot;を入れます。(#include &lt;time.h&gt;)<br>
+<pre>
+srand((unsigned int)time(NULL));
+rand();
+</pre>
+今回はサイコロ試行をしたいと思うので、1～6までの数が欲しいですが、<br>
+<span class="green" title="option base 0">配列の都合上</span>0～5までを返すようにします。<br>
+そこでrand()を6で割ったあまり(剰余)をとります。<br>
+<br>
+さて、<a href="http://homepage2.nifty.com/natupaji/DxLib/index.html">DXライブラリ</a>
+では乱数を返す<span class="red">GetRand(int max)</span>関数があります。<br>
+こちらは何もしなくても0～maxまでの乱数を返してきます。<br>
+一応初期値を設定する関数は<span class="red">SRand(int seed)</span>関数があります。<br>
+<pre>
+SRand((int)time(NULL));
+GetRand();
+</pre>
+今回はこれとは別に一つ乱数生成法を実装してみたいと思います。<br>
+<h3>・ベルヌーイ試行</h3>
+ある事象がある確率で起こるとき、起こることを<span class="red">成功</span>・起こらなければ<span class="red">失敗</span>と表せる。<br>
+このような成功と失敗によって区分される試行を<span class="red">ベルヌーイ試行</span>といいます。<br>
+ベルヌーイ試行を区間[0,1)で乱数Uで表すにはUが確率pで起こるとすると U&lt;=p で成功 U&gt;p で失敗とすればいい。<br>
+<img src="./Bernoulli/persent1.gif" border="0" alt="persent.gif" width="629" height="125"><br>
+<br>
+一般的には事象は2種しかないということはないと思いますので、<br>
+この区分の個数を増やして試行します。<br>
+<img src="./Bernoulli/persent2.gif" border="0" alt="persent2.gif" width="629" height="125"><br>
+イメージとしては、大きさがまちまちに区切られた箱に適当にボールを放り込んで入ったところをとる。感じです。<br>
+<br>
+そこでまず、6等分した箱を用意します。<br>
+そして試行をします(数値の決定)<br>
+<img src="./Bernoulli/persent3.gif" border="0" alt="persent3.gif" width="586" height="125"><br>
+で、入ったところの区画を狭めて、別の区画を広げます。<br>
+<img src="./Bernoulli/persent4.gif" border="0" alt="persent4.gif" width="586" height="125"><br>
+これは出た事象が次に出る確率を低くし、別の事象が出る確率を高くすることを意味します。<br>
+これを繰り返して、各事象が平均的に出るようにします。<br>
+<br>
+それではコードを示します。<br>
+<pre>
+
+//インクルードファイル
+#include &lt;DxLib.h&gt;
+
+//pragma宣言
+#pragma warning(disable:4244)//float-&gt;intの情報落ち警告を消す
+
+//define定義
+#define MAX_NUM 6
+
+//減少率:定義
+const float DOWN_RATE=(1-20/100.0f);//確率減少20%づつ
+
+//各種数値の確率
+float per[MAX_NUM];
+
+//per配列の初期化
+void init_per(){
+    //初期の各確率は等しい
+    memset(per,1.0f/(MAX_NUM),sizeof(float)*MAX_NUM);
+}
+
+//0～1までの乱数DXライブラリ:GetRand()使用
+float randf(){
+    return GetRand(100000)/100000.0f;
+}
+
+//確率を元に数値を返す
+int GetRandNumber(){
+    int ret=0;
+
+    float r=randf();//0~1
+
+    //ベルヌーイ試行によりperを確率として数値の決定-------
+    float sum=0.0;
+    for(int i=0;i&lt;MAX_NUM;i++){
+        if(sum&lt;r &amp;&amp; r&lt;sum+per[i]){
+            ret=i;
+        }
+        sum+=per[i];//最終的に1.0前後になるはず
+    }
+    //----------------------------------------------------
+
+    //選定数値の次回抽選確率を減少させる------------------
+    //それに伴い 選定数値以外の次回抽選確率を増加させる
+    //減少率はDOWN_RATE
+    for(int i=0;i&lt;MAX_NUM;i++){
+        if(i!=ret){per[i]+=(per[ret]*(1-DOWN_RATE))/(MAX_NUM);}
+    }
+    per[ret]*=DOWN_RATE;
+    //----------------------------------------------------
+
+    //今までのfloat計算の誤差の修正-----------------------
+    //perの合計は1になるはず
+    //その誤差を求める-&gt;diff
+    float diff=1-sum;
+    for(int i=0;i&lt;MAX_NUM;i++){
+        per[i]+=diff/(MAX_NUM);//誤差を均等配分する
+    }
+    //----------------------------------------------------
+
+    return ret;//選定数値を返す
+}
+</pre>
+(・・まったく・・・float使うなよ・・・)<br>
+今回はC言語のrand()、DXライブラリのGetRand()、それとこの自作乱数生成法とを比較して、<br>
+どの生成法が&quot;ランダム&quot;なのかを検証してみたいと思います。<br>
+検証用のコードはこちら<br>
+<a href="./Bernoulli/main.cpp">main.cpp</a>   <a href="./Bernoulli/GetRandNumber.cpp">GetRandNumber.cpp</a>  <a href="./Bernoulli/func.cpp">func.cpp</a><br>
+<br>
+結果を表にまとめたのがこちら。<br>
+<a href="./Bernoulli/result.html">result.html</a><br>
+<a href="./Bernoulli/result.xlsx">result.xlsx</a><br>
+<table>
+<tr>
+	<td><img src="./Bernoulli/image005.gif" align="left" border="0" alt="image005.gif" width="482" height="290"></td>
+	<td><img src="./Bernoulli/image006.gif" align="left" border="0" alt="image006.gif" width="483" height="291"></td>
+</tr>
+</table><br>
+<table border="1">
+<tr>
+	<td>検証回数</td>
+	<td>総試行回数</td>
+</tr>
+<tr>
+	<td>1回目</td>
+	<td>600</td>
+</tr>
+<tr>
+	<td>2回目</td>
+	<td>6000</td>
+</tr>
+<tr>
+	<td>3回目</td>
+	<td>60000</td>
+</tr>
+<tr>
+	<td>4回目</td>
+	<td>600000</td>
+</tr>
+<tr>
+	<td>5回目</td>
+	<td>6000000</td>
+</tr>
+</table><br>
+グラフから読み取れることは、どの乱数生成法も試行回数が増えるほど<span class="green" title="一番出た事象-一番出なかった事象">事象差</span>は大きくなり、<br>
+試行回数が増えるほど<span class="green" title="一番出た事象の割合-一番出なかった事象の割合">割合差</span>は小さくなっていきます。<br>
+事象差が小さく、割合差も小さいほど、平均的に出ていると言えます。<br>
+<br>
+試行回数が比較的少ないあいだはGetRandNumber()が割合差が小さくて、平均的に出ていると言えます。<br>
+逆に試行回数が増えると、GetRandNumber()は事象差が大きくなり割合差が大きくなります。<br>
+<br>
+<h2>・感想</h2>
+今回の統計は乱数の性質を調べたもので、あまり信憑性がありません。<br>
+試行回数も少し少なかったかな～と思いました。<br>
+なるべく平均的な乱数生成法として、今回の方法が参考になれば幸いです。<br>
+<br>
+<h2>・参考サイト様</h2>
+<a href="http://econom01.cc.sophia.ac.jp/sda/random.htm">1 乱数と確率事象</a><br>
+乱数とベルヌーイ試行について、詳しく書かれています。<br>
+<br>
+<a href="http://www1.cts.ne.jp/~clab/hsample/Func/Func02.html">Ｃ言語講座：srand(  )とrand(  )</a><br>
+rand()とsrand()について簡単に書かれています。<br>
+<br>
+<a href="http://homepage2.nifty.com/natupaji/DxLib/index.html">ＤＸライブラリ置き場　ＨＯＭＥ</a><br>
+GetRand()関数があるDXライブラリの頒布元です。<br>
+すばらしいライブラリをありがとうございます。<br>
+以下DXライブラリとGetRand()のライセンス条項です。<br>
+<blockquote>
+DX Library Copyright (C) 2001-2008 Takumi Yamada.<br>
+<br>
+GetRand()::
+Mersenne Twister<br>
+Copyright (C) 1997 - 2002, Makoto Matsumoto and Takuji Nishimura,<br>
+All rights reserved.<br>
+<br>
+Redistribution and use in source and binary forms, with or without<br>
+modification, are permitted provided that the following conditions<br>
+are met:<br>
+<br>
+1. Redistributions of source code must retain the above copyright<br>
+notice, this list of conditions and the following disclaimer.<br>
+<br>
+2. Redistributions in binary form must reproduce the above copyright<br>
+notice, this list of conditions and the following disclaimer in the<br>
+documentation and/or other materials provided with the distribution.<br>
+<br>
+3. The name of the author may not be used to endorse or promote products<br>
+derived from this software without specific prior written permission.<br>
+<br>
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR<br>
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES<br>
+OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.<br>
+IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,<br>
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT<br>
+NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,<br>
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY<br>
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT<br>
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF<br>
+THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.<br>
+</blockquote>
+<br>
+次回はfunc.cpp内の関数format()についての解説をしたいと思います。<br>
+<hr>
+<script type="text/javascript">
+write_locate(13);
+topic("index","../index.html");
+topic("プログラムテクニック覚え書き","./program_menu.html");
+topic(document.title,"./"+get_file(location.href));
+</script>
+</p>
+</body></html>

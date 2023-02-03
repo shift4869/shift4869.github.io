@@ -1,0 +1,92 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>減算系の実装</title>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<link rel="stylesheet" href="../style.css" type="text/css">
+<script type="text/javascript" src="../navigation.js" charset="shift_jis"></script>
+<script type="text/javascript" src="./location_navi.js" charset="shift_jis"></script>
+
+<!--<base href="http://1st.geocities.jp/shift486909/">-->
+</head>
+<body>
+<p align="left"><br>
+<pre>
+#include &lt;iostream>
+#include &lt;math.h>
+#include "GreatNumberLib.h"
+
+//GreatNumber減算演算子
+GreatNumber GreatNumber::operator -(const GreatNumber &g)const{
+	GreatNumber gtmp=g;
+	GreatNumber ptmp=*this;
+
+	int psize=p.size();
+	int gsize=g.p.size();
+
+	//マイナス予測
+	if(operator<(g))throw "- too big error";
+
+	//桁合わせ
+	if(psize&gt;gsize){
+		int t=psize-gsize;
+		for(int i=0;i&lt;t;i++){
+			gtmp.p.push_front(0);
+			gsize++;
+		}
+	}
+
+	//減算処理
+	for(int i=gsize-1;i>=0;i--){
+		ptmp.p[i]=ptmp.p[i]-gtmp.p[i];
+	}
+
+	//繰り下がり処理
+	for(int i=psize-1;i>0;i--){
+		while(ptmp.p[i]<0){
+			ptmp.p[i]+="10;
+			ptmp.p[i-1]--;
+		}
+	}
+
+	//桁減少処理
+	if(ptmp.p[0]<=0){
+		ptmp.p.pop_front();
+	}
+
+	return" ptmp;
+}
+
+GreatNumber GreatNumber::operator -(const int &k)const{
+	GreatNumber tmp=k;
+	return operator -(tmp);
+}
+
+GreatNumber operator -(const int &k,const GreatNumber &g){
+	GreatNumber tmp=k;
+	return tmp.operator -(g);
+}
+
+GreatNumber& GreatNumber::operator -=(const GreatNumber &g){
+	return *this=operator -(g);
+}
+
+GreatNumber& GreatNumber::operator -=(const int &k){
+	GreatNumber tmp=k;
+	return *this=operator -(tmp);
+}
+
+GreatNumber GreatNumber::operator --(){
+	*this-=1;
+	return *this;
+}
+
+GreatNumber GreatNumber::operator --(int d){
+	GreatNumber tmp=*this;
+	*this-=1;
+	return tmp;
+}
+
+</pre>
+</p>
+</body></html>
